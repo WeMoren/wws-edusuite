@@ -1,0 +1,12 @@
+.dashboard{
+    display: flex;
+    flex-direction: column;
+    gap: 2rem;
+    
+}
+.dashboard__stats{
+    display: grid;
+   grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 1.5rem;
+    
+}

@@ -1,0 +1,25 @@
+.stat-card{
+    background-color: #ffffff;
+    border-radius: 12px;
+    padding: 1.5rem;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+    transition: transform .4s ease, box-shadow .4s ease;
+    cursor: pointer;
+}
+.stat-card:hover{
+   transform: translateY(-5px);
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.12);
+   
+}
+
+.stat-card__title{
+    margin: 0;
+    font-size: 1rem;
+    color: #6b7280;
+}
+.stat-card__value{
+    margin-top: 0.75rem;
+    font-size: 1rem;
+    font-weight: bold;
+    color: #111827;
+}
