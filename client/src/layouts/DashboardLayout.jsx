@@ -1,16 +1,22 @@
 import React from 'react'
 import { Outlet } from 'react-router-dom'
-
+import Header from '../components/layout/Header/Header'
+import Sidebar from '../components/layout/Sidebar/Sidebar'
+import "../components/layout/Layout.css"
 const DashboardLayout = () => {
   return (
     <>
-        <header>
-            <h2>WWS EduSuite</h2>
-        </header>
+        <Header/>
+           
+        <div className="dashboard-layout">
 
-        <main>
-            <Outlet/>
-        </main>
+            <Sidebar/>
+
+            <main className='dashboard-content'>
+                 <Outlet/>
+            </main>
+        </div>
+        
     </>
   )
 }

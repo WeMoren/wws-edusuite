@@ -1,0 +1,30 @@
+.header{
+    height: 70px;
+    background-color: #ffffff;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0 2rem;
+    border-bottom: 1px solid #e5e7eb;
+ }
+
+ .header__logo h2{
+    font-size: 1.3rem;
+ }
+
+ .header__actions{
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+ }
+
+ .header__actions button{
+    border: none;
+    background: none;
+    cursor: pointer;
+    font-size: 1.2rem;
+ }
+
+ .header__profile{
+    font-weight: 600;
+ }

@@ -1,0 +1,30 @@
+.sidebar {
+    width: 250px;
+    background-color: #ffffff;
+    border-right: 1px solid #e5e7eb;
+    padding: 1rem 0;
+}
+.sidebar__menu {
+    list-style:none;
+    margin: 0;
+    padding: 0;
+}
+.sidebar__link {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.9rem 1.5rem;
+    color: #374151;
+    text-decoration: none;
+    transition: background-color 0.2s ease;
+}
+
+.sidebar__link:hover {
+    background-color: #f3f4f6;
+}
+
+.sidebar__link.active {
+    background-color: #e0f2fe;
+    color: #0369a1;
+    font-weight: 600;
+}
