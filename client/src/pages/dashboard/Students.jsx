@@ -1,9 +1,11 @@
 import React from 'react'
-
+import StudentTable from '../../components/students/StudentTable'
 const Students = () => {
   return (
-    <div>
+    <div className='student-page'>
         <h1>Students</h1>
+
+        <StudentTable/>
     </div>
   )
 }
