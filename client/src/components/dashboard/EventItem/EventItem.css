@@ -1,0 +1,20 @@
+.event-item{
+    padding: 1rem 0;
+    border-bottom: 1px solid #e5e7eb;
+}
+
+.event-item:last-child{
+    border-bottom: none;
+}
+
+.event-item__title{
+    margin: 0;
+   font-size: 1rem;
+   color: #111827;
+}
+
+.event-item__date{
+    margin-top: 0.35rem;
+    font-size:0.9rem;
+    color: #6b7280;
+}

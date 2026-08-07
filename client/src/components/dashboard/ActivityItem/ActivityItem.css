@@ -1,0 +1,20 @@
+.activity-item{
+    padding: 1rem 0;
+    border-bottom: 1px solid #e5e7eb;
+}
+
+.activity-item:last-child{
+    border-bottom: none;
+}
+
+.activity-item__title{
+    margin: 0;
+    font-size: 1rem;
+    color: #111827;
+}
+
+.activity-item__time{
+    margin-top: 0.35rem;
+    font-size: 0.9rem;
+    color: #6b7280
+}
