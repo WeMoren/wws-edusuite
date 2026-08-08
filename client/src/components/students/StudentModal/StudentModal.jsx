@@ -3,7 +3,7 @@ import React from 'react'
 import "./StudentModal.css"
 
 
-const StudentModal = ({onClose}) => {
+const StudentModal = ({onClose, onAddStudent}) => {
     const [student, setStudent] = useState({
         admissionNo:"",
         firstName:"",
@@ -24,7 +24,8 @@ const StudentModal = ({onClose}) => {
 
     const handleSubmit = (e) => {
         e.preventDefault();
-        console.log(student)
+        onAddStudent(student)
+        onClose()
     }
 
 

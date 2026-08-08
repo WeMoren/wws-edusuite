@@ -2,9 +2,11 @@ import React, {useState} from 'react'
 import StudentTable from '../../components/students/StudentTable'
 import "./Students.css"
 import StudentModal from '../../components/students/StudentModal/StudentModal'
+import initialStudents from "../../data/students"
 
 const Students = () => {
     const [showModal, setShowModal] = useState(false)
+    const [students, setStudents] = useState(initialStudents) 
   return (
     <div className='student-page'>
         <div className="students-page__header">
@@ -18,11 +20,19 @@ const Students = () => {
              </button>
         </div>
 
-        <StudentTable/>
+        <StudentTable students ={students}/>
 
         {showModal && (
             <StudentModal
                 onClose={() => setShowModal(false) }
+                onAddStudent={(newStudent) => {
+                    setStudents((prevStudents) =>  [
+                        ...prevStudents, {
+                            ...newStudent,
+                            id:prevStudents.length + 1
+                        }
+                    ])
+                }}
         />)}
 
     </div>

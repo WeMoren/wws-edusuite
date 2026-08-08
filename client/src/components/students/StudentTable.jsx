@@ -1,8 +1,8 @@
-import React from 'react'
-import "./StudentTable.css"
-import students from '../../data/students'
+import React from 'react';
+import "./StudentTable.css";
 
-const StudentTable = () => {
+
+const StudentTable = ({students}) => {
   return (
     <div className='student-table'>
         <table>

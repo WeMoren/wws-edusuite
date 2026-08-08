@@ -8,7 +8,7 @@ const students =  [
         gender: "Male",
     },
     {
-        id:1,
+        id:2,
         admissionNo: "ST002",
         firstName: "Mary",
         lastName: "James",
@@ -16,7 +16,7 @@ const students =  [
         gender: "Female",
     },
     {
-        id:1,
+        id:3,
         admissionNo: "ST003",
         firstName: "David",
         lastName: "Wilson",
