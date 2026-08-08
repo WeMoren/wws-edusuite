@@ -7,6 +7,7 @@ import initialStudents from "../../data/students"
 const Students = () => {
     const [showModal, setShowModal] = useState(false)
     const [editingStudent, setEditingStudent] = useState(null)
+    const [searchTerm, setSearchTerm] = useState("")
     const [students, setStudents] = useState(() => {
         const savedStudents = localStorage.getItem("students")
         return savedStudents ? JSON.parse(savedStudents) : initialStudents;
@@ -15,6 +16,17 @@ const Students = () => {
     useEffect(() => {
         localStorage.setItem("students", JSON.stringify(students))
     }, [students])
+
+    const filteredStudents = students.filter((student) => {
+        const search = searchTerm.toLowerCase();
+
+        return (
+            student.admissionNo.toLowerCase().includes(search)  ||
+            student.firstName.toLowerCase().includes(search)  ||
+            student.lastName.toLowerCase().includes(search)  ||
+            student.class.toLowerCase().includes(search)  
+        )
+    })
   return (
     <div className='student-page'>
         <div className="students-page__header">
@@ -28,8 +40,17 @@ const Students = () => {
              </button>
         </div>
 
+        <div className="student-page__search">
+            <input 
+                type="text"
+                placeholder='Search students'
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                />
+        </div>
+
         <StudentTable 
-            students ={students}
+            students ={filteredStudents}
             onEdit={(students)  =>  {
                 setEditingStudent(students);
                 setShowModal(true)
