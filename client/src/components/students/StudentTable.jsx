@@ -27,11 +27,16 @@ const StudentTable = ({students, onEdit, onDelete}) => {
                         <td>{student.class}</td>
                         <td>{student.gender}</td>
                         <td>
-                            <button onClick={() => onEdit(student)}>
+                            <div className="student-table__actions">
+                                <button
+                                className='student-table__edit'
+                                 onClick={() => onEdit(student)}>
                                  Edit
                             </button>
 
-                            <button onClick={() => {
+                            <button 
+                            className='student-table__delete'
+                            onClick={() => {
                                 const confirmed = window.confirm(
                                     `Delete ${student.firstName}  ${student.lastName}?`
                                 );
@@ -43,6 +48,10 @@ const StudentTable = ({students, onEdit, onDelete}) => {
                                 Delete
                             </button>
                         
+
+
+
+                            </div>                      
                         </td>
                      </tr>
                 ) )} 

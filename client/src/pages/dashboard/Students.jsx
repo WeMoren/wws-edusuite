@@ -40,7 +40,7 @@ const Students = () => {
              </button>
         </div>
 
-        <div className="student-page__search">
+        <div className="students-page__search">
             <input 
                 type="text"
                 placeholder='Search students'

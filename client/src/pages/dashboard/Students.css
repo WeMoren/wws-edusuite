@@ -24,3 +24,54 @@
     background: #1d4ed8;
 }
 
+.students-page__search {
+  margin: 1.5rem 0;
+}
+
+.students-page__search input{
+  width: 100%;
+  max-width: 400px;
+  padding: 0.75rem 1rem;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  font-size: 1rem;
+}
+
+
+.students-page__search input:focus{
+  outline: none;
+  border-color: #2563eb;
+}
+
+.student-table__actions {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.student-table__actions button{
+  padding: 0.4rem 0.75rem;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 0.9rem;
+}
+
+.student-table__edit {
+  background-color: #2563eb;
+  color: white;
+}
+
+
+.student-table__delete {
+  background-color: #dc2626;
+  color: white;
+}
+
+.student-table__edit:hover {
+    opacity: 0.9;
+}
+
+.student-table__delete:hover {
+    opacity: 0.9;
+}
+
