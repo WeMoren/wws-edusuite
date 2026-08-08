@@ -6,6 +6,7 @@ import initialStudents from "../../data/students"
 
 const Students = () => {
     const [showModal, setShowModal] = useState(false)
+    const [editingStudent, setEditingStudent] = useState(null)
     const [students, setStudents] = useState(() => {
         const savedStudents = localStorage.getItem("students")
         return savedStudents ? JSON.parse(savedStudents) : initialStudents;
@@ -27,19 +28,40 @@ const Students = () => {
              </button>
         </div>
 
-        <StudentTable students ={students}/>
+        <StudentTable 
+            students ={students}
+            onEdit={(students)  =>  {
+                setEditingStudent(students);
+                setShowModal(true)
+            }}
+        />
 
         {showModal && (
             <StudentModal
                 onClose={() => setShowModal(false) }
-                onAddStudent={(newStudent) => {
-                    setStudents((prevStudents) =>  [
-                        ...prevStudents, {
-                            ...newStudent,
-                            id:prevStudents.length + 1
-                        }
-                    ])
-                }}
+                studentToEdit={editingStudent} 
+                onAddStudent={(studentData, studentToEdit) => {
+                    if (studentToEdit) {
+                        setStudents((prevStudents) =>
+                        prevStudents.map((student) =>
+                            student.id === studentToEdit.id
+                            ? { ...studentData, id: student.id }
+                            : student
+                        )
+                        );
+                    } else {
+                        setStudents((prevStudents) => [
+                        ...prevStudents,
+                        {
+                            ...studentData,
+                            id: prevStudents.length + 1,
+                        },
+                        ]);
+                    }
+                    setShowModal(false);
+                    setEditingStudent(null)
+                    }}
+                    
         />)}
 
     </div>

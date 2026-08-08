@@ -1,9 +1,9 @@
-import { useState } from "react"
+import {useEffect, useState } from "react"
 import React from 'react'
 import "./StudentModal.css"
 
 
-const StudentModal = ({onClose, onAddStudent}) => {
+const StudentModal = ({onClose, onAddStudent, studentToEdit}) => {
     const [student, setStudent] = useState({
         admissionNo:"",
         firstName:"",
@@ -11,6 +11,12 @@ const StudentModal = ({onClose, onAddStudent}) => {
         class:"",
         gender:"Male"
     })
+
+    useEffect(() =>{
+        if(studentToEdit){
+            setStudent(studentToEdit)
+        }
+    },  [studentToEdit])
 
     const handleChange = (e) =>  {
         const  {name, value} = e.target;
@@ -24,8 +30,9 @@ const StudentModal = ({onClose, onAddStudent}) => {
 
     const handleSubmit = (e) => {
         e.preventDefault();
-        onAddStudent(student)
-        onClose()
+        onAddStudent(student, studentToEdit)
+        setStudent(initialStudent)
+        
     }
 
 

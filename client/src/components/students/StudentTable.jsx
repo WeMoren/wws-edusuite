@@ -2,7 +2,7 @@ import React from 'react';
 import "./StudentTable.css";
 
 
-const StudentTable = ({students}) => {
+const StudentTable = ({students, onEdit}) => {
   return (
     <div className='student-table'>
         <table>
@@ -14,6 +14,7 @@ const StudentTable = ({students}) => {
                     <th>Last Name</th>
                     <th>Class</th>
                     <th>Gender</th>
+                    <th>Actions</th>
                 </tr>
             </thead>
 
@@ -25,6 +26,9 @@ const StudentTable = ({students}) => {
                         <td>{student.lastName}</td>
                         <td>{student.class}</td>
                         <td>{student.gender}</td>
+                        <td><button
+                            onClick={() => onEdit(student)}
+                        >Edit</button></td>
                      </tr>
                 ) )} 
             </tbody>
