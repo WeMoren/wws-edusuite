@@ -25,20 +25,36 @@
 }
 
 .students-page__search {
-  margin: 1.5rem 0;
+    display: flex;
+    align-items: center;
+    margin: 1.5rem 0;
+    gap: 0.75rem;
+    flex-wrap: wrap;
 }
 
-.students-page__search input{
-  width: 100%;
+.students-page__search input,
+.students-page__search select{
+ /* width: 100%;
   max-width: 400px;
+  */
   padding: 0.75rem 1rem;
   border: 1px solid #d1d5db;
   border-radius: 8px;
   font-size: 1rem;
+  background: white;
 }
 
+.students-page__search input {
+    width: 100%;
+    max-width: 400px;
+}
+.students-page__search select {
+    min-width: 150px;
+    cursor: pointer;
+}
 
-.students-page__search input:focus{
+.students-page__search input:focus,
+.students-page__search select:focus{
   outline: none;
   border-color: #2563eb;
 }

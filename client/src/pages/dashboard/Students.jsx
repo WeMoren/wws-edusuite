@@ -5,9 +5,12 @@ import StudentModal from '../../components/students/StudentModal/StudentModal'
 import initialStudents from "../../data/students"
 
 const Students = () => {
-    const [showModal, setShowModal] = useState(false)
-    const [editingStudent, setEditingStudent] = useState(null)
-    const [searchTerm, setSearchTerm] = useState("")
+    const [showModal, setShowModal] = useState(false);
+    const [editingStudent, setEditingStudent] = useState(null);
+    const [searchTerm, setSearchTerm] = useState("");
+    const [classFilter, setClassFilter] = useState("");
+    const [genderFilter, setGenderFilter] = useState("");
+
     const [students, setStudents] = useState(() => {
         const savedStudents = localStorage.getItem("students")
         return savedStudents ? JSON.parse(savedStudents) : initialStudents;
@@ -20,12 +23,21 @@ const Students = () => {
     const filteredStudents = students.filter((student) => {
         const search = searchTerm.toLowerCase();
 
-        return (
+        const matchesSearch =
             student.admissionNo.toLowerCase().includes(search)  ||
             student.firstName.toLowerCase().includes(search)  ||
             student.lastName.toLowerCase().includes(search)  ||
-            student.class.toLowerCase().includes(search)  
-        )
+            student.class.toLowerCase().includes(search);
+            
+            
+            const matchesClass = 
+                classFilter === "" || student.class === classFilter;
+
+            const matchesGender = 
+                genderFilter === "" || student.gender === genderFilter;
+                
+          return matchesSearch && matchesClass && matchesGender      
+        
     })
   return (
     <div className='student-page'>
@@ -47,6 +59,29 @@ const Students = () => {
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 />
+
+
+                <select 
+                    value={classFilter}
+                    onChange={(e) => setClassFilter(e.target.value)}
+                >
+                    <option value="">All Classes</option>
+                    <option value="JSS 1">JSS 1</option>
+                    <option value="JSS 2">JSS 2</option>
+                    <option value="JSS 3">JSS 3</option>
+                    <option value="SS 1">JSS 1</option>
+                    <option value="SS 2">JSS 2</option>
+                    <option value="SS 3">JSS 3</option>
+                </select>
+
+                <select
+                    value={genderFilter}
+                    onChange={(e)  => setGenderFilter(e.target.value)}
+                >
+                    <option value="">All Gender</option>
+                    <option value="Male">Male</option>
+                    <option value="Female">Female</option>
+                </select>
         </div>
 
         <StudentTable 
