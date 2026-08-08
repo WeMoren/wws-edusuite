@@ -1,4 +1,4 @@
-import React, {useState} from 'react'
+import React, {useEffect, useState} from 'react'
 import StudentTable from '../../components/students/StudentTable'
 import "./Students.css"
 import StudentModal from '../../components/students/StudentModal/StudentModal'
@@ -6,7 +6,14 @@ import initialStudents from "../../data/students"
 
 const Students = () => {
     const [showModal, setShowModal] = useState(false)
-    const [students, setStudents] = useState(initialStudents) 
+    const [students, setStudents] = useState(() => {
+        const savedStudents = localStorage.getItem("students")
+        return savedStudents ? JSON.parse(savedStudents) : initialStudents;
+    });
+
+    useEffect(() => {
+        localStorage.setItem("students", JSON.stringify(students))
+    }, [students])
   return (
     <div className='student-page'>
         <div className="students-page__header">
