@@ -2,7 +2,7 @@ import React from 'react';
 import "./StudentTable.css";
 
 
-const StudentTable = ({students, onEdit}) => {
+const StudentTable = ({students, onEdit, onDelete}) => {
   return (
     <div className='student-table'>
         <table>
@@ -26,9 +26,24 @@ const StudentTable = ({students, onEdit}) => {
                         <td>{student.lastName}</td>
                         <td>{student.class}</td>
                         <td>{student.gender}</td>
-                        <td><button
-                            onClick={() => onEdit(student)}
-                        >Edit</button></td>
+                        <td>
+                            <button onClick={() => onEdit(student)}>
+                                 Edit
+                            </button>
+
+                            <button onClick={() => {
+                                const confirmed = window.confirm(
+                                    `Delete ${student.firstName}  ${student.lastName}?`
+                                );
+
+                                if(confirmed){
+                                    onDelete(student.id)
+                                }
+                            }}>
+                                Delete
+                            </button>
+                        
+                        </td>
                      </tr>
                 ) )} 
             </tbody>

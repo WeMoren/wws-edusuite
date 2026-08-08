@@ -34,6 +34,14 @@ const Students = () => {
                 setEditingStudent(students);
                 setShowModal(true)
             }}
+
+            onDelete={(studentId) => {
+                setStudents((prevStudents) =>
+                prevStudents.filter(
+                (student) => student.id !== studentId
+      )
+    );
+  }}
         />
 
         {showModal && (
