@@ -2,7 +2,7 @@ import React from 'react';
 import "./StudentTable.css";
 
 
-const StudentTable = ({students, onEdit, onDelete}) => {
+const StudentTable = ({students, onEdit, onDelete, onView}) => {
   return (
     <div className='student-table'>
         <table>
@@ -22,7 +22,14 @@ const StudentTable = ({students, onEdit, onDelete}) => {
                 {students.map((student) => (
                      <tr key={student.id}>
                         <td>{student.admissionNo}</td>
-                        <td>{student.firstName}</td>
+                        <td>
+                            <button 
+                                className="student-table__name"
+                                onClick={()  => onView(student)}
+                            >
+                                {student.firstName}
+                            </button>
+                        </td>
                         <td>{student.lastName}</td>
                         <td>{student.class}</td>
                         <td>{student.gender}</td>

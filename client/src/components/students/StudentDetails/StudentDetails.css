@@ -1,0 +1,79 @@
+.student-details__overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  z-index: 1000;
+}
+
+.student-details {
+  width: 90%;
+  max-width: 500px;
+  background: white;
+  border-radius: 10px;
+  padding: 1.5rem;
+}
+
+.student-details__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.student-details__header button {
+  border: none;
+  background: none;
+  font-size: 1.5rem;
+  cursor: pointer;
+}
+
+.student-details__info {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 1rem;
+  margin-top: 1.5rem;
+}
+
+.student-details__info p {
+  margin: 0;
+  padding: 0.75rem;
+  background: #f8fafc;
+  border-radius: 8px;
+  display: flex;flex-direction: column;
+  gap: 0.3rem;
+}
+
+.student-details__info strong {
+  font-size: 0.8rem;
+  color: #64748b;
+}
+
+@media(max-width:600px){
+    .student-details__overlay{
+        grid-template-columns: 1fr;
+    } 
+} 
+
+
+.student-details__actions {
+  margin-top: 1.5rem;
+}
+
+.student-details__actions button {
+  width: 100%;
+  padding: 0.75rem 1rem;
+  border: none;
+  border-radius: 8px;
+  background: #2563eb;
+  color: white;
+  font-size: 1rem;
+  cursor: pointer;
+}
+
+.student-details__actions button:hover {
+  opacity: 0.9;
+}

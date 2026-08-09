@@ -3,6 +3,7 @@ import StudentTable from '../../components/students/StudentTable'
 import "./Students.css"
 import StudentModal from '../../components/students/StudentModal/StudentModal'
 import initialStudents from "../../data/students"
+import StudentDetails from '../../components/students/StudentDetails/StudentDetails'
 
 const Students = () => {
     const [showModal, setShowModal] = useState(false);
@@ -12,6 +13,7 @@ const Students = () => {
     const [genderFilter, setGenderFilter] = useState("");
     const [currentPage, setCurrentPage] = useState(1);
     const studentsPerPage = 5;
+    const [selectedStudent, setSelectedStudent] = useState(null)
 
     const [students, setStudents] = useState(() => {
         const savedStudents = localStorage.getItem("students")
@@ -117,7 +119,23 @@ const Students = () => {
       )
     );
   }}
-        />
+
+        onView={(student)  => {
+            setSelectedStudent(student)
+        }}
+    />
+
+        {selectedStudent && (
+            <StudentDetails
+                student={selectedStudent}
+                onClose={() => setSelectedStudent(null)}
+                onEdit={(student) => {
+                    setSelectedStudent(null)
+                    setEditingStudent(student)
+                    setShowModal(true)
+                }}
+            />
+        )}
 
         { totalPages > 1 && (
             <div className="students-page__pagination">
