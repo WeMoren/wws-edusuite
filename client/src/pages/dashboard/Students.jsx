@@ -10,6 +10,8 @@ const Students = () => {
     const [searchTerm, setSearchTerm] = useState("");
     const [classFilter, setClassFilter] = useState("");
     const [genderFilter, setGenderFilter] = useState("");
+    const [currentPage, setCurrentPage] = useState(1);
+    const studentsPerPage = 5;
 
     const [students, setStudents] = useState(() => {
         const savedStudents = localStorage.getItem("students")
@@ -18,7 +20,14 @@ const Students = () => {
 
     useEffect(() => {
         localStorage.setItem("students", JSON.stringify(students))
-    }, [students])
+    }, [students]);
+
+
+        useEffect(() => {
+    setCurrentPage(1);
+    }, [searchTerm, classFilter, genderFilter]);
+
+
 
     const filteredStudents = students.filter((student) => {
         const search = searchTerm.toLowerCase();
@@ -38,7 +47,16 @@ const Students = () => {
                 
           return matchesSearch && matchesClass && matchesGender      
         
-    })
+    });
+
+    const totalPages = Math.ceil(filteredStudents.length / studentsPerPage)
+
+    const startIndex = (currentPage - 1) * studentsPerPage;
+
+    const currentStudents = filteredStudents.slice(
+        startIndex, startIndex + studentsPerPage
+    );
+
   return (
     <div className='student-page'>
         <div className="students-page__header">
@@ -85,7 +103,8 @@ const Students = () => {
         </div>
 
         <StudentTable 
-            students ={filteredStudents}
+            students ={currentStudents}
+            
             onEdit={(students)  =>  {
                 setEditingStudent(students);
                 setShowModal(true)
@@ -99,6 +118,28 @@ const Students = () => {
     );
   }}
         />
+
+        { totalPages > 1 && (
+            <div className="students-page__pagination">
+                <button
+                    onClick={() => setCurrentPage((prev) => prev - 1)}
+                    disabled={currentPage === 1} 
+                >
+                    Previous
+                </button>
+
+                <span>
+                    Page {currentPage} of {totalPages}  
+                </span>
+
+                <button
+                    onClick={() => setCurrentPage((prev) => prev + 1)}
+                    disabled={currentPage === totalPages}
+                >
+                    Next
+                </button>
+            </div>
+        )}
 
         {showModal && (
             <StudentModal
@@ -118,8 +159,10 @@ const Students = () => {
                         ...prevStudents,
                         {
                             ...studentData,
-                            id: prevStudents.length + 1,
-                        },
+                            id: prevStudents.length > 0 
+                            ? Math.max(...prevStudents.map((student) => student.id)) + 1 
+                            : 1
+                        }
                         ]);
                     }
                     setShowModal(false);
