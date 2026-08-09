@@ -1,0 +1,25 @@
+.teacher-table {
+  width: 100%;
+  overflow-x: auto;
+}
+
+.teacher-table table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.teacher-table th,
+.teacher-table td {
+  padding: 0.9rem 1rem;
+  text-align: left;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.teacher-table th {
+  font-weight: 600;
+  background: #f8fafc;
+}
+
+.teacher-table tr:hover {
+  background: #f8fafc;
+}

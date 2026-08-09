@@ -19,7 +19,8 @@ const StudentTable = ({students, onEdit, onDelete, onView}) => {
             </thead>
 
             <tbody>
-                {students.map((student) => (
+                {students.length  > 0 ? (
+                students.map((student) => (
                      <tr key={student.id}>
                         <td>{student.admissionNo}</td>
                         <td>
@@ -33,6 +34,8 @@ const StudentTable = ({students, onEdit, onDelete, onView}) => {
                         <td>{student.lastName}</td>
                         <td>{student.class}</td>
                         <td>{student.gender}</td>
+
+
                         <td>
                             <div className="student-table__actions">
                                 <button
@@ -54,14 +57,17 @@ const StudentTable = ({students, onEdit, onDelete, onView}) => {
                             }}>
                                 Delete
                             </button>
-                        
-
-
-
                             </div>                      
                         </td>
                      </tr>
-                ) )} 
+                ))
+                ) : (
+                    <tr>
+                        <td colSpan="6" className="student-table__empty">
+                            No students found.
+                        </td>
+                    </tr>
+                )}
             </tbody>
         </table>
     </div>
