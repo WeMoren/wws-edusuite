@@ -1,10 +1,10 @@
 import React from 'react'
-
+import "./Header.css"
 const Header = () => {
   return (
     <header className='header'>
         <div className="header__logo">
-            <h2>WWS EduSuit</h2>
+            <h2>WWS EduSuite</h2>
         </div>
 
         <div className="header__actions">

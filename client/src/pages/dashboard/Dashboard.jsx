@@ -28,7 +28,7 @@ const Dashboard = () => {
               />
               
               <StatCard
-                  title="Teacherss"
+                  title="Teachers"
                   value={dashboardStats.teachers}
               />
               <StatCard

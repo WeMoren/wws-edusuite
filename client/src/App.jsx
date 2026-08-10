@@ -10,6 +10,7 @@ import Accountant from "./pages/dashboard/Accountant";
 import Library from "./pages/dashboard/Library";
 import Reception from "./pages/dashboard/Reception";
 import Settings from "./pages/dashboard/Settings";
+import Classes from "./pages/dashboard/Classes";
 const App = () => {
   return (
     <Routes>
@@ -19,6 +20,7 @@ const App = () => {
       <Route index element={<Dashboard/>} />
           <Route path="students" element={<Students />}/>
           <Route path="teachers" element={<Teachers />}/>
+          <Route path="classes" element={<Classes />}/> 
           <Route path="parents" element={<Parents />}/>
           <Route path="accountant" element={<Accountant />}/>
           <Route path="library" element={<Library />}/>

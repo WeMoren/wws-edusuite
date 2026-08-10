@@ -11,42 +11,55 @@ const sidebarMenu =  [
         path: "/dashboard/students",
         icon: "👨‍🎓"
      },
+
+     
+
      {
         id: 3,
         label: "Teacher",
         path: "/dashboard/teachers",
         icon: "👨‍🏫"
      },
+
      {
         id: 4,
+        label: "Classes",
+        path: "/dashboard/classes",
+        icon: "🏠"
+     },
+
+
+     {
+        id: 5,
         label: "Parents",
         path: "/dashboard/parents",
         icon: "👨‍👩‍👧"
      },
      {
-        id: 5,
+        id: 6,
         label: "Accountant",
         path: "/dashboard/accountant",
         icon: "💰"
      },
      {
-        id: 6,
+        id: 7,
         label: "Library",
         path: "/dashboard/library",
         icon: "📚"
      },
      {
-        id: 7,
+        id: 8,
         label: "Reception",
         path: "/dashboard/reception",
         icon: "🛎️"
      },
      {
-        id: 8,
+        id: 9,
         label: "Setings",
         path: "/dashboard/settings",
         icon: "⚙️"
      },
+     
 ]
 
 export default sidebarMenu

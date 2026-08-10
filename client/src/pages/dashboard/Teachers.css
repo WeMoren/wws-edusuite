@@ -10,6 +10,9 @@
   border: none;
   border-radius: 8px;
   cursor: pointer;
+  background: #2563eb;
+  color: white;
+  font-weight: 600;
 }
 
 
@@ -46,3 +49,29 @@
   outline: none;
   border-color: #2563eb;
 }
+
+
+.teachers-page__pagination {
+  display: flex;
+  align-items: center;
+  justify-content:start;
+  gap: 1rem;
+  margin-top: 1.5rem;
+}
+
+
+.teachers-page__pagination button {
+  padding: 0.6rem 1rem;
+  border: none;
+  border-radius: 6px;
+  background: #2563eb;
+  color: white;
+  cursor: pointer;
+}
+
+
+.teachers-page__pagination button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+

@@ -4,12 +4,13 @@
     gap: 1.5rem;
 }
 
-.students-page{
+.students-page header{
     display: flex;
     flex-direction: column;
     justify-content: space-between;
     align-items: center;
 }
+
 .students-page__button{
     padding: 0.75rem 1.25rem;
     border: none;
@@ -89,5 +90,29 @@
 
 .student-table__delete:hover {
     opacity: 0.9;
+}
+
+.students-page__pagination {
+  display: flex;
+  align-items: center;
+  justify-content:start;
+  gap: 1rem;
+  margin-top: 1.5rem;
+}
+
+
+.students-page__pagination button {
+  padding: 0.6rem 1rem;
+  border: none;
+  border-radius: 6px;
+  background: #2563eb;
+  color: white;
+  cursor: pointer;
+}
+
+
+.students-page__pagination button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 

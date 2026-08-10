@@ -1,30 +1,82 @@
-.header{
-    height: 70px;
-    background-color: #ffffff;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 0 2rem;
-    border-bottom: 1px solid #e5e7eb;
- }
+.header {
+  height: 70px;
+  padding: 0 1.5rem;
 
- .header__logo h2{
-    font-size: 1.3rem;
- }
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
 
- .header__actions{
-    display: flex;
-    align-items: center;
-    gap: 1rem;
- }
+  background: #ffffff;
+  border-bottom: 1px solid #e5e7eb;
 
- .header__actions button{
-    border: none;
-    background: none;
-    cursor: pointer;
-    font-size: 1.2rem;
- }
+  position: sticky;
+  top: 0;
+  z-index: 100;
+}
 
- .header__profile{
-    font-weight: 600;
- }
+.header__logo h2 {
+  margin: 0;
+  font-size: 1.3rem;
+  font-weight: 700;
+}
+
+.header__actions {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.header__actions > button {
+  width: 40px;
+  height: 40px;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  border: none;
+  border-radius: 50%;
+
+  background: #f3f4f6;
+
+  font-size: 1.1rem;
+  cursor: pointer;
+
+  transition: background 0.2s ease;
+}
+
+.header__actions > button:hover {
+  background: #e5e7eb;
+}
+
+.header__profile {
+  display: flex;
+  align-items: center;
+
+  padding: 0.5rem 0.85rem;
+
+  border-radius: 8px;
+  background: #f3f4f6;
+
+  font-weight: 600;
+}
+
+@media (max-width: 600px) {
+  .header {
+    height: 60px;
+    padding: 0 1rem;
+  }
+
+  .header__logo h2 {
+    font-size: 1.1rem;
+  }
+
+  .header__actions {
+    gap: 0.5rem;
+  }
+
+  .header__profile {
+    padding: 0.45rem 0.65rem;
+    font-size: 0.9rem;
+  }
+}

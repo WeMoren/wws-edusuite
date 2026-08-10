@@ -1,0 +1,28 @@
+.class-table {
+  width: 100%;
+  border-collapse: collapse;
+  background: #fff;
+}
+
+
+.class-table table{
+     width: 100%;
+    border-collapse: collapse;
+}
+
+.class-table th,
+.class-table td {
+  padding: 0.85rem 1rem;
+  text-align: left;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.class-table th {
+  font-weight: 600;
+  background: #f9fafb;
+  white-space: nowrap;
+}
+
+.class-table td {
+  vertical-align: middle;
+}

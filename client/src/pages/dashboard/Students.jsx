@@ -75,7 +75,7 @@ const Students = () => {
         <div className="students-page__search">
             <input 
                 type="text"
-                placeholder='Search students'
+                placeholder='Search students...'
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 />

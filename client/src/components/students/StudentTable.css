@@ -27,3 +27,22 @@
   color: #64748b;
   font-size: 1rem;
 }
+
+
+.student-table__actions button {
+  border: none;
+  border-radius: 6px;
+  padding: 0.45rem 0.75rem;
+  font-size: 0.85rem;
+  cursor: pointer;
+}
+
+  .student-table__actions .student-table__edit {
+  background: #e0f2fe;
+  color: #0369a1;
+}
+
+  .student-table__actions .student-table__delete {
+  background: #fee2e2;
+  color: #b91c1c;
+}
