@@ -12,6 +12,9 @@ const Teachers = () => {
     const [searchTerm, setSearchTerm] = useState("");
     const [subjectFilter, setSubjectFilter] = useState("");
     const [genderFilter, setGenderFilter] = useState("");
+    const [currentPage, setCurrentPage] = useState(1);
+    const teachersPerPage = 5;
+
 
     const [teachers, setTeachers] = useState(() => {
     const savedTeachers = localStorage.getItem("teachers");
@@ -42,7 +45,18 @@ const filteredTeachers = teachers.filter((teacher) => {
     return (
         matchesSearch && matchesSubject && matchesGender
     )
-})
+});
+
+    const totalPages = Math.ceil(
+        filteredTeachers.length / teachersPerPage
+        );
+
+        const startIndex = (currentPage - 1) * teachersPerPage;
+
+        const currentTeachers = filteredTeachers.slice(
+        startIndex,
+        startIndex + teachersPerPage
+);
 
     useEffect(() => {
         localStorage.setItem("teachers", JSON.stringify(teachers))
@@ -95,7 +109,7 @@ const filteredTeachers = teachers.filter((teacher) => {
 
 
         <TeacherTable 
-            teachers={filteredTeachers}
+            teachers={currentTeachers}
 
             onEdit={(teacher) => {
                 setEditingTeacher(teacher);
@@ -108,6 +122,28 @@ const filteredTeachers = teachers.filter((teacher) => {
             }}
 
         />
+
+          {totalPages  > 1 && (
+            <div className="teachers-page__pagination">
+                <button
+                    onClick={() => setCurrentPage((prev) => prev - 1)}
+                    disabled={currentPage === 1}
+                >
+                    Previous
+                </button>
+
+                <span>
+                    Page {currentPage} of {totalPages}
+                </span>
+
+                <button
+                    onClick={() => setCurrentPage((prev) => prev + 1)}
+                    disabled={currentPage === totalPages}
+                >
+                    Next
+                </button>
+            </div>
+          )}      
 
         {showModal && (
              <TeacherModal
@@ -134,7 +170,7 @@ const filteredTeachers = teachers.filter((teacher) => {
                      setTeachers((prevTeachers) =>[
                     ...prevTeachers,
                     {
-                        ...newTeacher,
+                        ...teacherData,
                         id:prevTeachers.length > 0 
                         ? Math.max(
                             ...prevTeachers.map((teacher) => teacher.id)
