@@ -23,3 +23,32 @@
 .teacher-table tr:hover {
   background: #f8fafc;
 }
+
+.teacher-table__actions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.teacher-table__actions button {
+  border: none;
+  border-radius: 6px;
+  padding: 0.45rem 0.75rem;
+  font-size: 0.85rem;
+  cursor: pointer;
+}
+
+.teacher-table__edit {
+  background: #e0f2fe;
+  color: #0369a1;
+}
+
+.teacher-table__delete {
+  background: #fee2e2;
+  color: #b91c1c;
+}
+
+.teacher-table__edit:hover,
+.teacher-table__delete:hover {
+  opacity: 0.8;
+}

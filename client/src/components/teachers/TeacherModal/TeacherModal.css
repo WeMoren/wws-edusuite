@@ -1,0 +1,87 @@
+.teacher-modal__overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  padding: 1rem;
+  z-index: 1000;
+}
+
+.teacher-modal {
+  width: 100%;
+  max-width: 500px;
+  max-height: 90vh;
+  overflow-y: auto;
+
+  background: #fff;
+  border-radius: 10px;
+  padding: 1.5rem;
+}
+
+.teacher-modal__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 1.5rem;
+}
+
+.teacher-modal__header h2 {
+  margin: 0;
+}
+
+.teacher-modal__header button {
+  border: none;
+  background: none;
+  font-size: 1.5rem;
+  cursor: pointer;
+}
+
+.teacher-form__group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  margin-bottom: 1rem;
+}
+
+.teacher-form__group label {
+  font-weight: 600;
+}
+
+.teacher-form__group input,
+.teacher-form__group select {
+  width: 100%;
+  padding: 0.75rem;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  font-size: 1rem;
+  box-sizing: border-box;
+}
+
+.teacher-form__group input:focus,
+.teacher-form__group select:focus {
+  outline: none;
+  border-color: #2563eb;
+}
+
+.teacher-modal form > button {
+  width: 100%;
+  padding: 0.8rem 1rem;
+  margin-top: 0.5rem;
+
+  border: none;
+  border-radius: 8px;
+
+  background: #2563eb;
+  color: white;
+
+  font-size: 1rem;
+  cursor: pointer;
+}
+
+.teacher-modal form > button:hover {
+  opacity: 0.9;
+}
