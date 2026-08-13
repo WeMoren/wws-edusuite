@@ -4,7 +4,7 @@ import "./TransactionTable.css";
 
 
 
-const TransactionTable = ({ payments, onEdit, onDelete }) => {
+const TransactionTable = ({ payments, onEdit, onDelete, onReceipt }) => {
   return (
     <div className="transaction-table-wrapper">
       <table className="transaction-table">
@@ -51,6 +51,15 @@ const TransactionTable = ({ payments, onEdit, onDelete }) => {
 
                 <td>
                     <div className="transaction-table__actions">
+
+                        <button
+                            type="button"
+                            className="transaction-table__receipt"
+                            onClick={() => onReceipt(payment)}
+                        >
+                            Receipt
+                        </button>
+
                         <button
                         type="button"
                         className="transaction-table__edit"
@@ -72,7 +81,7 @@ const TransactionTable = ({ payments, onEdit, onDelete }) => {
             ))
           ) : (
             <tr>
-              <td colSpan="5">
+              <td colSpan="6">
                 No transactions found.
               </td>
             </tr>

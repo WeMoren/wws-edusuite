@@ -10,8 +10,9 @@ import ConfirmDialog from "../../components/common/ConfirmDialog/ConfirmDialog";
 import initialExpenses from "../../data/expenses";
 import ExpenseModal from "../../components/accountant/ExpenseModal/ExpenseModal";
 import ExpenseTable from "../../components/accountant/ExpenseTable/ExpenseTable";
-
+import students from "../../data/students";
 import { calculateFinancialSummary } from "../../data/financialSummary";
+import PaymentReceipt from "../../components/accountant/PaymentReceipt/PaymentReceipt";
 
 
 
@@ -23,6 +24,7 @@ const Accountant = () => {
   const [showExpenseModal, setShowExpenseModal] = useState(false);
    const [editingExpense, setEditingExpense] = useState(null);
   const [expenseToDelete, setExpenseToDelete] = useState(null);
+  const [selectedPayment, setSelectedPayment] = useState(null);
 
 
   const [expenses, setExpenses] = useState(()  =>{
@@ -49,6 +51,12 @@ const Accountant = () => {
   useEffect(()  => { 
     localStorage.setItem("payments", JSON.stringify(payments))
   }, [payments])
+
+
+  const selectedStudent = selectedPayment
+  ? students.find((student) => student.id === selectedPayment.studentId)
+  : null;
+
 
   return (
     <div className="accountant-page">
@@ -117,6 +125,7 @@ const Accountant = () => {
                 payments={payments} 
                 onEdit={(payment) => setEditingPayment(payment)}
                  onDelete={(payment) => setPaymentToDelete(payment)}
+                 onReceipt={(payment) => setSelectedPayment(payment)}
             />
         </section>
 
@@ -205,6 +214,16 @@ const Accountant = () => {
             setEditingPayment(null);
           }}
      />
+    )}
+
+
+
+        {selectedPayment && selectedStudent && (
+        <PaymentReceipt
+          payment={selectedPayment}
+          student={selectedStudent}
+          onClose={() => setSelectedPayment(null)}
+      />
     )}
 
 
