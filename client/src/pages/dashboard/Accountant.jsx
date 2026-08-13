@@ -1,7 +1,7 @@
 import React, {useEffect, useState } from "react";
 import "./Accountant.css";
 import FinanceCard from "../../components/accountant/FinanceCard/FinanceCard";
-import financialSummary from "../../data/financialSummary";
+/*import financialSummary from "../../data/financialSummary";*/
 import FinanceAction from "../../components/accountant/FinanceAction/FinanceAction";
 import PaymentModal from "../../components/accountant/PaymentModal/PaymentModal";
 import initialPayments from "../../data/payments";
@@ -10,6 +10,10 @@ import ConfirmDialog from "../../components/common/ConfirmDialog/ConfirmDialog";
 import initialExpenses from "../../data/expenses";
 import ExpenseModal from "../../components/accountant/ExpenseModal/ExpenseModal";
 import ExpenseTable from "../../components/accountant/ExpenseTable/ExpenseTable";
+
+import { calculateFinancialSummary } from "../../data/financialSummary";
+
+
 
 const Accountant = () => {
 
@@ -37,6 +41,9 @@ const Accountant = () => {
 
     return savedPayments ? JSON.parse(savedPayments) : initialPayments;
   });
+
+
+  const financialSummary = calculateFinancialSummary(payments, expenses);
 
 
   useEffect(()  => { 

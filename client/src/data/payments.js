@@ -1,7 +1,7 @@
 const payments = [
   {
     id: 1,
-    studentName: "John Doe",
+    studentId: 1,
     amount: 50000,
     paymentMethod: "Bank Transfer",
     description: "First term fees",
@@ -9,7 +9,7 @@ const payments = [
   },
   {
     id: 2,
-    studentName: "Sarah James",
+    studentId:2,
     amount: 35000,
     paymentMethod: "Cash",
     description: "Tuition payment",
