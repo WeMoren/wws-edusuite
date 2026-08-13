@@ -1,0 +1,118 @@
+.expense-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+  background: rgba(0, 0, 0, 0.5);
+}
+
+.expense-modal__content {
+  width: 100%;
+  max-width: 500px;
+  max-height: 90vh;
+  overflow-y: auto;
+  background: #ffffff;
+  border-radius: 12px;
+  padding: 1.5rem;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2);
+}
+
+.expense-modal__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 1.5rem;
+}
+
+.expense-modal__header h2 {
+  margin: 0;
+  font-size: 1.25rem;
+  color: #111827;
+}
+
+.expense-modal__close {
+  border: none;
+  background: transparent;
+  font-size: 1.5rem;
+  line-height: 1;
+  color: #6b7280;
+  cursor: pointer;
+}
+
+.expense-modal__close:hover {
+  color: #111827;
+}
+
+.expense-form__group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  margin-bottom: 1rem;
+}
+
+.expense-form__group label {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #374151;
+}
+
+.expense-form__group input,
+.expense-form__group select,
+.expense-form__group textarea {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 0.7rem 0.8rem;
+  border: 1px solid #d1d5db;
+  border-radius: 7px;
+  font: inherit;
+  color: #111827;
+  background: #ffffff;
+  outline: none;
+}
+
+.expense-form__group input:focus,
+.expense-form__group select:focus,
+.expense-form__group textarea:focus {
+  border-color: #2563eb;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+}
+
+.expense-form__group textarea {
+  resize: vertical;
+  min-height: 90px;
+}
+
+.expense-modal__actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.75rem;
+  margin-top: 1.5rem;
+}
+
+.expense-modal__actions button {
+  border: none;
+  padding: 0.65rem 1rem;
+  border-radius: 7px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.expense-modal__actions button[type="button"] {
+  background: #f3f4f6;
+  color: #374151;
+}
+
+.expense-modal__actions button[type="submit"] {
+  background: #2563eb;
+  color: #ffffff;
+}
+
+.expense-modal__actions button:hover {
+  opacity: 0.9;
+}
+
+
+

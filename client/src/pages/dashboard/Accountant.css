@@ -1,0 +1,73 @@
+.accountant-page {
+  padding: 1.5rem;
+}
+
+.accountant-page__header {
+  margin-bottom: 1.5rem;
+}
+
+.accountant-page__header h1 {
+  margin: 0;
+}
+
+.accountant-page__header p {
+  margin-top: 0.4rem;
+  color: #6b7280;
+}
+
+.accountant-page__summary {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 1rem;
+}
+
+@media (max-width: 1024px) {
+  .accountant-page__summary {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 600px) {
+  .accountant-page__summary {
+    grid-template-columns: 1fr;
+  }
+}
+
+
+.accountant-page__actions {
+  margin-top: 2rem;
+}
+
+.accountant-page__section-header {
+  margin-bottom: 1rem;
+}
+
+.accountant-page__section-header h2 {
+  margin: 0;
+}
+
+.accountant-page__section-header p {
+  margin: 0.35rem 0 0;
+  color: #6b7280;
+}
+
+.accountant-page__actions-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 1rem;
+  max-width: 700px;
+}
+
+@media (max-width: 600px) {
+  .accountant-page__actions-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.accountant-page__transactions {
+  margin-top: 2rem;
+}
+
+.accountant-page__expenses {
+  margin-top: 2rem;
+}

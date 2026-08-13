@@ -4,8 +4,13 @@ import "./Students.css"
 import StudentModal from '../../components/students/StudentModal/StudentModal'
 import initialStudents from "../../data/students"
 import StudentDetails from '../../components/students/StudentDetails/StudentDetails'
+import ConfirmDialog from "../../components/common/ConfirmDialog/ConfirmDialog";
+
+
 
 const Students = () => {
+
+    const [studentToDelete, setStudentToDelete] = useState(null);
     const [showModal, setShowModal] = useState(false);
     const [editingStudent, setEditingStudent] = useState(null);
     const [searchTerm, setSearchTerm] = useState("");
@@ -113,12 +118,12 @@ const Students = () => {
             }}
 
             onDelete={(studentId) => {
-                setStudents((prevStudents) =>
-                prevStudents.filter(
-                (student) => student.id !== studentId
-      )
-    );
-  }}
+             const student = students.find(
+             (student) => student.id === studentId
+  );
+
+  setStudentToDelete(student);
+}}
 
         onView={(student)  => {
             setSelectedStudent(student)
@@ -158,6 +163,26 @@ const Students = () => {
                 </button>
             </div>
         )}
+
+
+            {studentToDelete && (
+                <ConfirmDialog
+                    title="Delete Student"
+                    message={`Are you sure you want to delete ${studentToDelete.firstName} ${studentToDelete.lastName}?`}
+                    onCancel={() => setStudentToDelete(null)}
+                    onConfirm={() => {
+                    setStudents((prevStudents) =>
+                        prevStudents.filter(
+                        (student) => student.id !== studentToDelete.id
+                        )
+                    );
+
+      setStudentToDelete(null);
+    }}
+  />
+)}
+
+
 
         {showModal && (
             <StudentModal

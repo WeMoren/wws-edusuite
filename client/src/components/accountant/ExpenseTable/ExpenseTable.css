@@ -1,0 +1,110 @@
+.expense-table-wrapper {
+  width: 100%;
+  overflow-x: auto;
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+}
+
+.expense-table {
+  width: 100%;
+  border-collapse: collapse;
+  min-width: 800px;
+}
+
+.expense-table th,
+.expense-table td {
+  padding: 0.85rem 1rem;
+  text-align: left;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.expense-table th {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #6b7280;
+  background: #f8fafc;
+}
+
+.expense-table td {
+  font-size: 0.9rem;
+}
+
+.expense-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.expense-table tbody tr:hover {
+  background: #f8fafc;
+}
+
+.expense-table__category {
+  display: inline-block;
+  padding: 0.3rem 0.6rem;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.expense-table__category--utilities {
+  background: #dbeafe;
+  color: #1d4ed8;
+}
+
+.expense-table__category--supplies {
+  background: #fef3c7;
+  color: #b45309;
+}
+
+.expense-table__category--maintenance {
+  background: #f3e8ff;
+  color: #7e22ce;
+}
+
+.expense-table__category--salaries {
+  background: #dcfce7;
+  color: #15803d;
+}
+
+.expense-table__category--transport {
+  background: #e0f2fe;
+  color: #0369a1;
+}
+
+.expense-table__category--other {
+  background: #f1f5f9;
+  color: #475569;
+}
+
+
+
+.expense-table__actions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.expense-table__actions button {
+  border: none;
+  padding: 0.45rem 0.75rem;
+  border-radius: 6px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: opacity 0.2s ease, transform 0.2s ease;
+}
+
+.expense-table__actions button:hover {
+  opacity: 0.85;
+  transform: translateY(-1px);
+}
+
+.expense-table__edit {
+  background: #dbeafe;
+  color: #1d4ed8;
+}
+
+.expense-table__delete {
+  background: #fee2e2;
+  color: #b91c1c;
+}

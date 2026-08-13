@@ -3,11 +3,12 @@ import initialClasses from '../../data/classes'
 import ClassTable from '../../components/classes/ClassTable/ClassTable'
 import "./Classes.css"
 import ClassModal from '../../components/classes/ClassModal/ClassModal'
+import ConfirmDialog from "../../components/common/ConfirmDialog/ConfirmDialog";
 
 
 
 const Classes = () => {
-
+    const [classToDelete, setClassToDelete] = useState(null);
     const [showModal, setShowModal] = useState(false);
     const [editingClass, setEditingClass] = useState(null);
     const [searchTerm, setSearchTerm] = useState("");
@@ -103,13 +104,13 @@ const Classes = () => {
                 setShowModal(true);
             }}
 
-             onDelete={(classId) => {
-                setClasses((prevClasses) =>
-                prevClasses.filter(
-                    (schoolClass) => schoolClass.id !== classId
-                )
-                );
-            }}
+                onDelete={(classId) => {
+                     const selectedClass = classes.find(
+            (schoolClass) => schoolClass.id === classId
+  );
+
+  setClassToDelete(selectedClass);
+}}
        />
 
 
@@ -135,6 +136,25 @@ const Classes = () => {
                             </button>
                         </div>
         )}
+
+            {classToDelete && (
+            <ConfirmDialog
+                title="Delete Class"
+                message={`Are you sure you want to delete ${classToDelete.name}?`}
+                onCancel={() => setClassToDelete(null)}
+                onConfirm={() => {
+                setClasses((prevClasses) =>
+                    prevClasses.filter(
+                    (schoolClass) => schoolClass.id !== classToDelete.id
+                    )
+                );
+
+      setClassToDelete(null);
+    }}
+  />
+)}
+
+
 
         {showModal && (
             <ClassModal

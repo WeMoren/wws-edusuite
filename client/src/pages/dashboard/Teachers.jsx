@@ -3,10 +3,11 @@ import initialTeachers from '../../data/teachers'
 import TeacherTable from '../../components/teachers/TeacherTable'
 import "./Teachers.css"
 import TeacherModal from '../../components/teachers/TeacherModal/TeacherModal'
-
+import ConfirmDialog from "../../components/common/ConfirmDialog/ConfirmDialog";
 
 
 const Teachers = () => {
+    const [teacherToDelete, setTeacherToDelete] = useState(null);
     const [ showModal, setShowModal] = useState(false);
     const [editingTeacher, setEditingTeacher] = useState(null);
     const [searchTerm, setSearchTerm] = useState("");
@@ -116,10 +117,13 @@ const filteredTeachers = teachers.filter((teacher) => {
                 setShowModal(true)
             }}
 
-            onDelete={(teacherId)  => {
-                setTeachers((prevTeachers) => 
-                    prevTeachers.filter((teacher) => teacher.id !== teacherId));
-            }}
+            onDelete={(teacherId) => {
+                const teacher = teachers.find(
+              (teacher) => teacher.id === teacherId
+        );
+
+  setTeacherToDelete(teacher);
+}}
 
         />
 
@@ -144,6 +148,24 @@ const filteredTeachers = teachers.filter((teacher) => {
                 </button>
             </div>
           )}      
+
+          {teacherToDelete && (
+                 <ConfirmDialog
+                    title="Delete Teacher"
+                    message={`Are you sure you want to delete ${teacherToDelete.firstName} ${teacherToDelete.lastName}?`}
+                    onCancel={() => setTeacherToDelete(null)}
+                    onConfirm={() => {
+                    setTeachers((prevTeachers) =>
+                        prevTeachers.filter(
+                        (teacher) => teacher.id !== teacherToDelete.id
+                )
+      );
+
+      setTeacherToDelete(null);
+    }}
+  />
+)}
+
 
         {showModal && (
              <TeacherModal

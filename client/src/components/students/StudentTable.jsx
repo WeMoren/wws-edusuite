@@ -44,19 +44,13 @@ const StudentTable = ({students, onEdit, onDelete, onView}) => {
                                  Edit
                             </button>
 
-                            <button 
-                            className='student-table__delete'
-                            onClick={() => {
-                                const confirmed = window.confirm(
-                                    `Delete ${student.firstName}  ${student.lastName}?`
-                                );
-
-                                if(confirmed){
-                                    onDelete(student.id)
-                                }
-                            }}>
-                                Delete
+                            <button
+                                    className="student-table__delete"
+                                    onClick={() => onDelete(student.id)}
+                            >
+                                     Delete
                             </button>
+                            
                             </div>                      
                         </td>
                      </tr>

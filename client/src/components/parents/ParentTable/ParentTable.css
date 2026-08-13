@@ -1,0 +1,60 @@
+.parent-table__wrapper {
+  width: 100%;
+  overflow-x: auto;
+}
+
+.parent-table {
+  width: 100%;
+  border-collapse: collapse;
+  background: #ffffff;
+}
+
+.parent-table th,
+.parent-table td {
+  padding: 0.85rem 1rem;
+  text-align: left;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.parent-table th {
+  background: #f9fafb;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.parent-table td {
+  vertical-align: middle;
+}
+
+.parent-table tbody tr:hover {
+  background: #f9fafb;
+}
+
+.parent-table__actions {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.parent-table__actions button {
+  padding: 0.45rem 0.75rem;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 0.85rem;
+}
+
+.parent-table__edit {
+  background: #e0f2fe;
+  color: #0369a1;
+}
+
+.parent-table__delete {
+  background: #fee2e2;
+  color: #b91c1c;
+  
+}
+
+.parent-table__actions button:hover {
+  opacity: 0.85;
+}

@@ -1,0 +1,97 @@
+.transaction-table-wrapper {
+  width: 100%;
+  overflow-x: auto;
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+}
+
+.transaction-table {
+  width: 100%;
+  border-collapse: collapse;
+  min-width: 700px;
+}
+
+.transaction-table th,
+.transaction-table td {
+  padding: 0.85rem 1rem;
+  text-align: left;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.transaction-table th {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #6b7280;
+  background: #f8fafc;
+}
+
+.transaction-table td {
+  font-size: 0.9rem;
+}
+
+.transaction-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.transaction-table tbody tr:hover {
+  background: #f8fafc;
+}
+
+.transaction-table__method {
+  display: inline-block;
+  padding: 0.3rem 0.6rem;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.transaction-table__method--cash {
+  background: #dcfce7;
+  color: #15803d;
+}
+
+.transaction-table__method--bank-transfer {
+  background: #dbeafe;
+  color: #1d4ed8;
+}
+
+.transaction-table__method--card {
+  background: #fef3c7;
+  color: #b45309;
+}
+
+
+.transaction-table__actions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.transaction-table__edit,
+.transaction-table__delete {
+  border: none;
+  padding: 0.4rem 0.7rem;
+  border-radius: 6px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.transaction-table__edit {
+  background: #e0f2fe;
+  color: #0369a1;
+    transition: opacity 0.2s ease, transform 0.2s ease;
+}
+
+.transaction-table__delete {
+  background: #fee2e2;
+  color: #b91c1c;
+    transition: opacity 0.2s ease, transform 0.2s ease;
+}
+
+.transaction-table__edit:hover,
+.transaction-table__delete:hover {
+  opacity: 0.85;
+transform: translateY(-1px);
+}

@@ -1,0 +1,112 @@
+.parents-page {
+  padding: 1.5rem;
+}
+
+.parents-page__button{
+    padding: 0.75rem 1.25rem;
+    border: none;
+    border-radius: 8px;
+    background: #2563eb;
+    color: white;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.2s ease;
+}
+.parents-page__button:hover{
+    background: #1d4ed8;
+}
+
+
+.parents-page h1 {
+  margin: 0 0 1.5rem;
+}
+
+.parent-table__wrapper {
+  width: 100%;
+  overflow-x: auto;
+}
+
+.parent-table {
+  width: 100%;
+  border-collapse: collapse;
+  background: #ffffff;
+}
+
+.parent-table th,
+.parent-table td {
+  padding: 0.85rem 1rem;
+  text-align: left;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.parent-table th {
+  background: #f9fafb;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.parent-table td {
+  vertical-align: middle;
+}
+
+.parent-table tbody tr:hover {
+  background: #f9fafb;
+}
+
+@media (max-width: 768px) {
+  .parents-page {
+    padding: 1rem;
+  }
+}
+
+
+.parents-page__filters {
+  margin: 1.5rem 0;
+}
+
+.parents-page__filters input {
+  width: 100%;
+  max-width: 400px;
+  padding: 0.75rem 1rem;
+  box-sizing: border-box;
+
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+
+  font-size: 1rem;
+}
+
+.parents-page__filters input:focus {
+  outline: none;
+  border-color: #2563eb;
+}
+
+.parents-page__pagination {
+  display: flex;
+  align-items: center;
+  justify-content: start;
+  gap: 1rem;
+  margin-top: 1.5rem;
+}
+
+.parents-page__pagination button {
+  padding: 0.6rem 1rem;
+  border: none;
+  border-radius: 6px;
+  background: #2563eb;
+  color: #ffffff;
+  cursor: pointer;
+}
+
+.parents-page__pagination button:hover:not(:disabled) {
+  opacity: 0.9;
+}
+
+.parents-page__pagination button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.parents-page__pagination span {
+  font-size: 0.95rem;
+}
