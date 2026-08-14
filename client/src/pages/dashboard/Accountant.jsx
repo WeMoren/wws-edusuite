@@ -25,7 +25,10 @@ const Accountant = () => {
    const [editingExpense, setEditingExpense] = useState(null);
   const [expenseToDelete, setExpenseToDelete] = useState(null);
   const [selectedPayment, setSelectedPayment] = useState(null);
-
+  const [paymentSearch, setPaymentSearch] = useState("");
+const [paymentMethodFilter, setPaymentMethodFilter] = useState("");
+const [paymentDateFrom, setPaymentDateFrom] = useState("");
+const [paymentDateTo, setPaymentDateTo] = useState("");
 
   const [expenses, setExpenses] = useState(()  =>{
     const savedExpenses = localStorage.getItem("expenses");
@@ -57,6 +60,32 @@ const Accountant = () => {
   ? students.find((student) => student.id === selectedPayment.studentId)
   : null;
 
+
+const filteredPayments = payments.filter((payment) => {
+  const student = students.find(
+    (student) => student.id === payment.studentId
+  );
+
+  const searchTerm = paymentSearch.toLowerCase();
+
+  const matchesSearch =
+    payment.studentName.toLowerCase().includes(searchTerm) ||
+    student?.admissionNo.toLowerCase().includes(searchTerm);
+
+  const matchesPaymentMethod =
+    paymentMethodFilter === "" ||
+    payment.paymentMethod === paymentMethodFilter;
+
+    const matchesDateFrom =
+  paymentDateFrom === "" ||
+  payment.date.slice(0, 10) >= paymentDateFrom;
+
+  const matchesDateTo =
+  paymentDateTo === "" ||
+  payment.date.slice(0, 10) <= paymentDateTo;
+
+  return matchesSearch && matchesPaymentMethod && matchesDateFrom && matchesDateTo;
+});
 
   return (
     <div className="accountant-page">
@@ -121,8 +150,62 @@ const Accountant = () => {
               <p>View recent student payments.</p>
             </div>
 
+
+             <div className="transaction-search">
+                    <input
+                      type="text"
+                      placeholder="Search student or admossion no..."
+                      value={paymentSearch}
+                      onChange={(e) => setPaymentSearch(e.target.value)}
+                    />
+
+                  <select
+                        value={paymentMethodFilter}
+                        onChange={(e) => setPaymentMethodFilter(e.target.value)}
+                   >
+                  <option value="">All payment methods</option>
+                  <option value="Cash">Cash</option>
+                  <option value="Bank Transfer">Bank Transfer</option>
+                </select>
+
+
+              <label className="transaction-search__date">
+                <span>From</span>
+
+                <input
+                  type="date"
+                  value={paymentDateFrom}
+                  onChange={(e) => setPaymentDateFrom(e.target.value)}
+                />
+            </label>
+
+              <label className="transaction-search__date">
+                  <span>To</span>
+
+                  <input
+                    type="date"
+                    value={paymentDateTo}
+                    onChange={(e) => setPaymentDateTo(e.target.value)}
+                  />
+              </label>
+
+              <button
+                  type="button"
+                  className="transaction-search__clear"
+                  onClick={() => {
+                    setPaymentSearch("");
+                    setPaymentMethodFilter("");
+                    setPaymentDateFrom("");
+                    setPaymentDateTo("");
+                  }}
+                >
+                  Clear Filters
+            </button>
+            </div>
+
+
             <TransactionTable 
-                payments={payments} 
+                payments={filteredPayments} 
                 onEdit={(payment) => setEditingPayment(payment)}
                  onDelete={(payment) => setPaymentToDelete(payment)}
                  onReceipt={(payment) => setSelectedPayment(payment)}

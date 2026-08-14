@@ -152,6 +152,34 @@
   letter-spacing: 0.03em;
 }
 
+
+
+.transaction-table__receipt {
+  padding: 7px 12px;
+
+  border: none;
+  border-radius: 6px;
+
+  background: #0a0f24;
+  color: #ffffff;
+
+  font-size: 13px;
+  font-weight: 600;
+
+  cursor: pointer;
+
+  transition: opacity 0.2s ease, transform 0.2s ease;
+}
+
+.transaction-table__receipt:hover {
+  opacity: 0.9;
+  transform: translateY(-1px);
+}
+
+.transaction-table__receipt:active {
+  transform: translateY(0);
+}
+
 @media print {
   @page {
     margin: 0;
