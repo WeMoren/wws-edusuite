@@ -1,6 +1,7 @@
 import React from "react";
 import school from "../../../data/school";
 import "./PaymentReceipt.css";
+import { Printer } from "lucide-react";
 
 const PaymentReceipt = ({ payment, student, onClose }) => {
   const receiptNumber = `REC-${String(payment.id).padStart(5, "0")}`;
@@ -27,7 +28,14 @@ const PaymentReceipt = ({ payment, student, onClose }) => {
 
           <p>
             <strong>Date:</strong>{" "}
-            {new Date(payment.date).toLocaleDateString("en-GB")}
+            {new Date(payment.date).toLocaleDateString("en-GB", { 
+              day:"2-digit",
+              month:"2-digit",
+              year:"numeric",
+              hour:"2-digit",
+              minute:"2-digit",
+              hour12:true
+            })}
           </p>
 
           <p>
@@ -45,7 +53,7 @@ const PaymentReceipt = ({ payment, student, onClose }) => {
 
           <p className="payment-receipt__amount">
             <strong>Amount Paid:</strong>{" "}
-            ₦{payment.amount.toLocaleString()}
+            ₦{payment.amount.toLocaleString()} {" "}
           </p>
 
           <p>
@@ -62,9 +70,11 @@ const PaymentReceipt = ({ payment, student, onClose }) => {
 
             <button
                 type="button"
+                className="payment-receipt__print-button"
                 onClick={() => window.print()}
             >
-                Print Receipt
+              <Printer size={17} strokeWidth={2} />
+                <span> Print Receipt</span>
             </button>
 
 

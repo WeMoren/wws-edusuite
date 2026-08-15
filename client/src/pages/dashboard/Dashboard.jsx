@@ -1,15 +1,20 @@
-import React from 'react'
-import dashboardStats from '../../data/dashboardStats'
-import StatCard from '../../components/dashboard/StatCard/StatCard'
-import currentUser from '../../data/currentUser'
-import recentActivities from '../../data/recentActivity'
-import ActivityItem from '../../components/dashboard/ActivityItem/ActivityItem'
-import upcomingEvents from '../../data/upcomingEvents'
-import EventItem from '../../components/dashboard/EventItem/EventItem'
-import quickActions from '../../data/quickActions'
-import ActionButton from '../../components/dashboard/ActionButton/ActionButton'
-import "./Dashboard.css"
+import React from 'react';
+import { useOutletContext } from 'react-router-dom';
+import dashboardStats from '../../data/dashboardStats';
+import StatCard from '../../components/dashboard/StatCard/StatCard';
+import currentUser from '../../data/currentUser';
+import recentActivities from '../../data/recentActivity';
+import ActivityItem from '../../components/dashboard/ActivityItem/ActivityItem';
+import upcomingEvents from '../../data/upcomingEvents';
+import EventItem from '../../components/dashboard/EventItem/EventItem';
+import quickActions from '../../data/quickActions';
+import ActionButton from '../../components/dashboard/ActionButton/ActionButton';
+import "./Dashboard.css";
+
 const Dashboard = () => {
+
+
+    const { students, teachers, parents } = useOutletContext();
   return (
       <div className="dashboard">
          <h1>Dashboard</h1>
@@ -24,16 +29,16 @@ const Dashboard = () => {
          <div className="dashboard__stats">
               <StatCard
                   title="Students"
-                  value={dashboardStats.students}
+                  value={students.length}
               />
               
               <StatCard
                   title="Teachers"
-                  value={dashboardStats.teachers}
+                  value={teachers.length}
               />
               <StatCard
                   title="Parents"
-                  value={dashboardStats.parents}
+                  value={parents.length}
               />
               <StatCard
                   title="Classrooms"

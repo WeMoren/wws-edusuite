@@ -1,4 +1,5 @@
 import React, {useEffect, useState} from 'react'
+import {useOutletContext} from "react-router-dom";
 import StudentTable from '../../components/students/StudentTable'
 import "./Students.css"
 import StudentModal from '../../components/students/StudentModal/StudentModal'
@@ -19,11 +20,11 @@ const Students = () => {
     const [currentPage, setCurrentPage] = useState(1);
     const studentsPerPage = 5;
     const [selectedStudent, setSelectedStudent] = useState(null)
+    const {payments} = useOutletContext();
 
-    const [students, setStudents] = useState(() => {
-        const savedStudents = localStorage.getItem("students")
-        return savedStudents ? JSON.parse(savedStudents) : initialStudents;
-    });
+
+
+   const { students, setStudents } = useOutletContext();
 
     useEffect(() => {
         localStorage.setItem("students", JSON.stringify(students))
@@ -111,7 +112,7 @@ const Students = () => {
 
         <StudentTable 
             students ={currentStudents}
-            
+            payments={payments}
             onEdit={(students)  =>  {
                 setEditingStudent(students);
                 setShowModal(true)
@@ -134,6 +135,7 @@ const Students = () => {
             <StudentDetails
                 student={selectedStudent}
                 onClose={() => setSelectedStudent(null)}
+                payments={payments}
                 onEdit={(student) => {
                     setSelectedStudent(null)
                     setEditingStudent(student)

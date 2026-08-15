@@ -180,6 +180,38 @@
   transform: translateY(0);
 }
 
+.payment-receipt__print-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+
+  padding: 10px 16px;
+
+  border: none;
+  border-radius: 8px;
+
+  background: #0a0f24;
+  color: #ffffff;
+
+  font-size: 14px;
+  font-weight: 600;
+
+  cursor: pointer;
+
+  transition:
+    background-color 0.2s ease,
+    transform 0.2s ease;
+}
+
+.payment-receipt__print-button:hover {
+  background: #151c38;
+}
+
+.payment-receipt__print-button:active {
+  transform: translateY(1px);
+}
+
 @media print {
   @page {
     margin: 0;

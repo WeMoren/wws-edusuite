@@ -1,4 +1,5 @@
 import React, {useEffect, useState } from "react";
+import { useOutletContext } from "react-router-dom";
 import "./Accountant.css";
 import FinanceCard from "../../components/accountant/FinanceCard/FinanceCard";
 /*import financialSummary from "../../data/financialSummary";*/
@@ -29,6 +30,7 @@ const Accountant = () => {
 const [paymentMethodFilter, setPaymentMethodFilter] = useState("");
 const [paymentDateFrom, setPaymentDateFrom] = useState("");
 const [paymentDateTo, setPaymentDateTo] = useState("");
+const {payments, setPayments} = useOutletContext();
 
   const [expenses, setExpenses] = useState(()  =>{
     const savedExpenses = localStorage.getItem("expenses");
@@ -40,12 +42,6 @@ const [paymentDateTo, setPaymentDateTo] = useState("");
   useEffect(()  =>{
     localStorage.setItem("expenses", JSON.stringify(expenses))
   })
-
-  const [payments, setPayments] = useState(()  => {
-    const savedPayments = localStorage.getItem("payments");
-
-    return savedPayments ? JSON.parse(savedPayments) : initialPayments;
-  });
 
 
   const financialSummary = calculateFinancialSummary(payments, expenses);

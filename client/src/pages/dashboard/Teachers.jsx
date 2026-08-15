@@ -1,8 +1,9 @@
-import React,  {useEffect, useState}  from 'react'
-import initialTeachers from '../../data/teachers'
-import TeacherTable from '../../components/teachers/TeacherTable'
-import "./Teachers.css"
-import TeacherModal from '../../components/teachers/TeacherModal/TeacherModal'
+import React,  {useEffect, useState}  from 'react';
+import { useOutletContext } from "react-router-dom";
+import initialTeachers from '../../data/teachers';
+import TeacherTable from '../../components/teachers/TeacherTable';
+import "./Teachers.css";
+import TeacherModal from '../../components/teachers/TeacherModal/TeacherModal';
 import ConfirmDialog from "../../components/common/ConfirmDialog/ConfirmDialog";
 
 
@@ -17,12 +18,7 @@ const Teachers = () => {
     const teachersPerPage = 5;
 
 
-    const [teachers, setTeachers] = useState(() => {
-    const savedTeachers = localStorage.getItem("teachers");
-  return savedTeachers
-    ? JSON.parse(savedTeachers)
-    : initialTeachers;
-});
+    const { teachers, setTeachers } = useOutletContext();
 
 
 const filteredTeachers = teachers.filter((teacher) => {

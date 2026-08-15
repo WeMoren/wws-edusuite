@@ -1,16 +1,16 @@
 import React, {useEffect, useState}  from 'react';
+import { useOutletContext } from "react-router-dom";
 import initialParents from "../../data/parents";
 import ParentTable from '../../components/parents/ParentTable/ParentTable';
 import "./Parents.css"
 import ParentModal from "../../components/parents/ParentModal/ParentModal";
 import ConfirmDialog from "../../components/common/ConfirmDialog/ConfirmDialog";
+
+
+
 const Parents = () => {
     const [showModal, setShowModal] = useState(false);
-    const [parents, setParents] = useState(()  => { 
-        const savedParents = localStorage.getItem("parents");
-
-        return savedParents ? JSON.parse(savedParents) : initialParents;
-    });
+    const { parents, setParents } = useOutletContext();
 
 
     const [parentToDelete, setParentToDelete] = useState(null);
