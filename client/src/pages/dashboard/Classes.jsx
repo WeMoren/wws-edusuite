@@ -1,4 +1,5 @@
 import React, {useEffect, useState} from 'react'
+import { useOutletContext } from 'react-router-dom'
 import initialClasses from '../../data/classes'
 import ClassTable from '../../components/classes/ClassTable/ClassTable'
 import "./Classes.css"
@@ -17,12 +18,7 @@ const Classes = () => {
     const classesPerPage = 5;
 
 
-    const [classes, setClasses] = useState(()  => {
-    const savedClasses = localStorage.getItem("classes");
-
-        return savedClasses ? JSON.parse(savedClasses) : initialClasses;
-    });
-
+    const { classes, setClasses } = useOutletContext();
 
     useEffect(() => {
         localStorage.setItem("classes", JSON.stringify(classes))

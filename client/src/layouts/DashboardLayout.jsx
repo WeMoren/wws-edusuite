@@ -6,6 +6,7 @@ import "../components/layout/Layout.css";
 import initialPayments from "../data/payments";
 import initialStudents from "../data/students";
 import initialParents from "../data/parents";
+import initialClasses from "../data/classes";
 
 
 const DashboardLayout = () => {
@@ -37,6 +38,15 @@ const DashboardLayout = () => {
   });
 
 
+  const [classes, setClasses] = useState(() => {
+      const savedClasses = localStorage.getItem("classes");
+
+    return savedClasses
+      ? JSON.parse(savedClasses)
+      : initialClasses;
+});
+
+
   const [parents, setParents] = useState(() => {
      const savedParents = localStorage.getItem("parents");
 
@@ -62,7 +72,9 @@ const DashboardLayout = () => {
                       teachers,
                       setTeachers,
                       parents,
-                      setParents
+                      setParents,
+                      classes,
+                      setClasses
                    
                    }}
                    

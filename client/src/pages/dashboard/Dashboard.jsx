@@ -14,7 +14,7 @@ import "./Dashboard.css";
 const Dashboard = () => {
 
 
-    const { students, teachers, parents } = useOutletContext();
+    const { students, teachers, parents, classes } = useOutletContext();
   return (
       <div className="dashboard">
          <h1>Dashboard</h1>
@@ -41,8 +41,8 @@ const Dashboard = () => {
                   value={parents.length}
               />
               <StatCard
-                  title="Classrooms"
-                  value={dashboardStats.classrooms}
+                  title="Classes"
+                  value={classes.length}
               />
               <StatCard
                   title="Attendance Today"
