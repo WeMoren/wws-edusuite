@@ -4,7 +4,6 @@ import StudentTable from '../../components/students/StudentTable'
 import "./Students.css"
 import StudentModal from '../../components/students/StudentModal/StudentModal'
 import initialStudents from "../../data/students";
-import academicLevels from "../../data/academicLevels";
 import StudentDetails from '../../components/students/StudentDetails/StudentDetails'
 import ConfirmDialog from "../../components/common/ConfirmDialog/ConfirmDialog";
 
@@ -30,7 +29,11 @@ const Students = () => {
             setStudents, 
             payments, 
             enrollments, 
-            setEnrollments
+            setEnrollments,
+            academicLevels,
+            academicSessions,
+            sections,
+            classes,
          } = useOutletContext();
 
     useEffect(() => {
@@ -201,6 +204,10 @@ const Students = () => {
             <StudentModal
                 onClose={() => setShowModal(false) }
                 studentToEdit={editingStudent} 
+                academicSessions={academicSessions}
+                academicLevels={academicLevels}
+                sections={sections}
+                classes={classes}
                 onAddStudent={(studentData, enrollmentData, studentToEdit) => {
                     if (studentToEdit) {
                         // Update existing student

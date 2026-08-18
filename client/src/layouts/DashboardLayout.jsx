@@ -12,8 +12,8 @@ import initialTeachers from "../data/teachers";
 import initialSections from "../data/sections";
 import initialAttendance from "../data/attendance";
 import initialActiveAcademicLevels from "../data/activeAcademicLevels";
-
-
+import initialAcademicSessions from "../data/academicSessions";
+import initialAcademicLevels from "../data/academicLevels";
 
 const DashboardLayout = () => {
 
@@ -98,6 +98,43 @@ const DashboardLayout = () => {
 }, [activeAcademicLevels]);
 
 
+const [academicSessions, setAcademicSessions] = useState(() => {
+    const savedAcademicSessions =
+        localStorage.getItem("academicSessions");
+
+    return savedAcademicSessions
+        ? JSON.parse(savedAcademicSessions)
+        : initialAcademicSessions;
+});
+
+
+useEffect(() => {
+    localStorage.setItem(
+        "academicSessions",
+        JSON.stringify(academicSessions)
+    );
+}, [academicSessions]);
+
+
+
+const [academicLevels, setAcademicLevels] = useState(() => {
+    const savedAcademicLevels =
+        localStorage.getItem("academicLevels");
+
+    return savedAcademicLevels
+        ? JSON.parse(savedAcademicLevels)
+        : initialAcademicLevels;
+});
+
+
+useEffect(() => {
+    localStorage.setItem(
+        "academicLevels",
+        JSON.stringify(academicLevels)
+    );
+}, [academicLevels]);
+
+
 const [attendance, setAttendance] = useState(() => {
     const savedAttendance = localStorage.getItem("attendance");
 
@@ -141,8 +178,12 @@ const [attendance, setAttendance] = useState(() => {
                       setSections,
                       activeAcademicLevels,
                       setActiveAcademicLevels,
+                       academicSessions,
+                      setAcademicSessions,
+                      academicLevels,
+                      setAcademicLevels,
                       attendance,
-                      setAttendance
+                      setAttendance,
                    
                    }}
                    

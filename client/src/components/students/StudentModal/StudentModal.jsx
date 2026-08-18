@@ -1,14 +1,18 @@
 import {useEffect, useState } from "react"
 import React from 'react'
 import "./StudentModal.css"
-import academicSessions from "../../../data/academicSessions";
-import academicLevels from "../../../data/academicLevels";
-import sections from "../../../data/sections";
-import classes from "../../../data/classes";
 
 
 
-const StudentModal = ({onClose, onAddStudent, studentToEdit}) => {
+const StudentModal = ({
+        onClose,
+        onAddStudent, 
+        studentToEdit,
+        academicSessions,
+        academicLevels,
+        sections,
+        classes
+    }) => {
     const [student, setStudent] = useState({
         admissionNo:"",
         firstName:"",
@@ -57,15 +61,18 @@ const StudentModal = ({onClose, onAddStudent, studentToEdit}) => {
     }
 
 
-    const selectedClass = classes.find(
-             (classItem) =>
-            classItem.id === Number(enrollment.classId)
+   const availableSections = sections.filter((section) => {
+
+    const schoolClass = classes.find(
+        (classItem) =>
+            classItem.id === section.classId
     );
 
-    const availableSections = sections.filter(
-        (section) =>
-        section.classId === selectedClass?.id
+    return (
+        schoolClass?.academicLevelId ===
+        Number(enrollment.academicLevelId)
     );
+});
 
 
     const handleSubmit = (e) => {
@@ -199,75 +206,59 @@ const StudentModal = ({onClose, onAddStudent, studentToEdit}) => {
                                 </option>
                             ))}
                         </select>
+                                <div className="student-form__group">
+    <label htmlFor="sectionId">
+        Class + Section
+    </label>
 
-                    <div className="student-form__group">
-                        <label htmlFor="sectionId">
-                            Section
-                        </label>
+    <select
+        id="sectionId"
+        name="sectionId"
+        value={enrollment.sectionId}
+        onChange={(e) => {
+            const sectionId = e.target.value;
 
-                        <select
-                            id="sectionId"
-                            name="sectionId"
-                            value={enrollment.sectionId}
-                            onChange={handleChange}
-                            disabled={!enrollment.classId}
-                            
-                        >
-                            <option value="">
-                                Select section
-                            </option>
+            const selectedSection = sections.find(
+                (section) =>
+                    section.id === Number(sectionId)
+            );
 
-                            {availableSections.map((section) => {
-                                const classItem = classes.find(
-                                    (classItem) => classItem.id === section.classId
-                                );
+            setEnrollment((prevEnrollment) => ({
+                ...prevEnrollment,
+                sectionId,
+                classId: selectedSection
+                    ? String(selectedSection.classId)
+                    : ""
+            }));
+        }}
+        disabled={!enrollment.academicLevelId}
+        required
+    >
+        <option value="">
+            Select class + section
+        </option>
 
-                                return (
-                                    <option
-                                        key={section.id}
-                                        value={section.id}
-                                    >
-                                        {classItem?.name} - {section.name}
-                                    </option>
-                                );
-                            })}
-                        </select>
-                </div>
+        {availableSections.map((section) => {
+
+            const schoolClass = classes.find(
+                (classItem) =>
+                    classItem.id === section.classId
+            );
+
+            return (
+                <option
+                    key={section.id}
+                    value={section.id}
+                >
+                    {schoolClass?.name} - {section.name}
+                </option>
+            );
+        })}
+    </select>
+</div>
 
 
 
-                <div className="student-form__group">
-                            <label htmlFor="classId">
-                                Class
-                            </label>
-
-                            <select
-                                id="classId"
-                                name="classId"
-                                value={enrollment.classId}
-                                onChange={handleChange}
-                                disabled={!enrollment.academicLevelId}
-                            >
-                                <option value="">
-                                    Select class
-                                </option>
-
-                                {classes
-                                    .filter(
-                                        (classItem) =>
-                                            classItem.academicLevelId ===
-                                            Number(enrollment.academicLevelId)
-                                    )
-                                    .map((classItem) => (
-                                        <option
-                                            key={classItem.id}
-                                            value={classItem.id}
-                                        >
-                                            {classItem.name}
-                                        </option>
-                                    ))}
-                            </select>
-                </div>
 
 
                 </div>
