@@ -1,0 +1,79 @@
+.academic-setup-page {
+    padding: 1.5rem;
+}
+
+.academic-setup-page__header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 1rem;
+    margin-bottom: 2rem;
+}
+
+.academic-setup-page__header h1 {
+    margin: 0 0 0.5rem;
+}
+
+.academic-setup-page__header p {
+    margin: 0;
+    color: #6b7280;
+}
+
+.academic-setup-page__save {
+    border: none;
+    border-radius: 8px;
+    padding: 0.75rem 1rem;
+    background: #2563eb;
+    color: white;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.academic-setup-page__save:hover {
+    opacity: 0.9;
+}
+
+.academic-setup {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+}
+
+.academic-setup__category {
+    background: white;
+    border: 1px solid #e5e7eb;
+    border-radius: 10px;
+    padding: 1.25rem;
+}
+
+.academic-setup__category h2 {
+    margin: 0 0 1rem;
+    font-size: 1.1rem;
+}
+
+.academic-setup__levels {
+    display: grid;
+    grid-template-columns:
+        repeat(auto-fit, minmax(180px, 1fr));
+    gap: 0.75rem;
+}
+
+.academic-setup__level {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    padding: 0.75rem;
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
+    cursor: pointer;
+}
+
+.academic-setup__level:hover {
+    background: #f9fafb;
+}
+
+.academic-setup__level input {
+    width: 16px;
+    height: 16px;
+    cursor: pointer;
+}

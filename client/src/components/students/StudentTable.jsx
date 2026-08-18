@@ -2,10 +2,14 @@ import React from 'react';
 import "./StudentTable.css";
 
 import classFees from "../../data/classFees";
+import sections from "../../data/sections";
+import classes from "../../data/classes";
+import academicLevels from "../../data/academicLevels";
 
 const StudentTable = ({
   students,
   payments,
+  enrollments,
   onEdit,
   onDelete,
   onView
@@ -19,7 +23,9 @@ const StudentTable = ({
             <th>Admission No.</th>
             <th>First Name</th>
             <th>Last Name</th>
+            <th>Academic Level</th>
             <th>Class</th>
+            <th>Section</th>
             <th>Gender</th>
             <th>Payment Status</th>
             <th>Actions</th>
@@ -33,6 +39,32 @@ const StudentTable = ({
               const studentPayments = payments.filter(
                 (payment) => payment.studentId === student.id
               );
+
+
+               const enrollment = enrollments.find(
+                (enrollment) => enrollment.studentId === student.id
+              );
+
+
+              const section = sections.find(
+                  (section) => section.id === enrollment?.sectionId
+              );
+
+              const classItem = classes.find(
+                  (classItem) =>
+                      classItem.id ===
+                      (section?.classId ?? enrollment?.classId)
+              );
+
+              const academicLevel = academicLevels.find(
+                  (level) =>
+                      level.id ===
+                      (
+                          classItem?.academicLevelId ??
+                          enrollment?.academicLevelId
+                      )
+              );
+              
 
               const totalPaid = studentPayments.reduce(
                 (total, payment) => total + payment.amount,
@@ -65,7 +97,9 @@ const StudentTable = ({
 
                   <td>{student.lastName}</td>
 
-                  <td>{student.class}</td>
+                  <td>{academicLevel?.name  || "-"}</td>
+                  <td>{classItem?.name  || "-"}</td>
+                  <td>{section?.name  || "-"}</td>
 
                   <td>{student.gender}</td>
 
@@ -101,7 +135,7 @@ const StudentTable = ({
             })
           ) : (
             <tr>
-              <td colSpan="7" className="student-table__empty">
+              <td colSpan="9" className="student-table__empty">
                 No students found.
               </td>
             </tr>

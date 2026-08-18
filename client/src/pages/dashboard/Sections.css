@@ -1,0 +1,84 @@
+.sections-page {
+    padding: 1.5rem;
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+}
+
+.sections-page__header {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 1rem;
+}
+
+.sections-page__header h1 {
+    margin: 0;
+}
+
+.sections-page__button {
+    border: none;
+    border-radius: 8px;
+    padding: 0.75rem 1rem;
+    background: #2563eb;
+    color: white;
+    font-size: 0.95rem;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.sections-page__button:hover {
+    opacity: 0.9;
+}
+
+.sections-page__filters {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+}
+
+.sections-page__filters input,
+.sections-page__filters select {
+    padding: 0.75rem 1rem;
+    border: 1px solid #d1d5db;
+    border-radius: 8px;
+    font-size: 1rem;
+    background: white;
+}
+
+.sections-page__filters input {
+    width: 100%;
+    max-width: 400px;
+}
+
+.sections-page__filters select {
+    min-width: 160px;
+    cursor: pointer;
+}
+
+.sections-page__filters input:focus,
+.sections-page__filters select:focus {
+    outline: none;
+    border-color: #2563eb;
+}
+
+.sections-page__pagination {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
+.sections-page__pagination button {
+    padding: 0.6rem 1rem;
+    border: none;
+    border-radius: 6px;
+    background: #2563eb;
+    color: white;
+    cursor: pointer;
+}
+
+.sections-page__pagination button:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}

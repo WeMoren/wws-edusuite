@@ -1,0 +1,115 @@
+.section-modal__overlay {
+  position: fixed;
+  inset: 0;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  padding: 1rem;
+
+  background: rgba(0, 0, 0, 0.45);
+
+  z-index: 2000;
+}
+
+.section-modal {
+  width: 100%;
+  max-width: 500px;
+
+  max-height: 90vh;
+  overflow-y: auto;
+
+  padding: 1.5rem;
+
+  background: #ffffff;
+  border-radius: 10px;
+
+  box-sizing: border-box;
+}
+
+.section-modal__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+
+  margin-bottom: 1.5rem;
+}
+
+.section-modal__header h2 {
+  margin: 0;
+  font-size: 1.25rem;
+}
+
+.section-modal__header button {
+  border: none;
+  background: transparent;
+
+  font-size: 1.5rem;
+  color: #6b7280;
+
+  cursor: pointer;
+}
+
+.section-modal__header button:hover {
+  color: #111827;
+}
+
+.section-form__group {
+  display: flex;
+  flex-direction: column;
+
+  gap: 0.4rem;
+
+  margin-bottom: 1rem;
+}
+
+.section-form__group label {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: #374151;
+}
+
+.section-form__group input,
+.section-form__group select {
+  width: 100%;
+
+  padding: 0.75rem 0.9rem;
+
+  border: 1px solid #d1d5db;
+  border-radius: 7px;
+
+  box-sizing: border-box;
+
+  font-size: 0.95rem;
+  background: #ffffff;
+}
+
+.section-form__group input:focus,
+.section-form__group select:focus {
+  outline: none;
+  border-color: #2563eb;
+}
+
+.section-modal form > button {
+  width: 100%;
+
+  margin-top: 0.5rem;
+
+  padding: 0.75rem 1rem;
+
+  border: none;
+  border-radius: 7px;
+
+  background: #2563eb;
+  color: #ffffff;
+
+  font-size: 0.95rem;
+  font-weight: 600;
+
+  cursor: pointer;
+}
+
+.section-modal form > button:hover {
+  opacity: 0.9;
+}

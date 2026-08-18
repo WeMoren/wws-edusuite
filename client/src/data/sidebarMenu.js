@@ -25,36 +25,56 @@ const sidebarMenu =  [
         id: 4,
         label: "Classes",
         path: "/dashboard/classes",
-        icon: "🏠"
+        icon: "🏫"
+     },
+     {
+        id: 5,
+        label: "Sections",
+        path: "/dashboard/sections",
+        icon: "🏷️"
+     },
+
+     {
+      id:6,
+      label: "Academic Setup",
+      path: "/dashboard/academic-setup",
+      icon: "⚙️"
+   },
+
+     {
+        id: 7,
+        label: "Attendance",
+        path: "/dashboard/attendance",
+        icon: "📋"
      },
 
 
      {
-        id: 5,
+        id: 8,
         label: "Parents",
         path: "/dashboard/parents",
         icon: "👨‍👩‍👧"
      },
      {
-        id: 6,
+        id: 9,
         label: "Accountant",
         path: "/dashboard/accountant",
         icon: "💰"
      },
      {
-        id: 7,
+        id: 10,
         label: "Library",
         path: "/dashboard/library",
         icon: "📚"
      },
      {
-        id: 8,
+        id: 11,
         label: "Reception",
         path: "/dashboard/reception",
         icon: "🛎️"
      },
      {
-        id: 9,
+        id: 12,
         label: "Setings",
         path: "/dashboard/settings",
         icon: "⚙️"

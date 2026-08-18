@@ -1,47 +1,75 @@
-
 import React from "react";
-import "./ClassTable.css"
-const ClassTable = ({ classes, onEdit, onDelete }) => {
+import "./ClassTable.css";
+
+const ClassTable = ({
+  classes,
+  academicLevels,
+  academicSessions,
+  onEdit,
+  onDelete,
+}) => {
   return (
     <table className="class-table">
       <thead>
         <tr>
           <th>ID</th>
           <th>Class</th>
-          <th>Level</th>
-          <th>Class Teacher</th>
-          <th>Room</th>
-          <th>Capacity</th>
+          <th>Academic Level</th>
+          <th>Academic Session</th>
           <th>Actions</th>
         </tr>
       </thead>
 
       <tbody>
-        {classes.map((schoolClass) => (
-          <tr key={schoolClass.id}>
-            <td>{schoolClass.id}</td>
-            <td>{schoolClass.name}</td>
-            <td>{schoolClass.level}</td>
-            <td>{schoolClass.classTeacher}</td>
-            <td>{schoolClass.room}</td>
-            <td>{schoolClass.capacity}</td>
-            <td>
-                <div className="class-table__actions">
-                    <button className="class-table__edit"
-                            onClick={() => onEdit(schoolClass)}
+        {classes.length > 0 ? (
+          classes.map((schoolClass) => {
+            const level = academicLevels.find(
+              (academicLevel) =>
+                academicLevel.id === schoolClass.academicLevelId
+            );
+
+            const session = academicSessions.find(
+              (academicSession) =>
+                academicSession.id === schoolClass.academicSessionId
+            );
+
+            return (
+              <tr key={schoolClass.id}>
+                <td>{schoolClass.id}</td>
+
+                <td>{schoolClass.name}</td>
+
+                <td>{level?.name || "—"}</td>
+
+                <td>{session?.name || "—"}</td>
+
+                <td>
+                  <div className="class-table__actions">
+                    <button
+                      className="class-table__edit"
+                      onClick={() => onEdit(schoolClass)}
                     >
-                        Edit
+                      Edit
                     </button>
 
-                    <button className="class-table__delete"
-                            onClick={() => onDelete(schoolClass.id)}
+                    <button
+                      className="class-table__delete"
+                      onClick={() => onDelete(schoolClass.id)}
                     >
-                        Delete
+                      Delete
                     </button>
-                </div>
+                  </div>
+                </td>
+              </tr>
+            );
+          })
+        ) : (
+          <tr>
+            <td colSpan="5" className="class-table__empty">
+              No classes found.
             </td>
           </tr>
-        ))}
+        )}
       </tbody>
     </table>
   );

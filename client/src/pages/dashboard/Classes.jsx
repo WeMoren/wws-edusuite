@@ -5,7 +5,8 @@ import ClassTable from '../../components/classes/ClassTable/ClassTable'
 import "./Classes.css"
 import ClassModal from '../../components/classes/ClassModal/ClassModal'
 import ConfirmDialog from "../../components/common/ConfirmDialog/ConfirmDialog";
-
+import academicLevels from "../../data/academicLevels";
+import academicSessions from "../../data/academicSessions";
 
 
 const Classes = () => {
@@ -18,7 +19,15 @@ const Classes = () => {
     const classesPerPage = 5;
 
 
-    const { classes, setClasses } = useOutletContext();
+    const { 
+            classes, 
+            setClasses, 
+            activeAcademicLevels 
+          } = useOutletContext();
+
+          const availableLevels = academicLevels.filter(
+             (level) => activeAcademicLevels.includes(level.id)
+    );
 
     useEffect(() => {
         localStorage.setItem("classes", JSON.stringify(classes))
@@ -30,20 +39,29 @@ const Classes = () => {
     }, [searchTerm, levelFilter]);
 
 
-    const filteredClasses = classes.filter((schoolClass) => {
-    const search = searchTerm.toLowerCase();
+        const filteredClasses = classes.filter((schoolClass) => {
+            const search = searchTerm.toLowerCase();
 
-    const matchesSearch =
-        schoolClass.name.toLowerCase().includes(search) ||
-        schoolClass.level.toLowerCase().includes(search) ||
-        schoolClass.classTeacher.toLowerCase().includes(search) ||
-        schoolClass.room.toLowerCase().includes(search);
+            const level = academicLevels.find(
+                (academicLevel) =>
+                    academicLevel.id === schoolClass.academicLevelId
+            );
 
-    const matchesLevel =
-        levelFilter === "" ||
-        schoolClass.level === levelFilter;
+            const session = academicSessions.find(
+                (academicSession) =>
+                    academicSession.id === schoolClass.academicSessionId
+            );
 
-    return matchesSearch && matchesLevel;
+            const matchesSearch =
+                schoolClass.name.toLowerCase().includes(search) ||
+                level?.name.toLowerCase().includes(search) ||
+                session?.name.toLowerCase().includes(search);
+
+            const matchesLevel =
+                levelFilter === "" ||
+                schoolClass.academicLevelId === Number(levelFilter);
+
+            return matchesSearch && matchesLevel;
 });
 
         const totalPages = Math.ceil(
@@ -78,22 +96,29 @@ const Classes = () => {
                 onChange={(e) => setSearchTerm(e.target.value)}
             />
 
-        <select
-            value={levelFilter}
-            onChange={(e) => setLevelFilter(e.target.value)}
-        >
-            <option value="">All Levels</option>
-            <option value="JSS 1">JSS 1</option>
-            <option value="JSS 2">JSS 2</option>
-            <option value="JSS 3">JSS 3</option>
-            <option value="SS 1">SS 1</option>
-            <option value="SS 2">SS 2</option>
-            <option value="SS 3">SS 3</option>
-        </select>
+          <select
+                    value={levelFilter}
+                    onChange={(e) => setLevelFilter(e.target.value)}
+           >
+            
+                    <option value="">All Levels</option>
+
+                    {availableLevels.map((level) => (
+                        <option
+                            key={level.id}
+                            value={level.id}
+                        >
+                            {level.name}
+                        </option>
+                    ))}
+          </select>
 </div>
 
 
-        <ClassTable  classes={currentClasses}
+        <ClassTable  
+              classes={currentClasses}
+              academicLevels={academicLevels}
+             academicSessions={academicSessions}
                     
             onEdit={(schoolClass) => {
                 setEditingClass(schoolClass);

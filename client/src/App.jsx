@@ -11,6 +11,11 @@ import Library from "./pages/dashboard/Library";
 import Reception from "./pages/dashboard/Reception";
 import Settings from "./pages/dashboard/Settings";
 import Classes from "./pages/dashboard/Classes";
+import Attendance from "./pages/dashboard/attendance/Attendance";
+import Sections from "./pages/dashboard/Sections";
+import AcademicSetup from "./pages/dashboard/AcademicSetup";
+
+
 const App = () => {
   return (
     <Routes>
@@ -21,6 +26,9 @@ const App = () => {
           <Route path="students" element={<Students />}/>
           <Route path="teachers" element={<Teachers />}/>
           <Route path="classes" element={<Classes />}/> 
+          <Route path="sections" element={<Sections />} />
+          <Route path="academic-setup" element={<AcademicSetup />} />
+          <Route path="attendance" element={<Attendance />} />
           <Route path="parents" element={<Parents />}/>
           <Route path="accountant" element={<Accountant />}/>
           <Route path="library" element={<Library />}/>

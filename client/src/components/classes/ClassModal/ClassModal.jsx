@@ -1,120 +1,170 @@
-import React, {useState} from 'react';
+import React, { useState } from "react";
+import { useOutletContext } from "react-router-dom";
 import "./ClassModal.css";
-import teachers from '../../../data/teachers';
-const ClassModal = ({onClose, onAddClass, editingClass}) => {
+import teachers from "../../../data/teachers";
+import academicLevels from "../../../data/academicLevels";
+import academicSessions from "../../../data/academicSessions";
+
+
+const ClassModal = ({
+    onClose,
+    onAddClass,
+    editingClass
+}) => {
+
+
+        const { activeAcademicLevels } = useOutletContext();
 
     const [classData, setClassData] = useState(
-         editingClass  ||  { 
-        name:"",
-        level:"",
-        classTeacher:"",
-        room:"",
-        capacity:""
-    });
+        editingClass || {
+            name: "",
+            academicLevelId: "",
+            academicSessionId: ""
+        }
+    );
 
-    const handleChange = (e) => {
-        const {name, value} = e.target;
+        const availableLevels = academicLevels.filter(
+          (level) => activeAcademicLevels.includes(level.id)
+    );
 
-        setClassData((prev) => ({
-            ...prev, [name] : value
-        }));
+        const handleChange = (e) => {
+            const { name, value } = e.target;
+
+            setClassData((prev) => ({
+                ...prev,
+                [name]:
+                    name === "academicLevelId" ||
+                    name === "academicSessionId"
+                        ? Number(value)
+                        : value
+            }));
     };
 
-    const handleSubmit = (e)  =>  {
+    const handleSubmit = (e) => {
         e.preventDefault();
 
-        onAddClass(classData)
-    }
+        onAddClass(classData);
+    };
 
-  return (
-    <div className="class-modal__overlay">
-        <div className="class-modal">
-            <div className="class-modal__header">
-                <h2>{editingClass ? "Edit Class" : "Add Class"}</h2>
+    return (
+        <div
+            className="class-modal__overlay"
+            onClick={onClose}
+        >
+            <div
+                className="class-modal"
+                onClick={(e) => e.stopPropagation()}
+            >
 
-                <button onClick={onClose}>x</button>
-            </div>
+                <div className="class-modal__header">
+                    <h2>
+                        {editingClass
+                            ? "Edit Class"
+                            : "Add Class"
+                        }
+                    </h2>
 
-            <form onSubmit={handleSubmit}>
-                <div className="class-form__group">
-                    <label htmlFor="name"> Class Name</label>
-                    <input 
-                        id='name'
-                        type="text"
-                        name='name'
-                        value={classData.name}
-                        onChange={handleChange}
-                        placeholder='e.g. JSS 1A'
-                        required
-                    />
+                    <button
+                        type="button"
+                        onClick={onClose}
+                    >
+                        ×
+                    </button>
                 </div>
 
-                <div className="class-form__group">
-                    <label htmlFor="level">Level</label>
-                    <input 
-                        type="text" 
-                        id="level" 
-                        name='level'
-                        value={classData.level}
-                        onChange={handleChange}
-                        placeholder='e.g. JSS 1'
-                        required
-                    />
+
+                <form onSubmit={handleSubmit}>
+
+                    {/* Academic Session */}
 
                     <div className="class-form__group">
-                        <label htmlFor="classTeacher">Class Teacher</label>
+                        <label htmlFor="academicSessionId">
+                            Academic Session
+                        </label>
+
                         <select
-                             name="classTeacher" 
-                             id="classTeacher"
-                             value={classData.classTeacher}
-                             onChange={handleChange}
+                            id="academicSessionId"
+                            name="academicSessionId"
+                            value={classData.academicSessionId}
+                            onChange={handleChange}
                             required
                         >
-                            <option value="">Select a teacher</option>
-                            {teachers.map((teacher)  => (
-                                <option key={teacher.id} 
-                                value={`${teacher.firstName} ${teacher.lastName}`}
-                            >
-                                {teacher.firstName} {teacher.lastName}
+                            <option value="">
+                                Select academic session
+                            </option>
+
+                            {academicSessions.map((session) => (
+                                <option
+                                    key={session.id}
+                                    value={session.id}
+                                >
+                                    {session.name}
                                 </option>
                             ))}
-
-                        </select>    
+                        </select>
                     </div>
 
+
+                    {/* Academic Level */}
+
                     <div className="class-form__group">
-                        <label htmlFor="room">Room</label>
+                        <label htmlFor="academicLevelId">
+                            Academic Level
+                        </label>
+
+                        <select
+                            id="academicLevelId"
+                            name="academicLevelId"
+                            value={classData.academicLevelId}
+                            onChange={handleChange}
+                            required
+                        >
+                            <option value="">
+                                Select academic level
+                            </option>
+
+                            {availableLevels.map((level) => (
+                                <option
+                                    key={level.id}
+                                    value={level.id}
+                                >
+                                    {level.name}
+                                </option>
+                            ))}
+                        </select>
+                    </div>
+
+
+                    {/* Class Name */}
+
+                    <div className="class-form__group">
+                        <label htmlFor="name">
+                            Class Name
+                        </label>
+
                         <input
-                             type="text" 
-                            id="room" 
-                            name='room'
-                            value={classData.room}
+                            id="name"
+                            type="text"
+                            name="name"
+                            value={classData.name}
                             onChange={handleChange}
-                            placeholder='e.g. Room 101'
+                            placeholder="e.g. JSS 1"
                             required
                         />
                     </div>
 
-                    <div className="class-form__group">
-                        <label htmlFor="capacity">Capacity</label>
-                        <input 
-                            type="text" 
-                            id="capacity" 
-                            name='capacity'
-                            value={classData.capacity}
-                            onChange={handleChange}
-                            placeholder='e.g. 40'
-                            min="1"
-                            required
-                        />
-                    </div>
-                </div>
 
-                <button type="submit">{editingClass ? "Save Changes" : "Add Class"}</button>
-            </form>
+                    <button type="submit">
+                        {editingClass
+                            ? "Save Changes"
+                            : "Add Class"
+                        }
+                    </button>
+
+                </form>
+            </div>
         </div>
-    </div>
-  )
-}
+    );
+};
 
-export default ClassModal
+export default ClassModal;

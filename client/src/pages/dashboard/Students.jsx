@@ -3,7 +3,8 @@ import {useOutletContext} from "react-router-dom";
 import StudentTable from '../../components/students/StudentTable'
 import "./Students.css"
 import StudentModal from '../../components/students/StudentModal/StudentModal'
-import initialStudents from "../../data/students"
+import initialStudents from "../../data/students";
+import academicLevels from "../../data/academicLevels";
 import StudentDetails from '../../components/students/StudentDetails/StudentDetails'
 import ConfirmDialog from "../../components/common/ConfirmDialog/ConfirmDialog";
 
@@ -20,11 +21,17 @@ const Students = () => {
     const [currentPage, setCurrentPage] = useState(1);
     const studentsPerPage = 5;
     const [selectedStudent, setSelectedStudent] = useState(null)
-    const {payments} = useOutletContext();
+    
 
 
 
-   const { students, setStudents } = useOutletContext();
+   const { 
+            students, 
+            setStudents, 
+            payments, 
+            enrollments, 
+            setEnrollments
+         } = useOutletContext();
 
     useEffect(() => {
         localStorage.setItem("students", JSON.stringify(students))
@@ -91,13 +98,16 @@ const Students = () => {
                     value={classFilter}
                     onChange={(e) => setClassFilter(e.target.value)}
                 >
-                    <option value="">All Classes</option>
-                    <option value="JSS 1">JSS 1</option>
-                    <option value="JSS 2">JSS 2</option>
-                    <option value="JSS 3">JSS 3</option>
-                    <option value="SS 1">JSS 1</option>
-                    <option value="SS 2">JSS 2</option>
-                    <option value="SS 3">JSS 3</option>
+                   <option value="">All Levels</option>
+
+                    {academicLevels.map((level) => (
+                    <option
+                        key={level.id}
+                        value={level.name}
+                    >
+                        {level.name}
+                    </option>
+                    ))}
                 </select>
 
                 <select
@@ -113,6 +123,7 @@ const Students = () => {
         <StudentTable 
             students ={currentStudents}
             payments={payments}
+            enrollments={enrollments}
             onEdit={(students)  =>  {
                 setEditingStudent(students);
                 setShowModal(true)
@@ -190,30 +201,99 @@ const Students = () => {
             <StudentModal
                 onClose={() => setShowModal(false) }
                 studentToEdit={editingStudent} 
-                onAddStudent={(studentData, studentToEdit) => {
+                onAddStudent={(studentData, enrollmentData, studentToEdit) => {
                     if (studentToEdit) {
+                        // Update existing student
                         setStudents((prevStudents) =>
-                        prevStudents.map((student) =>
-                            student.id === studentToEdit.id
-                            ? { ...studentData, id: student.id }
-                            : student
-                        )
+                            prevStudents.map((student) =>
+                                student.id === studentToEdit.id
+                                    ? {
+                                        ...studentData,
+                                        id: student.id,
+                                    }
+                                    : student
+                            )
+                        );
+
+                        // Update the student's enrollment
+                        setEnrollments((prevEnrollments) =>
+                            prevEnrollments.map((enrollment) =>
+                                enrollment.studentId === studentToEdit.id
+                                    ? {
+                                        ...enrollment,
+                                        academicSessionId: Number(
+                                            enrollmentData.academicSessionId
+                                        ),
+                                        academicLevelId: Number(
+                                            enrollmentData.sectionId
+                                        ),
+
+                                        classId:enrollmentData.classId
+                                        ? Number(enrollment.classId) : null,
+
+                                        sectionId:enrollmentData.sectionId
+                                        ? Number(enrollmentData.sectionId) : null,
+                                    }
+                                    : enrollment
+                            )
                         );
                     } else {
+                        // Create a new student ID
+                        const newStudentId =
+                            students.length > 0
+                                ? Math.max(
+                                    ...students.map((student) => student.id)
+                                ) + 1
+                                : 1;
+
+                        // Save the student
                         setStudents((prevStudents) => [
-                        ...prevStudents,
-                        {
-                            ...studentData,
-                            id: prevStudents.length > 0 
-                            ? Math.max(...prevStudents.map((student) => student.id)) + 1 
-                            : 1
-                        }
+                            ...prevStudents,
+                            {
+                                ...studentData,
+                                id: newStudentId,
+                            },
+                        ]);
+
+                        // Create the enrollment
+                        setEnrollments((prevEnrollments) => [
+                            ...prevEnrollments,
+                            
+
+                            {
+                                id:
+                                    prevEnrollments.length > 0
+                                        ? Math.max(
+                                            ...prevEnrollments.map(
+                                                (enrollment) => enrollment.id
+                                            )
+                                        ) + 1
+                                        : 1,
+
+                                studentId: newStudentId,
+
+                                academicSessionId: Number(
+                                    enrollmentData.academicSessionId
+                                ),
+
+                                academicLevelId: Number(
+                                    enrollmentData.academicLevelId
+                                ),
+
+                                classId: enrollmentData.classId
+                                    ? Number(enrollmentData.classId)
+                                    : null,
+
+                                sectionId: enrollmentData.sectionId
+                                    ? Number(enrollmentData.sectionId)
+                                    : null,
+                            }
                         ]);
                     }
+
                     setShowModal(false);
-                    setEditingStudent(null)
-                    }}
-                    
+                    setEditingStudent(null);
+                }}
         />)}
 
     </div>

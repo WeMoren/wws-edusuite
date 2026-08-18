@@ -1,0 +1,67 @@
+.section-table {
+  width: 100%;
+  overflow-x: auto;
+}
+
+.section-table table {
+  width: 100%;
+  border-collapse: collapse;
+  background: #ffffff;
+}
+
+.section-table th,
+.section-table td {
+  padding: 0.85rem 1rem;
+  text-align: left;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.section-table th {
+  background: #f9fafb;
+  color: #374151;
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
+.section-table td {
+  color: #4b5563;
+  font-size: 0.9rem;
+}
+
+.section-table tbody tr:hover {
+  background: #f9fafb;
+}
+
+.section-table__actions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.section-table__actions button {
+  border: none;
+  border-radius: 6px;
+  padding: 0.45rem 0.75rem;
+  font-size: 0.85rem;
+  cursor: pointer;
+}
+
+.section-table__edit {
+  background: #e0f2fe;
+  color: #0369a1;
+}
+
+.section-table__delete {
+  background: #fee2e2;
+  color: #b91c1c;
+}
+
+.section-table__actions button:hover {
+  opacity: 0.8;
+}
+
+.section-table__empty {
+  padding: 2rem;
+  text-align: center;
+  color: #6b7280;
+}
