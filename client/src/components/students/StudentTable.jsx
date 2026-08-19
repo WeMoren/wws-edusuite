@@ -83,53 +83,55 @@ const StudentTable = ({
 
               return (
                 <tr key={student.id}>
-                  <td>{student.admissionNo}</td>
+                  <td data-label="Admission No.">{student.admissionNo}</td>
 
-                  <td>
-                    <button
-                      className="student-table__name"
-                      title="Click to view student detail."
-                      onClick={() => onView(student)}
-                    >
-                      {student.firstName}
-                    </button>
-                  </td>
+<td data-label="First Name">
+  <button
+    className="student-table__name"
+    title="Click to view student detail."
+    onClick={() => onView(student)}
+  >
+    {student.firstName}
+  </button>
+</td>
 
-                  <td>{student.lastName}</td>
+<td data-label="Last Name">{student.lastName}</td>
 
-                  <td>{academicLevel?.name  || "-"}</td>
-                  <td>{classItem?.name  || "-"}</td>
-                  <td>{section?.name  || "-"}</td>
+<td data-label="Academic Level">{academicLevel?.name || "-"}</td>
 
-                  <td>{student.gender}</td>
+<td data-label="Class">{classItem?.name || "-"}</td>
 
-                  <td>
-                    <span
-                      className={`student-table__payment-status student-table__payment-status--${paymentStatus
-                        .toLowerCase()
-                        .replace(/\s+/g, "-")}`}
-                    >
-                      {paymentStatus}
-                    </span>
-                  </td>
+<td data-label="Section">{section?.name || "-"}</td>
 
-                  <td>
-                    <div className="student-table__actions">
-                      <button
-                        className='student-table__edit'
-                        onClick={() => onEdit(student)}
-                      >
-                        Edit
-                      </button>
+<td data-label="Gender">{student.gender}</td>
 
-                      <button
-                        className="student-table__delete"
-                        onClick={() => onDelete(student.id)}
-                      >
-                        Delete
-                      </button>
-                    </div>
-                  </td>
+<td data-label="Payment Status">
+  <span
+    className={`student-table__payment-status student-table__payment-status--${paymentStatus
+      .toLowerCase()
+      .replace(/\s+/g, "-")}`}
+  >
+    {paymentStatus}
+  </span>
+</td>
+
+<td data-label="Actions">
+  <div className="student-table__actions">
+    <button
+      className="student-table__edit"
+      onClick={() => onEdit(student)}
+    >
+      Edit
+    </button>
+
+    <button
+      className="student-table__delete"
+      onClick={() => onDelete(student.id)}
+    >
+      Delete
+    </button>
+  </div>
+</td>
                 </tr>
               );
             })

@@ -99,3 +99,85 @@
   background: #fee2e2;
   color: #e60b0b;
 }
+
+
+
+
+/* Mobile Table */
+@media (max-width: 768px) {
+    .student-table {
+        padding: 1rem;
+        overflow: hidden;
+    }
+
+    .student-table table,
+    .student-table tbody {
+        display: block;
+        width: 100%;
+    }
+
+    .student-table thead {
+        display: none;
+    }
+
+    .student-table tr {
+        display: block;
+        padding: 1rem;
+        margin-bottom: 1rem;
+        border: 1px solid #e5e7eb;
+        border-radius: 10px;
+        background: #ffffff;
+    }
+
+    .student-table td {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 1rem;
+        padding: 0.65rem 0;
+        border-bottom: 1px solid #f1f5f9;
+        text-align: right;
+    }
+
+    .student-table td:last-child {
+        border-bottom: none;
+        padding-bottom: 0;
+    }
+
+    .student-table td::before {
+        content: attr(data-label);
+        color: #64748b;
+        font-size: 0.85rem;
+        font-weight: 600;
+        text-align: left;
+        flex-shrink: 0;
+    }
+
+    .student-table td:first-child {
+        padding-top: 0;
+    }
+
+    .student-table__name {
+        text-align: right;
+    }
+
+    .student-table__actions {
+        display: flex;
+        justify-content: flex-end;
+        gap: 0.5rem;
+    }
+
+    .student-table__actions button {
+        padding: 0.45rem 0.7rem;
+    }
+
+    .student-table__empty {
+        display: block;
+        border-bottom: none;
+        text-align: center;
+    }
+
+    .student-table__empty::before {
+        display: none;
+    }
+}

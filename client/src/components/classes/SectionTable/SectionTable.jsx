@@ -40,48 +40,48 @@ const SectionTable = ({
 
                             return (
                                 <tr key={section.id}>
-                                    <td>{section.id}</td>
+    <td data-label="ID">{section.id}</td>
 
-                                    <td>{section.name}</td>
+    <td data-label="Section">
+        {section.name}
+    </td>
 
-                                    <td>
-                                        {schoolClass?.name || "—"}
-                                    </td>
+    <td data-label="Class">
+        {schoolClass?.name || "—"}
+    </td>
 
-                                    <td>
-                                        {teacher
-                                            ? `${teacher.firstName} ${teacher.lastName}`
-                                            : "—"}
-                                    </td>
+    <td data-label="Class Teacher">
+        {teacher
+            ? `${teacher.firstName} ${teacher.lastName}`
+            : "—"}
+    </td>
 
-                                    <td>{section.room || "—"}</td>
+    <td data-label="Room">
+        {section.room || "—"}
+    </td>
 
-                                    <td>{section.capacity || "—"}</td>
+    <td data-label="Capacity">
+        {section.capacity || "—"}
+    </td>
 
-                                    <td>
-                                        <div className="section-table__actions">
+    <td data-label="Actions">
+        <div className="section-table__actions">
+            <button
+                className="section-table__edit"
+                onClick={() => onEdit(section)}
+            >
+                Edit
+            </button>
 
-                                            <button
-                                                className="section-table__edit"
-                                                onClick={() =>
-                                                    onEdit(section)
-                                                }
-                                            >
-                                                Edit
-                                            </button>
-
-                                            <button
-                                                className="section-table__delete"
-                                                onClick={() =>
-                                                    onDelete(section.id)
-                                                }
-                                            >
-                                                Delete
-                                            </button>
-
-                                        </div>
-                                    </td>
-                                </tr>
+            <button
+                className="section-table__delete"
+                onClick={() => onDelete(section.id)}
+            >
+                Delete
+            </button>
+        </div>
+    </td>
+</tr>
                             );
                         })
                     ) : (

@@ -21,31 +21,48 @@ const ParentTable = ({ parents, onEdit, onDelete }) => {
             <tbody>
                 {parents.map((parent) => (
                     <tr key={parent.id}>
-                        <td>{parent.id}</td>   
-                        <td>{parent.firstName} {parent.lastName}</td>
-                        <td>{parent.phone}</td>
-                        <td>{parent.email}</td>
-                        <td>{parent.address}</td>
-                        <td>{parent.children.join(", ")}</td>
-                        <td>
-                            <div className="parent-table__actions">
-                                <button
-                                className="parent-table__edit"
-                                onClick={() => onEdit(parent)}
-                                >
-                                Edit
-                                </button>
+    <td data-label="ID">
+        {parent.id}
+    </td>
 
-                                <button
-                                className="parent-table__delete"
-                                onClick={() => onDelete(parent.id)}
-                                >
-                                Delete
-                                </button>
-                            </div>
-                        </td>
-                    </tr>
-                ))}
+    <td data-label="Name">
+        {parent.firstName} {parent.lastName}
+    </td>
+
+    <td data-label="Phone">
+        {parent.phone}
+    </td>
+
+    <td data-label="Email">
+        {parent.email}
+    </td>
+
+    <td data-label="Address">
+        {parent.address}
+    </td>
+
+    <td data-label="Children">
+        {parent.children.join(", ")}
+    </td>
+
+    <td data-label="Actions">
+        <div className="parent-table__actions">
+            <button
+                className="parent-table__edit"
+                onClick={() => onEdit(parent)}
+            >
+                Edit
+            </button>
+
+            <button
+                className="parent-table__delete"
+                onClick={() => onDelete(parent.id)}
+            >
+                Delete
+            </button>
+        </div>
+    </td>
+</tr>                ))}
             </tbody>
         </table>
     </div>

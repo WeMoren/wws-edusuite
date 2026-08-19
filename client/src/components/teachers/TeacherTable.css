@@ -52,3 +52,62 @@
 .teacher-table__delete:hover {
   opacity: 0.8;
 }
+
+
+/* Mobile Table */
+@media (max-width: 768px) {
+    .teacher-table {
+        overflow: hidden;
+    }
+
+    .teacher-table table,
+    .teacher-table tbody {
+        display: block;
+        width: 100%;
+    }
+
+    .teacher-table thead {
+        display: none;
+    }
+
+    .teacher-table tr {
+        display: block;
+        padding: 1rem;
+        margin-bottom: 1rem;
+        border: 1px solid #e5e7eb;
+        border-radius: 10px;
+        background: #ffffff;
+    }
+
+    .teacher-table td {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 1rem;
+        padding: 0.65rem 0;
+        border-bottom: 1px solid #f1f5f9;
+        text-align: right;
+    }
+
+    .teacher-table td::before {
+        content: attr(data-label);
+        color: #64748b;
+        font-size: 0.85rem;
+        font-weight: 600;
+        text-align: left;
+        flex-shrink: 0;
+    }
+
+    .teacher-table td:last-child {
+        border-bottom: none;
+        padding-bottom: 0;
+    }
+
+    .teacher-table__actions {
+        justify-content: flex-end;
+    }
+
+    .teacher-table__actions button {
+        padding: 0.45rem 0.7rem;
+    }
+}

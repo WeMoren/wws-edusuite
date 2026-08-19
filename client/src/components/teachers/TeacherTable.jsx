@@ -12,35 +12,49 @@ const TeacherTable = ({ teachers, onEdit, onDelete}) => {
             <th>Last Name</th>
             <th>Subject</th>
             <th>Gender</th>
+            <th>Actions</th>
           </tr>
         </thead>
 
         <tbody>
           {teachers.map((teacher) => (
             <tr key={teacher.id}>
-              <td>{teacher.staffId}</td>
-              <td>{teacher.firstName}</td>
-              <td>{teacher.lastName}</td>
-              <td>{teacher.subject}</td>
-              <td>{teacher.gender}</td>
-              <td>
-                <div className="teacher-table__actions">
-                    <button 
-                        className="teacher-table__edit"
-                        onClick={()  => onEdit(teacher)}
-                        >
-                            Edit
-                        </button>
+  <td data-label="Staff ID">{teacher.staffId}</td>
 
-                        <button 
-                            className="teacher-table__delete"
-                            onClick={()  => onDelete(teacher.id)}
-                            >
-                                Delete
-                            </button>
-                </div>
-              </td>
-            </tr>
+  <td data-label="First Name">
+    {teacher.firstName}
+  </td>
+
+  <td data-label="Last Name">
+    {teacher.lastName}
+  </td>
+
+  <td data-label="Subject">
+    {teacher.subject}
+  </td>
+
+  <td data-label="Gender">
+    {teacher.gender}
+  </td>
+
+  <td data-label="Actions">
+    <div className="teacher-table__actions">
+      <button
+        className="teacher-table__edit"
+        onClick={() => onEdit(teacher)}
+      >
+        Edit
+      </button>
+
+      <button
+        className="teacher-table__delete"
+        onClick={() => onDelete(teacher.id)}
+      >
+        Delete
+      </button>
+    </div>
+  </td>
+</tr>
           ))}
         </tbody>
       </table>

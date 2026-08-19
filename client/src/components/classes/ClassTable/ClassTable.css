@@ -26,3 +26,123 @@
 .class-table td {
   vertical-align: middle;
 }
+
+
+
+/* Actions */
+.class-table__actions {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.class-table__actions button {
+    border: none;
+    border-radius: 6px;
+    padding: 0.45rem 0.75rem;
+    font-size: 0.85rem;
+    cursor: pointer;
+    transition: opacity 0.2s ease;
+}
+
+.class-table__edit {
+    background: #e0f2fe;
+    color: #0369a1;
+}
+
+.class-table__delete {
+    background: #fee2e2;
+    color: #b91c1c;
+}
+
+.class-table__edit:hover,
+.class-table__delete:hover {
+    opacity: 0.8;
+}
+
+
+
+/* Mobile Table */
+@media (max-width: 768px) {
+    .class-table {
+        display: block;
+        width: 100%;
+        border-collapse: separate;
+    }
+
+    .class-table thead {
+        display: none;
+    }
+
+    .class-table tbody {
+        display: block;
+        width: 100%;
+    }
+
+    .class-table tr {
+        display: block;
+        width: 100%;
+        box-sizing: border-box;
+        padding: 1rem;
+        margin-bottom: 1rem;
+        border: 1px solid #e5e7eb;
+        border-radius: 10px;
+        background: #ffffff;
+    }
+
+    .class-table td {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 0.65rem 0;
+    border-bottom: 1px solid #f1f5f9;
+    text-align: right;
+    min-width: 0;
+}
+
+.class-table td::before {
+    content: attr(data-label);
+    color: #64748b;
+    font-size: 0.85rem;
+    font-weight: 600;
+    text-align: left;
+    flex: 0 0 auto;
+}
+
+.class-table td:not(:last-child) {
+    overflow-wrap: anywhere;
+}
+
+    .class-table td::before {
+        content: attr(data-label);
+        color: #64748b;
+        font-size: 0.85rem;
+        font-weight: 600;
+        text-align: left;
+        flex-shrink: 0;
+    }
+
+    .class-table td:last-child {
+        border-bottom: none;
+        padding-bottom: 0;
+    }
+
+    .class-table__actions {
+        justify-content: flex-end;
+    }
+
+    .class-table__actions button {
+        padding: 0.45rem 0.7rem;
+    }
+
+    .class-table__empty {
+        display: block;
+        text-align: center;
+        border-bottom: none;
+    }
+
+    .class-table__empty::before {
+        display: none;
+    }
+}
