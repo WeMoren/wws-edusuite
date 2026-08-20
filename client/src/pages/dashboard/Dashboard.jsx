@@ -1,6 +1,5 @@
 import React from 'react';
 import { useOutletContext } from 'react-router-dom';
-import dashboardStats from '../../data/dashboardStats';
 import StatCard from '../../components/dashboard/StatCard/StatCard';
 import currentUser from '../../data/currentUser';
 import recentActivities from '../../data/recentActivity';
@@ -46,11 +45,11 @@ const Dashboard = () => {
               />
               <StatCard
                   title="Attendance Today"
-                  value={dashboardStats.attendanceToday}
+                  value="---"
               />
               <StatCard
                   title="Staff"
-                  value={dashboardStats.staff}
+                  value="---"
               />
          </div>
           <div className="dashboard__info">
