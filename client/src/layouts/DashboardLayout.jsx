@@ -144,6 +144,14 @@ const [attendance, setAttendance] = useState(() => {
 });
 
 
+useEffect(() => {
+  localStorage.setItem(
+    "attendance",
+    JSON.stringify(attendance)
+  );
+}, [attendance]);
+
+
   const [parents, setParents] = useState(() => {
      const savedParents = localStorage.getItem("parents");
 

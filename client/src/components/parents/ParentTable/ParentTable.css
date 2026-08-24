@@ -61,7 +61,7 @@
 
 
 
-/* Mobile Table */
+
 @media (max-width: 768px) {
     .parent-table__wrapper {
         overflow: hidden;

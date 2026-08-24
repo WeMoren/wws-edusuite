@@ -1,6 +1,6 @@
 .transaction-table-wrapper {
   width: 100%;
-  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
   background: #ffffff;
   border: 1px solid #e5e7eb;
   border-radius: 10px;
@@ -61,7 +61,6 @@
   color: #b45309;
 }
 
-
 .transaction-table__actions {
   display: flex;
   align-items: center;
@@ -81,19 +80,19 @@
 .transaction-table__edit {
   background: #e0f2fe;
   color: #0369a1;
-    transition: opacity 0.2s ease, transform 0.2s ease;
+  transition: opacity 0.2s ease, transform 0.2s ease;
 }
 
 .transaction-table__delete {
   background: #fee2e2;
   color: #b91c1c;
-    transition: opacity 0.2s ease, transform 0.2s ease;
+  transition: opacity 0.2s ease, transform 0.2s ease;
 }
 
 .transaction-table__edit:hover,
 .transaction-table__delete:hover {
   opacity: 0.85;
-transform: translateY(-1px);
+  transform: translateY(-1px);
 }
 
 .transaction-search {
@@ -107,18 +106,12 @@ transform: translateY(-1px);
 .transaction-search input {
   width: 100%;
   max-width: 320px;
-
   padding: 10px 14px;
-
   border: 1px solid #d1d5db;
   border-radius: 8px;
-
   background: #ffffff;
-
   font-size: 14px;
-
   outline: none;
-
   transition: border-color 0.2s ease, box-shadow 0.2s ease;
 }
 
@@ -133,20 +126,13 @@ transform: translateY(-1px);
 
 .transaction-search select {
   min-width: 180px;
-
   padding: 10px 14px;
-
   border: 1px solid #d1d5db;
   border-radius: 8px;
-
   background: #ffffff;
-
   font-size: 14px;
-
   cursor: pointer;
-
   outline: none;
-
   transition: border-color 0.2s ease, box-shadow 0.2s ease;
 }
 
@@ -157,18 +143,12 @@ transform: translateY(-1px);
 
 .transaction-search input[type="date"] {
   padding: 10px 14px;
-
   border: 1px solid #d1d5db;
   border-radius: 8px;
-
   background: #ffffff;
-
   font-size: 14px;
-
   outline: none;
-
   cursor: pointer;
-
   transition: border-color 0.2s ease, box-shadow 0.2s ease;
 }
 
@@ -181,29 +161,121 @@ transform: translateY(-1px);
   display: flex;
   align-items: center;
   gap: 8px;
-
   font-size: 13px;
   font-weight: 600;
 }
 
 .transaction-search__clear {
   padding: 10px 14px;
-
   border: 1px solid #d1d5db;
   border-radius: 8px;
-
   background: #ffffff;
   color: #374151;
-
   font-size: 14px;
   font-weight: 600;
-
   cursor: pointer;
-
   transition: background 0.2s ease, border-color 0.2s ease;
 }
 
 .transaction-search__clear:hover {
   background: #f3f4f6;
   border-color: #9ca3af;
+}
+
+
+/* =========================
+   Mobile / Small Screens
+   ========================= */
+
+@media (max-width: 768px) {
+  .transaction-table-wrapper {
+    overflow: hidden;
+  }
+
+  .transaction-table {
+    display: block;
+    width: 100%;
+    min-width: 0;
+  }
+
+  .transaction-table thead {
+    display: none;
+  }
+
+  .transaction-table tbody {
+    display: block;
+    width: 100%;
+  }
+
+  .transaction-table tr {
+    display: block;
+    width: 100%;
+    box-sizing: border-box;
+    padding: 1rem;
+    margin-bottom: 1rem;
+    border: 1px solid #e5e7eb;
+    border-radius: 10px;
+    background: #ffffff;
+  }
+
+  .transaction-table td {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 1rem;
+    min-width: 0;
+    padding: 0.65rem 0;
+    border-bottom: 1px solid #f1f5f9;
+    text-align: right;
+    overflow-wrap: anywhere;
+  }
+
+  .transaction-table td::before {
+    content: attr(data-label);
+    flex: 0 0 auto;
+    color: #64748b;
+    font-size: 0.85rem;
+    font-weight: 600;
+    text-align: left;
+  }
+
+  .transaction-table td:last-child {
+    border-bottom: none;
+    padding-bottom: 0;
+  }
+
+  .transaction-table__actions {
+    justify-content: flex-end;
+    flex-wrap: wrap;
+  }
+
+  .transaction-table__method {
+    text-align: right;
+  }
+
+  .transaction-table__edit,
+  .transaction-table__delete {
+    padding: 0.45rem 0.7rem;
+  }
+
+  .transaction-search {
+    width: 100%;
+    gap: 10px;
+  }
+
+  .transaction-search input,
+  .transaction-search select,
+  .transaction-search input[type="date"] {
+    width: 100%;
+    max-width: none;
+    min-width: 0;
+  }
+
+  .transaction-search__date {
+    width: 100%;
+  }
+
+  .transaction-search__clear {
+    width: 100%;
+  }
 }

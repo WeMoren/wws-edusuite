@@ -20,7 +20,7 @@ const ExpenseTable = ({ expenses, onEdit, onDelete}) => {
           {expenses.length > 0 ? (
             expenses.map((expense) => (
               <tr key={expense.id}>
-                <td>
+                <td data-label="Date">
                   {new Date(expense.date).toLocaleDateString("en-GB", {
                     day: "2-digit",
                     month: "short",
@@ -28,9 +28,11 @@ const ExpenseTable = ({ expenses, onEdit, onDelete}) => {
                   })}
                 </td>
 
-                <td>{expense.title}</td>
+                <td data-label="Expense">
+                  {expense.title}
+                </td>
 
-                  <td>
+                <td data-label="Category">
                         <span
                             className={`expense-table__category expense-table__category--${expense.category
                             .toLowerCase()
@@ -40,13 +42,15 @@ const ExpenseTable = ({ expenses, onEdit, onDelete}) => {
                         </span>
                 </td>
 
-                <td>
+                <td data-label="Amount">
                   ₦{expense.amount.toLocaleString()}
                 </td>
 
-                <td>{expense.description || "—"}</td>
+                <td data-label="Description">
+                  {expense.description || "—"}
+                </td>
 
-                <td>
+                <td data-label="Actions">
                   <div className="expense-table__actions">
                     <button
                       type="button"

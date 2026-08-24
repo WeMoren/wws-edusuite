@@ -1,9 +1,6 @@
 import React from "react";
 import "./TransactionTable.css";
 
-
-
-
 const TransactionTable = ({ payments, onEdit, onDelete, onReceipt }) => {
   return (
     <div className="transaction-table-wrapper">
@@ -23,62 +20,65 @@ const TransactionTable = ({ payments, onEdit, onDelete, onReceipt }) => {
           {payments.length > 0 ? (
             payments.map((payment) => (
               <tr key={payment.id}>
-                <td>
-                    {new Date(payment.date).toLocaleDateString("en-GB", {
-                        day: "2-digit",
-                        month: "short",
-                        year: "numeric",
-                        hour:"2-digit",
-                        minute:"2-digit",
-                        hour12:true
-                    })}
+                <td data-label="Date">
+                  {new Date(payment.date).toLocaleDateString("en-GB", {
+                    day: "2-digit",
+                    month: "short",
+                    year: "numeric",
+                    hour: "2-digit",
+                    minute: "2-digit",
+                    hour12: true,
+                  })}
                 </td>
 
-                <td>{payment.studentName}</td>
+                <td data-label="Student">
+                  {payment.studentName}
+                </td>
 
-                <td>
+                <td data-label="Amount">
                   ₦{payment.amount.toLocaleString()}
                 </td>
 
-                <td>
-                    <span
-                        className={`transaction-table__method transaction-table__method--${payment.paymentMethod
-                        .toLowerCase()
-                        .replace(/\s+/g, "-")}`}
-                    >
-                        {payment.paymentMethod}
-                    </span>
+                <td data-label="Payment Method">
+                  <span
+                    className={`transaction-table__method transaction-table__method--${payment.paymentMethod
+                      .toLowerCase()
+                      .replace(/\s+/g, "-")}`}
+                  >
+                    {payment.paymentMethod}
+                  </span>
                 </td>
 
-                <td>{payment.description || "—"}</td>
+                <td data-label="Description">
+                  {payment.description || "—"}
+                </td>
 
-                <td>
-                    <div className="transaction-table__actions">
+                <td data-label="Actions">
+                  <div className="transaction-table__actions">
+                    <button
+                      type="button"
+                      className="transaction-table__receipt"
+                      onClick={() => onReceipt(payment)}
+                    >
+                      Receipt
+                    </button>
 
-                        <button
-                            type="button"
-                            className="transaction-table__receipt"
-                            onClick={() => onReceipt(payment)}
-                        >
-                            Receipt
-                        </button>
+                    <button
+                      type="button"
+                      className="transaction-table__edit"
+                      onClick={() => onEdit(payment)}
+                    >
+                      Edit
+                    </button>
 
-                        <button
-                        type="button"
-                        className="transaction-table__edit"
-                          onClick={() => onEdit(payment)}
-                        >
-                        Edit
-                        </button>
-
-                        <button
-                        type="button"
-                        className="transaction-table__delete"
-                        onClick={() => onDelete(payment)}
-                        >
-                        Delete
-                        </button>
-                    </div>
+                    <button
+                      type="button"
+                      className="transaction-table__delete"
+                      onClick={() => onDelete(payment)}
+                    >
+                      Delete
+                    </button>
+                  </div>
                 </td>
               </tr>
             ))

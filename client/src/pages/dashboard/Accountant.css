@@ -71,3 +71,53 @@
 .accountant-page__expenses {
   margin-top: 2rem;
 }
+
+
+@media (max-width: 600px) {
+  .accountant-page {
+    padding: 1rem;
+  }
+
+  .accountant-page__header {
+    margin-bottom: 1.25rem;
+  }
+
+  .accountant-page__header h1 {
+    font-size: 1.6rem;
+  }
+
+  .accountant-page__section-header h2 {
+    font-size: 1.25rem;
+  }
+
+  .accountant-page__actions,
+  .accountant-page__transactions,
+  .accountant-page__expenses {
+    margin-top: 1.5rem;
+  }
+
+  .transaction-search {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.75rem;
+  }
+
+  .transaction-search input,
+  .transaction-search select,
+  .transaction-search__date,
+  .transaction-search__clear {
+    width: 100%;
+    max-width: none;
+  }
+
+  .transaction-search__date {
+    align-items: stretch;
+    flex-direction: column;
+    gap: 0.35rem;
+  }
+
+  .transaction-search__date input {
+    width: 100%;
+  }
+}
+

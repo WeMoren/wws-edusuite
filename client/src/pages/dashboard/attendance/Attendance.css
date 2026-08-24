@@ -1,0 +1,146 @@
+.attendance {
+  padding: 1.5rem;
+}
+
+.attendance h1 {
+  margin: 0 0 0.5rem;
+}
+
+.attendance > p {
+  margin: 0 0 2rem;
+  color: #6b7280;
+}
+
+.attendance__filters {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1rem;
+  margin-bottom: 2rem;
+}
+
+.attendance__field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.attendance__field label {
+  font-weight: 600;
+  color: #374151;
+}
+
+.attendance__field input,
+.attendance__field select {
+  width: 100%;
+  padding: 0.75rem;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  background: #ffffff;
+  font: inherit;
+}
+
+.attendance__students {
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  padding: 1.25rem;
+}
+
+.attendance__students h2 {
+  margin: 0 0 1rem;
+  font-size: 1.1rem;
+}
+
+.attendance__list {
+  display: flex;
+  flex-direction: column;
+}
+
+.attendance__student {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 1rem 0;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.attendance__student:last-child {
+  border-bottom: none;
+}
+
+.attendance__student > div:first-child {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.attendance__student strong {
+  color: #111827;
+}
+
+.attendance__student span {
+  color: #6b7280;
+  font-size: 0.85rem;
+}
+
+.attendance__status {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.attendance__status button {
+  border: none;
+  border-radius: 6px;
+  padding: 0.45rem 0.75rem;
+  font-size: 0.85rem;
+  cursor: pointer;
+  transition: opacity 0.2s ease;
+}
+
+.attendance__status button:first-child {
+  background: #dcfce7;
+  color: #166534;
+}
+
+.attendance__status button:last-child {
+  background: #fee2e2;
+  color: #b91c1c;
+}
+
+.attendance__status button:hover {
+  opacity: 0.8;
+}
+
+.attendance__status--active {
+  outline: 2px solid currentColor;
+  outline-offset: 2px;
+}
+
+.attendance__empty {
+  color: #6b7280;
+}
+
+@media (max-width: 700px) {
+  .attendance {
+    padding: 1rem;
+  }
+
+  .attendance__filters {
+    grid-template-columns: 1fr;
+  }
+
+  .attendance__student {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .attendance__status {
+    width: 100%;
+  }
+
+  .attendance__status button {
+    flex: 1;
+  }
+}
