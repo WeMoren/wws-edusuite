@@ -10,6 +10,7 @@ import "./Dashboard.css";
 import EventModal from '../../components/dashboard/EventModal/EventModal';
 
 
+
 const getRelativeTime = (createdAt) => {
     const now = new Date();
     const created = new Date(createdAt);
@@ -73,6 +74,13 @@ const Dashboard = () => {
             const [showEventModal, setShowEventModal] = useState(false);
 
 
+            const upcomingEventPreview = [...upcomingEvents]
+                .filter((event) => new Date(event.date)  >= new Date())
+                .sort((a, b)  => new Date(a.date) - new Date(b.date))
+                .slice(0, 4);
+
+                const recentActivityPreview = recentActivities.slice(0, 5);
+
 
   return (
       <div className="dashboard">
@@ -117,7 +125,7 @@ const Dashboard = () => {
               <section className="dashboard__activities">
                     <h2>Recent Activities</h2>
                     
-                    {recentActivities.map((item) => (
+                    {recentActivityPreview.map((item) => (
                       <ActivityItem
                           key={item.id}
                           activity={item.activity}
@@ -139,13 +147,16 @@ const Dashboard = () => {
                         </button>
                    </div>
 
-                    {upcomingEvents.map((event) => (
-                        <EventItem
-                            key={event.id}
-                            title={event.title}
-                            date={event.date}
-                        />
-             ))}
+                   
+
+                {upcomingEventPreview.map((event) => (
+                    <EventItem
+                        key={event.id}
+                        title={event.title}
+                        date={event.date}
+                    />
+            ))}
+
 
               </section>
 

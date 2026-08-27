@@ -1,9 +1,9 @@
 import React, { useState } from "react";
 import "./EventModal.css";
 
-const EventModal = ({ onClose, onAddEvent }) => {
-  const [title, setTitle] = useState("");
-  const [date, setDate] = useState("");
+const EventModal = ({ onClose, onAddEvent, eventToEdit }) => {
+  const [title, setTitle] = useState(eventToEdit ? eventToEdit.title : "");
+  const [date, setDate] = useState(eventToEdit ? eventToEdit.date : "");
 
   const handleSubmit = (e) => {
     e.preventDefault();
@@ -13,6 +13,7 @@ const EventModal = ({ onClose, onAddEvent }) => {
     }
 
     onAddEvent({
+      ...(eventToEdit && { id: eventToEdit.id }),
       title: title.trim(),
       date,
     });
@@ -24,7 +25,7 @@ const EventModal = ({ onClose, onAddEvent }) => {
     <div className="event-modal__overlay">
       <div className="event-modal">
         <div className="event-modal__header">
-          <h2>Add Event</h2>
+          <h2>{eventToEdit ? "Edit Event" : "Add Event"}</h2>
 
           <button
             type="button"
@@ -72,7 +73,7 @@ const EventModal = ({ onClose, onAddEvent }) => {
               type="submit"
               className="event-modal__submit"
             >
-              Add Event
+              {eventToEdit ? "Update Event" : "Add Event"}
             </button>
           </div>
         </form>

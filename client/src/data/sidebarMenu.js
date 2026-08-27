@@ -73,9 +73,17 @@ const sidebarMenu =  [
         path: "/dashboard/reception",
         icon: "🛎️"
      },
+
      {
-        id: 12,
-        label: "Setings",
+         id: 12,
+         label: "Events",
+         path: "/dashboard/events",
+         icon: "📅"
+    },
+
+     {
+        id: 13,
+        label: "Settings",
         path: "/dashboard/settings",
         icon: "⚙️"
      },

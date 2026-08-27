@@ -122,6 +122,35 @@
   color: #6b7280;
 }
 
+.attendance__summary {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 16px;
+    margin: 24px 0;
+}
+
+.attendance__summary-card {
+    padding: 20px;
+    background: #ffffff;
+    border: 1px solid #e5e7eb;
+    border-radius: 10px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+}
+
+.attendance__summary-card span {
+    display: block;
+    margin-bottom: 8px;
+    color: #6b7280;
+    font-size: 14px;
+}
+
+.attendance__summary-card strong {
+    color: #1f2937;
+    font-size: 24px;
+}
+
+
+
 @media (max-width: 700px) {
   .attendance {
     padding: 1rem;
@@ -143,4 +172,17 @@
   .attendance__status button {
     flex: 1;
   }
+}
+
+
+@media (max-width: 900px) {
+    .attendance__summary {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+@media (max-width: 600px) {
+    .attendance__summary {
+        grid-template-columns: 1fr;
+    }
 }

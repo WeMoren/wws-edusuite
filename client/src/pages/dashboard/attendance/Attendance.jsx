@@ -27,12 +27,10 @@ const Attendance = () => {
 
   const [attendanceStatus, setAttendanceStatus] = useState({});
 
-  // Remember the selected date.
   useEffect(() => {
     localStorage.setItem("selectedDate", selectedDate);
   }, [selectedDate]);
 
-  // Remember the selected class.
   useEffect(() => {
     if (selectedClassId) {
       localStorage.setItem("selectedClassId", selectedClassId);
@@ -53,7 +51,6 @@ const Attendance = () => {
     return section?.classId === Number(selectedClassId);
   });
 
-  // Load existing attendance when the selected class or date changes.
   useEffect(() => {
     if (!selectedClassId) {
       setAttendanceStatus({});
@@ -72,16 +69,31 @@ const Attendance = () => {
     }, {});
 
     setAttendanceStatus(existingStatus);
-  }, [selectedClassId, selectedDate]);
+  }, [selectedClassId, selectedDate, attendance]);
+
+  const totalStudents = selectedClassStudents.length;
+
+  const presentCount = selectedClassStudents.filter(
+    (student) => attendanceStatus[student.id] === "present"
+  ).length;
+
+  const absentCount = selectedClassStudents.filter(
+    (student) => attendanceStatus[student.id] === "absent"
+  ).length;
+
+  const unmarkedCount = totalStudents - presentCount - absentCount;
+
+  const attendancePercentage =
+    totalStudents > 0
+      ? Math.round((presentCount / totalStudents) * 100)
+      : 0;
 
   const handleStatusChange = (studentId, status) => {
-    // Update the button immediately.
     setAttendanceStatus((prev) => ({
       ...prev,
       [studentId]: status,
     }));
 
-    // Create or update the attendance record.
     setAttendance((prev) => {
       const existingRecord = prev.find(
         (record) =>
@@ -103,17 +115,16 @@ const Attendance = () => {
           ? Math.max(...prev.map((record) => record.id)) + 1
           : 1;
 
-
-
-    setRecentActivities((prevActivities) => [
-      {
-        id: Date.now(),
-        activity: "Attendance marked",
-        createdAt: new Date().toISOString(),
-      },
-      ...prevActivities,
-    ]);
-
+      setRecentActivities((prevActivities) => [
+        {
+          id: Date.now(),
+          activity: `Attendance marked for ${
+            classes.find((schoolClass) => schoolClass.id === Number(selectedClassId))?.name || "Class Unavailable"
+          }`,
+          createdAt: new Date().toISOString(),
+        },
+        ...prevActivities,
+      ]);
 
       return [
         ...prev,
@@ -169,64 +180,93 @@ const Attendance = () => {
       </div>
 
       {selectedClassId && (
-        <div className="attendance__students">
-          <h2>Students</h2>
-
-          {selectedClassStudents.length > 0 ? (
-            <div className="attendance__list">
-              {selectedClassStudents.map((student) => {
-                const status = attendanceStatus[student.id];
-
-                return (
-                  <div
-                    key={student.id}
-                    className="attendance__student"
-                  >
-                    <div>
-                      <strong>
-                        {student.firstName} {student.lastName}
-                      </strong>
-
-                      <span>{student.admissionNo}</span>
-                    </div>
-
-                    <div className="attendance__status">
-                      <button
-                        type="button"
-                        className={
-                          status === "present"
-                            ? "attendance__status--active"
-                            : ""
-                        }
-                        onClick={() =>
-                          handleStatusChange(student.id, "present")
-                        }
-                      >
-                        Present
-                      </button>
-
-                      <button
-                        type="button"
-                        className={
-                          status === "absent"
-                            ? "attendance__status--active"
-                            : ""
-                        }
-                        onClick={() =>
-                          handleStatusChange(student.id, "absent")
-                        }
-                      >
-                        Absent
-                      </button>
-                    </div>
-                  </div>
-                );
-              })}
+        <>
+          <div className="attendance__summary">
+            <div className="attendance__summary-card">
+              <span>Total Students</span>
+              <strong>{totalStudents}</strong>
             </div>
-          ) : (
-            <p>No students found in this class.</p>
-          )}
-        </div>
+
+            <div className="attendance__summary-card">
+              <span>Present</span>
+              <strong>{presentCount}</strong>
+            </div>
+
+            <div className="attendance__summary-card">
+              <span>Absent</span>
+              <strong>{absentCount}</strong>
+            </div>
+
+            <div className="attendance__summary-card">
+              <span>Unmarked</span>
+              <strong>{unmarkedCount}</strong>
+          </div>
+
+            <div className="attendance__summary-card">
+              <span>Attendance Rate</span>
+              <strong>{attendancePercentage}%</strong>
+            </div>
+          </div>
+
+          <div className="attendance__students">
+            <h2>Students</h2>
+
+            {selectedClassStudents.length > 0 ? (
+              <div className="attendance__list">
+                {selectedClassStudents.map((student) => {
+                  const status = attendanceStatus[student.id];
+
+                  return (
+                    <div
+                      key={student.id}
+                      className="attendance__student"
+                    >
+                      <div>
+                        <strong>
+                          {student.firstName} {student.lastName}
+                        </strong>
+
+                        <span>{student.admissionNo}</span>
+                      </div>
+
+                      <div className="attendance__status">
+                        <button
+                          type="button"
+                          className={
+                            status === "present"
+                              ? "attendance__status--active"
+                              : ""
+                          }
+                          onClick={() =>
+                            handleStatusChange(student.id, "present")
+                          }
+                        >
+                          Present
+                        </button>
+
+                        <button
+                          type="button"
+                          className={
+                            status === "absent"
+                              ? "attendance__status--active"
+                              : ""
+                          }
+                          onClick={() =>
+                            handleStatusChange(student.id, "absent")
+                          }
+                        >
+                          Absent
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            ) : (
+              <p>No students found in this class.</p>
+            )}
+          </div>
+        </>
       )}
 
       {!selectedClassId && (
