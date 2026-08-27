@@ -10,6 +10,7 @@ const Attendance = () => {
     sections,
     attendance,
     setAttendance,
+    setRecentActivities,
   } = useOutletContext();
 
   const [selectedDate, setSelectedDate] = useState(
@@ -101,6 +102,18 @@ const Attendance = () => {
         prev.length > 0
           ? Math.max(...prev.map((record) => record.id)) + 1
           : 1;
+
+
+
+    setRecentActivities((prevActivities) => [
+      {
+        id: Date.now(),
+        activity: "Attendance marked",
+        createdAt: new Date().toISOString(),
+      },
+      ...prevActivities,
+    ]);
+
 
       return [
         ...prev,

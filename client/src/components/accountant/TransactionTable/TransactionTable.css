@@ -278,4 +278,26 @@
   .transaction-search__clear {
     width: 100%;
   }
+
+.transaction-table__method--card{
+  font-size: .5rem;
+  padding: .3rem;
+}
+
+  .transaction-table__method--bank-transfer {
+    font-size: .5rem;
+    padding: .5rem;
+  }
+
+
+}
+
+
+@media (max-width: 600px){
+  .transaction-table__method--bank-transfer {
+    font-size: .2rem;
+    padding: .3rem;
+  }
+
+ 
 }

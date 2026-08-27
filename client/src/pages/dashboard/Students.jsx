@@ -34,6 +34,7 @@ const Students = () => {
             academicSessions,
             sections,
             classes,
+            setRecentActivities,
          } = useOutletContext();
 
     useEffect(() => {
@@ -221,6 +222,18 @@ const Students = () => {
                                     : student
                             )
                         );
+
+                     //Update recent activities
+                     setRecentActivities((prevActivities) => [
+                        {
+                            id:Date.now(),
+                            activity: "New student added",
+                            createdAt: new Date().toISOString(),
+                        },
+                        ...prevActivities,
+                     ])      
+
+
 
                         // Update the student's enrollment
                         setEnrollments((prevEnrollments) =>

@@ -95,3 +95,33 @@
 .students-page h1{ 
     margin: 0;
 } 
+
+
+.dashboard__section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.dashboard__section-header h2 {
+  margin: 0;
+}
+
+.dashboard__section-header button {
+  border: none;
+  padding: 0.55rem 0.9rem;
+  border-radius: 7px;
+  background: #0a0f24;
+  color: #ffffff;
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: opacity 0.2s ease, transform 0.2s ease;
+}
+
+.dashboard__section-header button:hover {
+  opacity: 0.9;
+  transform: translateY(-1px);
+}

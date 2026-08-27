@@ -30,7 +30,16 @@ const Accountant = () => {
 const [paymentMethodFilter, setPaymentMethodFilter] = useState("");
 const [paymentDateFrom, setPaymentDateFrom] = useState("");
 const [paymentDateTo, setPaymentDateTo] = useState("");
-const {payments, setPayments} = useOutletContext();
+
+
+
+const {
+    payments, 
+    setPayments,
+    setRecentActivities,
+  } = useOutletContext();
+
+
 
   const [expenses, setExpenses] = useState(()  =>{
     const savedExpenses = localStorage.getItem("expenses");
@@ -288,6 +297,18 @@ const filteredPayments = payments.filter((payment) => {
                 },
               ];
             });
+
+            // Record activity only for a new payment.
+            if (!paymentData.id) {
+              setRecentActivities((prevActivities) => [
+                {
+                  id: Date.now(),
+                  activity: "School fees received",
+                  createdAt: new Date().toISOString()
+                },
+                ...prevActivities,
+              ]);
+            }
 
             setShowPaymentModal(false);
             setEditingPayment(null);

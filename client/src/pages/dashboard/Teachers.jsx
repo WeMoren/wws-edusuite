@@ -18,7 +18,11 @@ const Teachers = () => {
     const teachersPerPage = 5;
 
 
-    const { teachers, setTeachers } = useOutletContext();
+    const { 
+            teachers, 
+            setTeachers,
+            setRecentActivities,
+        } = useOutletContext();
 
 
 const filteredTeachers = teachers.filter((teacher) => {
@@ -195,7 +199,16 @@ const filteredTeachers = teachers.filter((teacher) => {
                         ) + 1 : 1
                     }
                         
-                   ])
+                   ]);
+
+                        setRecentActivities((prevActivities) =>  [
+                           {id:Date.now(),
+                            activity: "Teacher account created",
+                            createdAt: new Date().toISOString(),
+                           },
+                           ...prevActivities,
+                        ]);
+
                     setShowModal(false)
                     }
                 }}

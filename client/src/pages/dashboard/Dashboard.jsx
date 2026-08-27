@@ -1,19 +1,79 @@
-import React from 'react';
+import React, { useState }  from 'react';
 import { useOutletContext } from 'react-router-dom';
 import StatCard from '../../components/dashboard/StatCard/StatCard';
 import currentUser from '../../data/currentUser';
-import recentActivities from '../../data/recentActivity';
 import ActivityItem from '../../components/dashboard/ActivityItem/ActivityItem';
-import upcomingEvents from '../../data/upcomingEvents';
 import EventItem from '../../components/dashboard/EventItem/EventItem';
 import quickActions from '../../data/quickActions';
 import ActionButton from '../../components/dashboard/ActionButton/ActionButton';
 import "./Dashboard.css";
+import EventModal from '../../components/dashboard/EventModal/EventModal';
+
+
+const getRelativeTime = (createdAt) => {
+    const now = new Date();
+    const created = new Date(createdAt);
+    const differenceInSeconds = Math.floor((now - created) / 1000);
+
+    if(differenceInSeconds < 60){
+        return "Just now"
+    }
+            //  {} < $
+    const differenceInMinutes = Math.floor(differenceInSeconds / 60);
+
+    if(differenceInMinutes < 60){
+        return `${differenceInMinutes}  ${
+            differenceInMinutes === 1 ? "minute" : "minutes"} ago`
+    }
+
+    const differenceInHours = Math.floor(differenceInMinutes / 60);
+
+    if(differenceInHours < 24){
+        return `${differenceInHours} ${
+            differenceInHours === 1 ? "hour" : "hours"
+        } ago`
+    }
+
+
+    const differenceInDays = Math.floor(differenceInHours / 24);
+
+    if(differenceInDays === 1){
+        return "Yesterday"
+    }
+
+    return `${differenceInDays} days ago`;
+}
+
+
+
 
 const Dashboard = () => {
 
 
-    const { students, teachers, parents, classes } = useOutletContext();
+    const { 
+            students, 
+            teachers, 
+            parents, 
+            classes, 
+            attendance,
+            recentActivities,
+            upcomingEvents,
+            setUpcomingEvents
+        } = useOutletContext();
+
+            const today = new Date().toISOString().split("T")[0];
+
+            const todayAttendance = attendance.filter((record) => record.date === today);
+
+            const attendancePercentage = students.length > 0 ? Math.round(
+                (todayAttendance.filter((record) => record.status === "present").length / students.length) * 100
+            ) : 0;
+
+
+            const [showEventModal, setShowEventModal] = useState(false);
+
+
+
   return (
       <div className="dashboard">
          <h1>Dashboard</h1>
@@ -29,6 +89,7 @@ const Dashboard = () => {
               <StatCard
                   title="Students"
                   value={students.length}
+                  
               />
               
               <StatCard
@@ -45,7 +106,7 @@ const Dashboard = () => {
               />
               <StatCard
                   title="Attendance Today"
-                  value="---"
+                  value={`${attendancePercentage}%`}
               />
               <StatCard
                   title="Staff"
@@ -60,22 +121,32 @@ const Dashboard = () => {
                       <ActivityItem
                           key={item.id}
                           activity={item.activity}
-                          time={item.time}
+                          time={getRelativeTime(item.createdAt)}
                       />
                     ) )}
               </section>
 
 
               <section className="dashboard__events">
-                    <h2>Upcoming Events</h2>
+                   <div className="dashboard__section-header">
+                     <h2>Upcoming Events</h2>
+
+                        <button
+                            type='button'
+                            onClick={()=> setShowEventModal(true)}
+                        >
+                            + Add Event
+                        </button>
+                   </div>
 
                     {upcomingEvents.map((event) => (
                         <EventItem
-                          key={event.id}
-                          title={event.title}
-                          date={event.date}
+                            key={event.id}
+                            title={event.title}
+                            date={event.date}
                         />
-                    ))}
+             ))}
+
               </section>
 
               <section className="quick-actions">
@@ -94,6 +165,29 @@ const Dashboard = () => {
               </section>
          </div>
         
+
+            {showEventModal && (
+    <EventModal
+        onClose={() => setShowEventModal(false)}
+        onAddEvent={(eventData) => {
+            setUpcomingEvents((prevEvents) => [
+                ...prevEvents,
+                {
+                    ...eventData,
+                    id:
+                        prevEvents.length > 0
+                            ? Math.max(
+                                ...prevEvents.map((event) => event.id)
+                            ) + 1
+                            : 1,
+                },
+            ]);
+
+            setShowEventModal(false);
+        }}
+    />
+)}
+
       </div>
   )
 }

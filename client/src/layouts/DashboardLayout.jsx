@@ -14,6 +14,8 @@ import initialAttendance from "../data/attendance";
 import initialActiveAcademicLevels from "../data/activeAcademicLevels";
 import initialAcademicSessions from "../data/academicSessions";
 import initialAcademicLevels from "../data/academicLevels";
+import initialRecentActivities from "../data/recentActivity";
+import initialUpcomingEvents from "../data/upcomingEvents";
 
 const DashboardLayout = () => {
 
@@ -136,21 +138,47 @@ useEffect(() => {
 
 
 const [attendance, setAttendance] = useState(() => {
-    const savedAttendance = localStorage.getItem("attendance");
+        const savedAttendance = localStorage.getItem("attendance");
 
-    return savedAttendance
-      ? JSON.parse(savedAttendance)
-      : initialAttendance;
-});
+        return savedAttendance
+        ? JSON.parse(savedAttendance)
+        : initialAttendance;
+    });
 
 
-useEffect(() => {
-  localStorage.setItem(
-    "attendance",
-    JSON.stringify(attendance)
-  );
-}, [attendance]);
+    useEffect(() => {
+    localStorage.setItem(
+        "attendance",
+        JSON.stringify(attendance)
+    );
+    }, [attendance]);
 
+
+/* Recent activity and persistence */
+
+     const [recentActivities, setRecentActivities] = useState(() => {
+        const savedActivities = localStorage.getItem("recentActivities");
+
+        if (!savedActivities) {
+            return initialRecentActivities;
+        }
+
+        try {
+            return JSON.parse(savedActivities);
+        } catch (error) {
+            console.error("Failed to load recent activities:", error);
+
+            localStorage.removeItem("recentActivities");
+
+            return initialRecentActivities;
+        }
+    });
+
+    /* Persist recent activities to localStorage whenever it changes */
+    useEffect(() => {
+        localStorage.setItem("recentActivities", JSON.stringify(recentActivities));
+
+        }, [recentActivities]);
 
   const [parents, setParents] = useState(() => {
      const savedParents = localStorage.getItem("parents");
@@ -159,6 +187,36 @@ useEffect(() => {
         ? JSON.parse(savedParents)
         : initialParents;
 });
+
+
+
+/* Upcoming events and persistence */
+
+const [upcomingEvents, setUpcomingEvents] = useState(() => {
+    const savedEvents = localStorage.getItem("upcomingEvents");
+
+    if (!savedEvents) {
+        return initialUpcomingEvents;
+    }
+
+    try {
+        return JSON.parse(savedEvents);
+    } catch (error) {
+        console.error("Failed to load upcoming events:", error);
+
+        localStorage.removeItem("upcomingEvents");
+
+        return initialUpcomingEvents;
+    }
+});
+
+useEffect(() => {
+    localStorage.setItem(
+        "upcomingEvents",
+        JSON.stringify(upcomingEvents)
+    );
+}, [upcomingEvents]);
+
 
   return (
     <>
@@ -192,7 +250,10 @@ useEffect(() => {
                       setAcademicLevels,
                       attendance,
                       setAttendance,
-                   
+                      recentActivities,
+                      setRecentActivities,
+                      upcomingEvents,
+                      setUpcomingEvents
                    }}
                    
                    />
