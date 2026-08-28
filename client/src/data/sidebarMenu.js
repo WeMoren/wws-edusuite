@@ -51,38 +51,45 @@ const sidebarMenu =  [
 
      {
         id: 8,
+        label: "Results",
+        path: "/dashboard/results",
+        icon: "📊"
+     },
+
+     {
+        id: 9,
         label: "Parents",
         path: "/dashboard/parents",
         icon: "👨‍👩‍👧"
      },
      {
-        id: 9,
+        id: 10,
         label: "Accountant",
         path: "/dashboard/accountant",
         icon: "💰"
      },
      {
-        id: 10,
+        id: 11,
         label: "Library",
         path: "/dashboard/library",
         icon: "📚"
      },
      {
-        id: 11,
+        id: 12,
         label: "Reception",
         path: "/dashboard/reception",
         icon: "🛎️"
      },
 
      {
-         id: 12,
+         id: 13,
          label: "Events",
          path: "/dashboard/events",
          icon: "📅"
     },
 
      {
-        id: 13,
+        id: 14,
         label: "Settings",
         path: "/dashboard/settings",
         icon: "⚙️"

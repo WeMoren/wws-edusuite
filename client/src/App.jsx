@@ -15,6 +15,7 @@ import Attendance from "./pages/dashboard/attendance/Attendance";
 import Sections from "./pages/dashboard/Sections";
 import AcademicSetup from "./pages/dashboard/AcademicSetup";
 import Events from "./pages/dashboard/Events";
+import Results from "./pages/dashboard/Results";
 
 const App = () => {
   return (
@@ -29,6 +30,7 @@ const App = () => {
           <Route path="sections" element={<Sections />} />
           <Route path="academic-setup" element={<AcademicSetup />} />
           <Route path="attendance" element={<Attendance />} />
+          <Route path="results" element={<Results />} />
           <Route path="events" element={<Events />} />
           <Route path="parents" element={<Parents />}/>
           <Route path="accountant" element={<Accountant />}/>

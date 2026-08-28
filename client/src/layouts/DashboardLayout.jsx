@@ -13,9 +13,13 @@ import initialSections from "../data/sections";
 import initialAttendance from "../data/attendance";
 import initialActiveAcademicLevels from "../data/activeAcademicLevels";
 import initialAcademicSessions from "../data/academicSessions";
+import initialAcademicTerms from "../data/academicTerms";
 import initialAcademicLevels from "../data/academicLevels";
 import initialRecentActivities from "../data/recentActivity";
 import initialUpcomingEvents from "../data/upcomingEvents";
+import initialSubjects from "../data/subjects";
+import initialResults from "../data/results";
+
 
 const DashboardLayout = () => {
 
@@ -119,6 +123,23 @@ useEffect(() => {
 
 
 
+const [academicTerms, setAcademicTerms] = useState(() => {
+    const savedAcademicTerms =
+        localStorage.getItem("academicTerms");
+
+    return savedAcademicTerms
+        ? JSON.parse(savedAcademicTerms)
+        : initialAcademicTerms;
+});
+
+useEffect(() => {
+    localStorage.setItem(
+        "academicTerms",
+        JSON.stringify(academicTerms)
+    );
+}, [academicTerms]);
+
+
 const [academicLevels, setAcademicLevels] = useState(() => {
     const savedAcademicLevels =
         localStorage.getItem("academicLevels");
@@ -135,6 +156,35 @@ useEffect(() => {
         JSON.stringify(academicLevels)
     );
 }, [academicLevels]);
+
+
+
+const [subjects, setSubjects] = useState(() => {
+  const savedSubjects = localStorage.getItem("subjects");
+
+  return savedSubjects
+    ? JSON.parse(savedSubjects)
+    : initialSubjects;
+});
+
+
+useEffect(() => {
+  localStorage.setItem("subjects", JSON.stringify(subjects));
+}, [subjects]);
+
+
+
+const [results, setResults] = useState(() => {
+  const savedResults = localStorage.getItem("results");
+
+  return savedResults
+    ? JSON.parse(savedResults)
+    : initialResults;
+});
+
+useEffect(() => {
+  localStorage.setItem("results", JSON.stringify(results));
+}, [results]);
 
 
 const [attendance, setAttendance] = useState(() => {
@@ -246,6 +296,8 @@ useEffect(() => {
                       setActiveAcademicLevels,
                        academicSessions,
                       setAcademicSessions,
+                      academicTerms,
+                      setAcademicTerms,
                       academicLevels,
                       setAcademicLevels,
                       attendance,
@@ -253,7 +305,11 @@ useEffect(() => {
                       recentActivities,
                       setRecentActivities,
                       upcomingEvents,
-                      setUpcomingEvents
+                      setUpcomingEvents,
+                      subjects,
+                      setSubjects,
+                      results,
+                      setResults,
                    }}
                    
                    />
