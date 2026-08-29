@@ -1,6 +1,9 @@
 import React, { useState } from "react";
 import { useOutletContext } from "react-router-dom";
+import jsPDF from "jspdf";
 import NotificationDialog from "../../components/common/NotificationDialog/NotificationDialog";
+import "./Results.css";
+
 
 const Results = () => {
   const {
@@ -32,6 +35,90 @@ const Results = () => {
         title: "",
         message: "",
     });
+
+
+
+        const [assessmentSettings, setAssessmentSettings] = useState(() => {
+            const savedAssessment = localStorage.getItem("assessmentSettings");
+
+            if (savedAssessment) {
+                return JSON.parse(savedAssessment);
+            }
+
+            return {
+                caMax: 30,
+                examMax: 70,
+            };
+        });
+
+
+        const [gradingScale, setGradingScale] = useState(() => {
+            const savedGradingScale = localStorage.getItem("gradingScale");
+
+            if (savedGradingScale) {
+                return JSON.parse(savedGradingScale);
+            }
+
+            return [
+                {
+                id: 1,
+                min: 90,
+                max: 100,
+                grade: "A1",
+                remark: "Excellent",
+                },
+                {
+                id: 2,
+                min: 80,
+                max: 89,
+                grade: "B2",
+                remark: "Very Good",
+                },
+                {
+                id: 3,
+                min: 70,
+                max: 79,
+                grade: "B3",
+                remark: "Good",
+                },
+                {
+                id: 4,
+                min: 60,
+                max: 69,
+                grade: "C4",
+                remark: "Credit",
+                },
+                {
+                id: 5,
+                min: 50,
+                max: 59,
+                grade: "C5",
+                remark: "Credit",
+                },
+                {
+                id: 6,
+                min: 45,
+                max: 49,
+                grade: "D7",
+                remark: "Pass",
+                },
+                {
+                id: 7,
+                min: 40,
+                max: 44,
+                grade: "E8",
+                remark: "Pass",
+                },
+                {
+                id: 8,
+                min: 0,
+                max: 39,
+                grade: "F9",
+                remark: "Fail",
+                },
+            ];
+        });
+
 
 
     const notify = ({ title, message }) => {
@@ -96,14 +183,40 @@ const Results = () => {
 
   setLoadedStudents(matchingStudents);
   setLoadedSubjects(matchingSubjects);
+
+const existingScores = {};
+
+matchingStudents.forEach((student) => {
+  matchingSubjects.forEach((subject) => {
+    const existingResult = results.find(
+      (result) =>
+        result.studentId === student.id &&
+        result.subjectId === subject.id &&
+        result.academicSessionId === sessionId &&
+        result.academicTermId === Number(selectedTermId) &&
+        result.sectionId === sectionId
+    );
+
+    if (existingResult) {
+      existingScores[`${student.id}-${subject.id}`] = {
+        ca: existingResult.ca,
+        exam: existingResult.exam,
+      };
+    }
+  });
+});
+
+setScoreEntries(existingScores);
+
+
   setResultsLoaded(true);
 };
 
 
  const handleSaveResults = () => {
-  const updatedResults = [...results];
+    const updatedResults = [...results];
 
-  loadedStudents.forEach((student) => {
+    loadedStudents.forEach((student) => {
     loadedSubjects.forEach((subject) => {
       const entryKey = `${student.id}-${subject.id}`;
       const entry = scoreEntries[entryKey];
@@ -323,6 +436,10 @@ const Results = () => {
                                 (Number(entry.ca) || 0) +
                                 (Number(entry.exam) || 0);
 
+                                const grading = gradingScale.find(
+                                    (item) => total >= item.min && total <= item.max
+                                );
+
                             return (
                                 <td key={subject.id}>
                                 <div className="results-entry__scores">
@@ -331,11 +448,11 @@ const Results = () => {
                                     </span>
 
                                     <label>
-                                        CA
+                                        CAT ({assessmentSettings.caMax})
                                     <input
                                         type="number"
                                         min="0"
-                                        max="30"
+                                        max={assessmentSettings.caMax}
                                         value={entry.ca}
                                         onChange={(e) =>
                                         setScoreEntries((prev) => ({
@@ -350,11 +467,11 @@ const Results = () => {
                                 </label>
 
                                 <label>
-                                Exam
+                                Exam ({assessmentSettings.examMax})
                                 <input
                                     type="number"
                                     min="0"
-                                    max="70"
+                                    max={assessmentSettings.examMax}
                                     value={entry.exam}
                                     onChange={(e) =>
                                     setScoreEntries((prev) => ({
@@ -369,6 +486,13 @@ const Results = () => {
                                 </label>
 
                         <strong>Total: {total}</strong>
+                        <strong>
+                             Grade: {grading?.grade || "-"}
+                        </strong>
+
+                        <strong>
+                            Remark: {grading?.remark || "-"}
+                        </strong>
                     </div>
                     </td>
                                 );

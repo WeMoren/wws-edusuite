@@ -901,9 +901,7 @@
 }
 
 
-/* ================================
-   Subject Actions
-================================ */
+/* Subject Actions */
 
 .academic-subjects__actions {
   display: flex;
@@ -938,4 +936,269 @@
 .academic-subjects__actions .assign {
   background: #2563eb;
   color: #fff;
+}
+
+
+/* Result Settings */
+
+.academic-result-settings {
+  margin-top: 24px;
+  padding: 20px;
+  background: #ffffff;
+  border-radius: 10px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+}
+
+.academic-result-settings > h2 {
+  margin-bottom: 8px;
+}
+
+.academic-result-settings > p {
+  margin-bottom: 24px;
+  color: #64748b;
+}
+
+/* Assessment Structure */
+
+.academic-assessment {
+  padding: 20px;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  background: #f8fafc;
+}
+
+.academic-assessment h3 {
+  margin-bottom: 8px;
+}
+
+.academic-assessment > p {
+  margin-bottom: 20px;
+  color: #64748b;
+}
+
+.academic-assessment__form {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 16px;
+  align-items: end;
+}
+
+.academic-assessment__form > div {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.academic-assessment__form label {
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.academic-assessment__form input {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid #cbd5e1;
+  border-radius: 6px;
+  background: #ffffff;
+  font-size: 14px;
+  outline: none;
+}
+
+.academic-assessment__form input:focus {
+  border-color: #2563eb;
+}
+
+.academic-assessment__total {
+  justify-content: center;
+  padding: 10px 12px;
+  border-radius: 6px;
+  background: #eff6ff;
+}
+
+.academic-assessment__total span {
+  font-size: 13px;
+  color: #64748b;
+}
+
+.academic-assessment__total strong {
+  font-size: 18px;
+  color: #2563eb;
+}
+
+
+/* Grading System */
+
+.academic-grading {
+  margin-top: 24px;
+  padding: 20px;
+  background: #ffffff;
+  border-radius: 10px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+}
+
+.academic-grading h3 {
+  margin-bottom: 8px;
+}
+
+.academic-grading > p {
+  margin-bottom: 20px;
+  color: #64748b;
+}
+
+/* Add Grade Form */
+
+.academic-grading__form {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr) auto;
+  gap: 12px;
+  align-items: end;
+  margin-bottom: 24px;
+}
+
+.academic-grading__form input {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid #cbd5e1;
+  border-radius: 6px;
+  font-size: 14px;
+  outline: none;
+}
+
+.academic-grading__form input:focus {
+  border-color: #2563eb;
+}
+
+.academic-grading__form button {
+  padding: 10px 18px;
+  border: none;
+  border-radius: 6px;
+  background: #2563eb;
+  color: #ffffff;
+  cursor: pointer;
+}
+
+/* Grading Rules */
+
+.academic-grading__list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.academic-grading__item {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: center;
+  gap: 20px;
+  padding: 14px 16px;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  background: #f8fafc;
+}
+
+.academic-grading__details {
+  display: grid;
+  grid-template-columns: 80px 80px 80px 1fr;
+  align-items: center;
+  gap: 16px;
+}
+
+.academic-grading__details span,
+.academic-grading__details strong {
+  font-size: 14px;
+}
+
+.academic-grading__actions {
+  display: flex;
+  gap: 8px;
+}
+
+.academic-grading__actions button {
+  padding: 7px 12px;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.academic-grading__actions .edit {
+  background: #e0f2fe;
+  color: #0369a1;
+}
+
+.academic-grading__actions .delete {
+  background: #fee2e2;
+  color: #b91c1c;
+}
+
+.academic-grading__actions button:hover {
+  opacity: 0.85;
+}
+
+/* Edit Grading Rule */
+
+.academic-grading__edit {
+  margin-top: 16px;
+  padding: 20px;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+}
+
+.academic-grading__edit h4 {
+  margin-bottom: 16px;
+}
+
+.academic-grading__edit .academic-grading__form {
+  margin-bottom: 0;
+}
+
+/* Mobile */
+
+@media (max-width: 768px) {
+.academic-result-settings {
+    padding: 16px;
+  }
+
+  .academic-assessment {
+    padding: 16px;
+  }
+
+  .academic-assessment__form {
+    grid-template-columns: 1fr;
+  }
+
+  .academic-assessment__total {
+    align-items: flex-start;
+  }
+
+
+  .academic-grading {
+    padding: 16px;
+  }
+
+  .academic-grading__form {
+    grid-template-columns: 1fr;
+  }
+
+  .academic-grading__form button {
+    width: 100%;
+  }
+
+  .academic-grading__item {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+
+  .academic-grading__details {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 10px;
+  }
+
+  .academic-grading__actions {
+    width: 100%;
+  }
+
+  .academic-grading__actions button {
+    flex: 1;
+  }
 }

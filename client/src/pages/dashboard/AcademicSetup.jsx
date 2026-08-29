@@ -34,6 +34,10 @@ const AcademicSetup = () => {
   const [levelToDelete, setLevelToDelete] = useState(null);
   const [termToDelete, setTermToDelete] = useState(null);
   const [subjectToDelete, setSubjectToDelete] = useState(null);
+  const [gradeToDelete, setGradeToDelete] = useState(null);
+  const [gradeToEdit, setGradeToEdit] = useState(null);
+  
+
 
 
   const [subjectLevelDialog, setSubjectLevelDialog] = useState({
@@ -56,6 +60,126 @@ const AcademicSetup = () => {
   const [newSubjectCode, setNewSubjectCode] = useState("");
   const [newSubjectCategory, setNewSubjectCategory] = useState("");
   const [newSubjectIsCore, setNewSubjectIsCore] = useState(true);
+  const [newGradeMin, setNewGradeMin] = useState("");
+  const [newGradeMax, setNewGradeMax] = useState("");
+  const [newGrade, setNewGrade] = useState("");
+  const [newGradeRemark, setNewGradeRemark] = useState("");
+ 
+
+        // Persist assessment structure
+    const [caMax, setCaMax] = useState(() => {
+        const savedAssessment = localStorage.getItem("assessmentSettings");
+
+        if (savedAssessment) {
+          const parsedAssessment = JSON.parse(savedAssessment);
+          return parsedAssessment.caMax;
+        }
+
+        return 30;
+      });
+
+      const [examMax, setExamMax] = useState(() => {
+        const savedAssessment = localStorage.getItem("assessmentSettings");
+
+        if (savedAssessment) {
+          const parsedAssessment = JSON.parse(savedAssessment);
+          return parsedAssessment.examMax;
+        }
+
+        return 70;
+    });
+
+
+    useEffect(() => {
+      localStorage.setItem(
+        "assessmentSettings",
+        JSON.stringify({
+          caMax: Number(caMax),
+          examMax: Number(examMax),
+        })
+      );
+    }, [caMax, examMax]);
+    
+
+      // Grading rules
+    const [gradingScale, setGradingScale] = useState(() => {
+      const savedGradingScale = localStorage.getItem("gradingScale");
+
+      if (savedGradingScale) {
+        return JSON.parse(savedGradingScale);
+      }
+
+      return [
+        {
+          id: 1,
+          min: 90,
+          max: 100,
+          grade: "A1",
+          remark: "Excellent",
+        },
+        {
+          id: 2,
+          min: 80,
+          max: 89,
+          grade: "B2",
+          remark: "Very Good",
+        },
+        {
+          id: 3,
+          min: 70,
+          max: 79,
+          grade: "B3",
+          remark: "Good",
+        },
+        {
+          id: 4,
+          min: 60,
+          max: 69,
+          grade: "C4",
+          remark: "Credit",
+        },
+        {
+          id: 5,
+          min: 50,
+          max: 59,
+          grade: "C5",
+          remark: "Credit",
+        },
+        {
+          id: 6,
+          min: 45,
+          max: 49,
+          grade: "D7",
+          remark: "Pass",
+        },
+        {
+          id: 7,
+          min: 40,
+          max: 44,
+          grade: "E8",
+          remark: "Pass",
+        },
+        {
+          id: 8,
+          min: 0,
+          max: 39,
+          grade: "F9",
+          remark: "Fail",
+        },
+      ];
+  });
+
+    
+    // Persistence effect for grading scale edit 
+
+    useEffect(() => {
+        localStorage.setItem(
+          "gradingScale",
+          JSON.stringify(gradingScale)
+        );
+    }, [gradingScale]);
+
+
 
   // Context state
   const {
@@ -76,14 +200,15 @@ const AcademicSetup = () => {
    
   } = useOutletContext();
 
-  // Selected academic levels
-  const [selectedLevels, setSelectedLevels] = useState(
-    activeAcademicLevels || []
-  );
+      // Selected academic levels
+      const [selectedLevels, setSelectedLevels] = useState(
+        activeAcademicLevels || []
+      );
 
-  useEffect(() => {
-    setSelectedLevels(activeAcademicLevels || []);
-  }, [activeAcademicLevels]);
+      useEffect(() => {
+        setSelectedLevels(activeAcademicLevels || []);
+      }, [activeAcademicLevels]);
+
 
   const notify = ({ title, message }) => {
     setNotification({ title, message });
@@ -545,6 +670,137 @@ const handleAddSubject = () => {
     openEditDialog("class", classItem, classItem.name);
   };
 
+
+   // Add grade
+    const handleAddGrade = () => {
+      const min = Number(newGradeMin);
+      const max = Number(newGradeMax);
+
+      if (
+        newGradeMin === "" ||
+        newGradeMax === "" ||
+        !newGrade.trim() ||
+        !newGradeRemark.trim()
+      ) {
+        notify({
+          title: "Incomplete Grade",
+          message: "Please fill in all grading fields.",
+        });
+        return;
+      }
+
+      if (min < 0 || max > 100 || min > max) {
+        notify({
+          title: "Invalid Range",
+          message: "Please enter a valid score range between 0 and 100.",
+        });
+        return;
+      }
+
+      const overlaps = gradingScale.some(
+        (grading) => min <= grading.max && max >= grading.min
+      );
+
+      if (overlaps) {
+        notify({
+          title: "Overlapping Range",
+          message: "This score range overlaps an existing grading range.",
+        });
+        return;
+      }
+
+      setGradingScale((prev) => [
+        ...prev,
+        {
+          id: Date.now(),
+          min,
+          max,
+          grade: newGrade.trim(),
+          remark: newGradeRemark.trim(),
+        },
+      ]);
+
+      setNewGradeMin("");
+      setNewGradeMax("");
+      setNewGrade("");
+      setNewGradeRemark("");
+
+      notify({
+        title: "Grade Added",
+        message: `${newGrade.trim()} grading rule has been added.`,
+      });
+  };
+
+
+
+    const handleUpdateGrade = () => {
+        if (!gradeToEdit) {
+          return;
+        }
+
+        const min = Number(gradeToEdit.min);
+        const max = Number(gradeToEdit.max);
+
+        if (
+          gradeToEdit.min === "" ||
+          gradeToEdit.max === "" ||
+          !gradeToEdit.grade.trim() ||
+          !gradeToEdit.remark.trim()
+        ) {
+          notify({
+            title: "Incomplete Grade",
+            message: "Please fill in all grading fields.",
+          });
+          return;
+        }
+
+        if (min < 0 || max > 100 || min > max) {
+          notify({
+            title: "Invalid Range",
+            message: "Please enter a valid score range between 0 and 100.",
+          });
+          return;
+        }
+
+        const overlaps = gradingScale.some(
+          (grading) =>
+            grading.id !== gradeToEdit.id &&
+            min <= grading.max &&
+            max >= grading.min
+        );
+
+        if (overlaps) {
+          notify({
+            title: "Overlapping Range",
+            message: "This score range overlaps an existing grading range.",
+          });
+          return;
+        }
+
+        setGradingScale((prev) =>
+          prev.map((grading) =>
+            grading.id === gradeToEdit.id
+              ? {
+                  ...grading,
+                  min,
+                  max,
+                  grade: gradeToEdit.grade.trim(),
+                  remark: gradeToEdit.remark.trim(),
+                }
+              : grading
+          )
+        );
+
+        setGradeToEdit(null);
+
+        notify({
+          title: "Grade Updated",
+          message: "The grading rule has been updated successfully.",
+        });
+    };
+
+
+
   // Delete requests
   const requestDeleteClass = (classItem) => {
     setClassToDelete(classItem);
@@ -568,6 +824,10 @@ const handleAddSubject = () => {
 
 
   const requestDeleteSubject = (subject) => setSubjectToDelete(subject);
+
+  const requestDeleteGrade = (grading) => setGradeToDelete(grading);
+
+ 
 
   // Helpers
   const getLevelById = (id) =>
@@ -883,6 +1143,221 @@ const handleAddSubject = () => {
             ))}
           </div>
         </div>
+
+
+
+
+          {/* Result Settings */}
+        <div className="academic-result-settings">
+          <h2>Result Settings</h2>
+          <p>
+            Configure how student results are calculated and displayed.
+          </p>
+
+          {/* Assessment Structure */}
+          <div className="academic-assessment">
+            <h3>Assessment Structure</h3>
+            <p>
+              Define the maximum marks for each assessment component.
+            </p>
+
+            <div className="academic-assessment__form">
+              <div>
+                <label htmlFor="caMarks">CAT</label>
+                <input
+                  id="caMarks"
+                  type="number"
+                  min="0"
+                  max="100"
+                  value={caMax}
+                  onChange={(e) => setCaMax(e.target.value)}
+                />
+              </div>
+
+              <div>
+                <label htmlFor="examMarks">Exam</label>
+                <input
+                  id="examMarks"
+                  type="number"
+                  min="0"
+                  max="100"
+                  value={examMax}
+                  onChange={(e) => setExamMax(e.target.value)}
+                />
+              </div>
+
+              <div className="academic-assessment__total">
+                <span>Total</span>
+                <strong>{Number(caMax || 0) + Number(examMax || 0)}</strong>
+              </div>
+            </div>
+          </div>
+
+
+            {/* Grading System */}
+          <div className="academic-grading">
+            <h3>Grading System</h3>
+            <p>
+              Define the score ranges, grades, and remarks used for student results.
+            </p>
+
+
+            <div className="academic-grading__form">
+              <input
+                type="number"
+                min="0"
+                max="100"
+                value={newGradeMin}
+                onChange={(e) => setNewGradeMin(e.target.value)}
+                placeholder="Min score"
+              />
+
+              <input
+                type="number"
+                min="0"
+                max="100"
+                value={newGradeMax}
+                onChange={(e) => setNewGradeMax(e.target.value)}
+                placeholder="Max score"
+              />
+
+              <input
+                type="text"
+                value={newGrade}
+                onChange={(e) => setNewGrade(e.target.value)}
+                placeholder="Grade e.g. A1"
+              />
+
+              <input
+                type="text"
+                value={newGradeRemark}
+                onChange={(e) => setNewGradeRemark(e.target.value)}
+                placeholder="Remark e.g. Excellent"
+              />
+
+              <button
+                type="button"
+                onClick={handleAddGrade}
+              >
+                + Add Grade
+              </button>
+            </div>
+
+
+           <div className="academic-grading__list">
+                {gradingScale.map((grading) => (
+                  <div
+                    key={grading.id}
+                    className="academic-grading__item"
+                  >
+                    <div className="academic-grading__details">
+                      <span>{grading.min}</span>
+                      <span>{grading.max}</span>
+                      <strong>{grading.grade}</strong>
+                      <span>{grading.remark}</span>
+                    </div>
+
+                    <div className="academic-grading__actions">
+                      <button
+                        type="button"
+                        className="edit"
+                        onClick={() => setGradeToEdit(grading)}
+                      >
+                        Edit
+                      </button>
+
+                      <button
+                        type="button"
+                        className="delete"
+                        onClick={() => requestDeleteGrade(grading)}
+                      >
+                        Delete
+                      </button>
+                    </div>
+                 </div>
+                ))}
+            </div>
+          </div>
+
+
+          {gradeToEdit && (
+              <div className="academic-grading__edit">
+                <h4>Edit Grading Rule</h4>
+
+                <div className="academic-grading__form">
+                  <input
+                    type="number"
+                    min="0"
+                    max="100"
+                    value={gradeToEdit.min}
+                    onChange={(e) =>
+                      setGradeToEdit((prev) => ({
+                        ...prev,
+                        min: e.target.value,
+                      }))
+                    }
+                    placeholder="Min score"
+                  />
+
+                  <input
+                    type="number"
+                    min="0"
+                    max="100"
+                    value={gradeToEdit.max}
+                    onChange={(e) =>
+                      setGradeToEdit((prev) => ({
+                        ...prev,
+                        max: e.target.value,
+                      }))
+                    }
+                    placeholder="Max score"
+                  />
+
+                  <input
+                    type="text"
+                    value={gradeToEdit.grade}
+                    onChange={(e) =>
+                      setGradeToEdit((prev) => ({
+                        ...prev,
+                        grade: e.target.value,
+                      }))
+                    }
+                    placeholder="Grade"
+                  />
+
+                  <input
+                    type="text"
+                    value={gradeToEdit.remark}
+                    onChange={(e) =>
+                      setGradeToEdit((prev) => ({
+                        ...prev,
+                        remark: e.target.value,
+                      }))
+                    }
+                    placeholder="Remark"
+                  />
+
+                  <button
+                    type="button"
+                    onClick={handleUpdateGrade}
+                  >
+                    Save Changes
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setGradeToEdit(null)}
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </div>
+          )}      
+
+
+        </div>
+
+
 
 
         {/* Classes */}
@@ -1279,6 +1754,26 @@ const handleAddSubject = () => {
             />
           )}
 
+
+          {gradeToDelete && (
+            <ConfirmDialog
+              title="Delete Grade"
+              message={`Are you sure you want to delete the ${gradeToDelete.grade} grading rule?`}
+              onConfirm={() => {
+                setGradingScale((prev) =>
+                  prev.filter((grading) => grading.id !== gradeToDelete.id)
+                );
+
+                setGradeToDelete(null);
+
+                notify({
+                  title: "Grade Deleted",
+                  message: "The grading rule has been deleted successfully.",
+                });
+              }}
+              onCancel={() => setGradeToDelete(null)}
+            />
+          )}
 
 
       {/* Delete Academic Level */}
