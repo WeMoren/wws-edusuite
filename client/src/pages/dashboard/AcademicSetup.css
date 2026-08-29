@@ -690,3 +690,252 @@
 .academic-sections {
     box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
 }
+
+
+/* ================================
+   Academic Terms
+================================ */
+
+/* Academic Terms Form */
+
+.academic-terms__form {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 1.5rem;
+}
+
+.academic-terms__form input,
+.academic-terms__form select {
+  flex: 1;
+  min-width: 180px;
+  padding: 0.7rem 0.85rem;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  background: #fff;
+  font: inherit;
+  outline: none;
+}
+
+.academic-terms__form input:focus,
+.academic-terms__form select:focus {
+  border-color: #2563eb;
+}
+
+.academic-terms__form button {
+  padding: 0.7rem 1rem;
+  border: none;
+  border-radius: 6px;
+  background: #2563eb;
+  color: #fff;
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.academic-terms__form button:hover {
+  opacity: 0.9;
+}
+
+.academic-terms {
+  margin-top: 2rem;
+}
+
+.academic-terms h2 {
+  margin-bottom: 1rem;
+}
+
+.academic-terms__list {
+  display: grid;
+  gap: 1rem;
+}
+
+.academic-terms__item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 1rem 1.25rem;
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+}
+
+.academic-terms__item > div:first-child {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.academic-terms__item strong {
+  font-size: 1rem;
+}
+
+.academic-terms__item span {
+  font-size: 0.875rem;
+  color: #6b7280;
+}
+
+.academic-terms__actions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.academic-terms__actions button {
+  padding: 0.45rem 0.8rem;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.academic-terms__actions .edit {
+  background: #e0f2fe;
+  color: #0369a1;
+}
+
+.academic-terms__actions .delete {
+  background: #fee2e2;
+  color: #b91c1c;
+}
+
+.academic-terms__actions button:hover {
+  opacity: 0.85;
+}
+
+
+
+/* ================================
+   Subjects Form
+================================ */
+
+.academic-subjects__form {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 1.5rem;
+}
+
+.academic-subjects__form input[type="text"],
+.academic-subjects__form select {
+  flex: 1;
+  min-width: 180px;
+  padding: 0.7rem 0.85rem;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  background: #fff;
+  color: #111827;
+  font: inherit;
+  outline: none;
+}
+
+.academic-subjects__form input[type="text"]:focus,
+.academic-subjects__form select:focus {
+  border-color: #2563eb;
+}
+
+.academic-subjects__core {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  white-space: nowrap;
+  font-size: 0.9rem;
+  color: #374151;
+}
+
+.academic-subjects__core input {
+  width: 16px;
+  height: 16px;
+  cursor: pointer;
+}
+
+.academic-subjects__form button {
+  padding: 0.7rem 1rem;
+  border: none;
+  border-radius: 6px;
+  background: #2563eb;
+  color: #fff;
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.academic-subjects__form button:hover {
+  opacity: 0.85;
+}
+
+
+
+/* Subject Item Details */
+
+.academic-subjects__item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 1rem 1.25rem;
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+}
+
+.academic-subjects__item > div:first-child {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.academic-subjects__item strong {
+  font-size: 1rem;
+}
+
+.academic-subjects__item span,
+.academic-subjects__item small {
+  color: #6b7280;
+  font-size: 0.875rem;
+}
+
+
+/* ================================
+   Subject Actions
+================================ */
+
+.academic-subjects__actions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.academic-subjects__actions button {
+  padding: 0.45rem 0.8rem;
+  border: none;
+  border-radius: 6px;
+  font: inherit;
+  font-weight: 500;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.academic-subjects__actions .edit {
+  background: #e0f2fe;
+  color: #0369a1;
+}
+
+.academic-subjects__actions .delete {
+  background: #fee2e2;
+  color: #b91c1c;
+}
+
+.academic-subjects__actions button:hover {
+  opacity: 0.85;
+}
+
+.academic-subjects__actions .assign {
+  background: #2563eb;
+  color: #fff;
+}
