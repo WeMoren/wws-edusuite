@@ -272,6 +272,599 @@ setScoreEntries(existingScores);
 };
 
 
+        const getStudentResultData = (student) => {
+            const studentResults = loadedSubjects.map((subject) => {
+                const entryKey = `${student.id}-${subject.id}`;
+
+                const entry = scoreEntries[entryKey] || {
+                ca: 0,
+                exam: 0,
+                };
+
+                const ca = Number(entry.ca) || 0;
+                const exam = Number(entry.exam) || 0;
+                const total = ca + exam;
+
+                const grading = gradingScale.find(
+                (item) => total >= item.min && total <= item.max
+                );
+
+                return {
+                subject: subject.name,
+                ca,
+                exam,
+                total,
+                grade: grading?.grade || "-",
+                remark: grading?.remark || "-",
+                };
+            });
+
+            return {
+                student,
+                results: studentResults,
+            };
+        };
+
+
+        const handleDownloadResult = (student) => {
+            const resultData = getStudentResultData(student);
+
+            const savedProfile = localStorage.getItem("schoolProfile");
+
+            const schoolProfile = savedProfile
+                ? JSON.parse(savedProfile)
+                : {
+                    name: "",
+                    address: "",
+                    phone: "",
+                    email: "",
+                    logo: "",
+                };
+
+            const selectedSession = academicSessions.find(
+                (session) => session.id === Number(selectedSessionId)
+            );
+
+            const selectedTerm = academicTerms.find(
+                (term) => term.id === Number(selectedTermId)
+            );
+
+            const selectedClass = classes.find(
+                (classItem) => classItem.id === Number(selectedClassId)
+            );
+
+            const selectedSection = sections.find(
+                (section) => section.id === Number(selectedSectionId)
+            );
+
+            const doc = new jsPDF();
+
+            const pageHeight = doc.internal.pageSize.getHeight();
+
+            const bottomMargin = 25;
+
+            let y = 20;
+
+            /* --------------------------------
+                Helpers
+            -------------------------------- */
+
+            const addPageIfNeeded = (requiredSpace = 10) => {
+                if (y + requiredSpace > pageHeight - bottomMargin) {
+                doc.addPage();
+
+                y = 20;
+
+                return true;
+                }
+
+                return false;
+            };
+
+            const addResultsHeader = () => {
+                doc.setFont("helvetica", "bold");
+                doc.setFontSize(10);
+
+                doc.text("Subject", 20, y);
+                doc.text("CAT", 90, y);
+                doc.text("Exam", 115, y);
+                doc.text("Total", 140, y);
+                doc.text("Grade", 160, y);
+                doc.text("Remark", 180, y);
+
+                y += 5;
+
+                doc.setDrawColor(220, 220, 220);
+
+                doc.line(20, y, 190, y);
+
+                y += 8;
+
+                doc.setFont("helvetica", "normal");
+            };
+
+            /* --------------------------------
+                School Header
+            -------------------------------- */
+
+            if (schoolProfile.logo) {
+                try {
+                doc.addImage(
+                    schoolProfile.logo,
+                    "PNG",
+                    85,
+                    10,
+                    40,
+                    40
+                );
+
+                y = 58;
+                } catch (error) {
+                console.error(
+                    "Unable to add school logo to result PDF:",
+                    error
+                );
+                }
+            }
+
+            doc.setFontSize(18);
+
+            doc.text(
+                schoolProfile.name || "School",
+                105,
+                y,
+                { align: "center" }
+            );
+
+            y += 8;
+
+            doc.setFontSize(10);
+
+            if (schoolProfile.address) {
+                doc.text(
+                schoolProfile.address,
+                105,
+                y,
+                { align: "center" }
+                );
+
+                y += 6;
+            }
+
+            if (schoolProfile.phone || schoolProfile.email) {
+                const contactInfo = [
+                schoolProfile.phone,
+                schoolProfile.email,
+                ]
+                .filter(Boolean)
+                .join(" | ");
+
+                doc.text(
+                contactInfo,
+                105,
+                y,
+                { align: "center" }
+                );
+
+                y += 10;
+            }
+
+            /* --------------------------------
+                Result Title
+            -------------------------------- */
+
+            doc.setFontSize(14);
+
+            doc.text(
+                "STUDENT RESULT",
+                105,
+                y,
+                { align: "center" }
+            );
+
+            y += 14;
+
+            
+            /* --------------------------------
+                Student Information
+            -------------------------------- */
+
+                addPageIfNeeded(55);
+
+                const infoX = 20;
+                const infoY = y - 6;
+                const infoWidth = 170;
+                const infoHeight = 46;
+
+                doc.setDrawColor(220, 220, 220);
+                doc.setFillColor(248, 250, 252);
+
+                doc.roundedRect(
+                infoX,
+                infoY,
+                infoWidth,
+                infoHeight,
+                3,
+                3,
+                "FD"
+                );
+
+                doc.setFontSize(10);
+
+                const studentName =
+                `${student.firstName} ${student.lastName}`;
+
+                const studentInfo = [
+                ["Student:", studentName],
+                ["Admission No:", student.admissionNo || "—"],
+                ["Class:", selectedClass?.name || "—"],
+                ["Section:", selectedSection?.name || "—"],
+                ["Session:", selectedSession?.name || "—"],
+                ["Term:", selectedTerm?.name || "—"],
+                ];
+
+                const leftColumnX = 25;
+                const leftValueX = 65;
+
+                const rightColumnX = 105;
+                const rightValueX = 145;
+
+                studentInfo.forEach(([label, value], index) => {
+                const row = Math.floor(index / 2);
+                const isRightColumn = index % 2 === 1;
+
+                const labelX = isRightColumn
+                    ? rightColumnX
+                    : leftColumnX;
+
+                const valueX = isRightColumn
+                    ? rightValueX
+                    : leftValueX;
+
+                const rowY = infoY + 9 + row * 8;
+
+                doc.setFont("helvetica", "bold");
+
+                doc.text(label, labelX, rowY);
+
+                doc.setFont("helvetica", "normal");
+
+                doc.text(
+                    String(value),
+                    valueX,
+                    rowY
+                );
+                });
+
+                y = infoY + infoHeight + 10;
+
+            
+            /* --------------------------------
+                      Results Table
+            -------------------------------- */
+
+                const tableX = 20;
+                const tableWidth = 170;
+
+                const columnWidths = [
+                55, // Subject
+                20, // CAT
+                20, // Exam
+                20, // Total
+                20, // Grade
+                35, // Remark
+                ];
+
+                const columnX = columnWidths.reduce(
+                (positions, width, index) => {
+                    if (index === 0) {
+                    positions.push(tableX);
+                    } else {
+                    positions.push(
+                        positions[index - 1] +
+                        columnWidths[index - 1]
+                    );
+                    }
+
+                    return positions;
+                },
+                []
+                );
+
+                const rowHeight = 9;
+
+                const drawTableHeader = () => {
+                doc.setFillColor(248, 250, 252);
+                doc.setDrawColor(220, 220, 220);
+
+                doc.rect(
+                    tableX,
+                    y - 6,
+                    tableWidth,
+                    rowHeight,
+                    "FD"
+                );
+
+                doc.setFont("helvetica", "bold");
+                doc.setFontSize(9);
+
+                const headers = [
+                    "Subject",
+                    "CAT",
+                    "Exam",
+                    "Total",
+                    "Grade",
+                    "Remark",
+                ];
+
+                headers.forEach((header, index) => {
+                    doc.text(
+                    header,
+                    columnX[index] + 3,
+                    y
+                    );
+                });
+
+                y += rowHeight;
+
+                doc.setFont("helvetica", "normal");
+                };
+
+                const drawTableRow = (result) => {
+                const subjectLines = doc.splitTextToSize(
+                    String(result.subject),
+                    columnWidths[0] - 6
+                );
+
+                const remarkLines = doc.splitTextToSize(
+                    String(result.remark),
+                    columnWidths[5] - 6
+                );
+
+                const lineCount = Math.max(
+                    subjectLines.length,
+                    remarkLines.length,
+                    1
+                );
+
+                const currentRowHeight = Math.max(
+                    rowHeight,
+                    lineCount * 5 + 4
+                );
+
+                if (
+                    y + currentRowHeight >
+                    pageHeight - bottomMargin
+                ) {
+                    doc.addPage();
+
+                    y = 20;
+
+                    drawTableHeader();
+                }
+
+                doc.setDrawColor(220, 220, 220);
+
+                let currentX = tableX;
+
+                columnWidths.forEach((width) => {
+                    doc.rect(
+                    currentX,
+                    y - 6,
+                    width,
+                    currentRowHeight
+                    );
+
+                    currentX += width;
+                });
+
+                doc.setFontSize(9);
+
+                doc.text(
+                    subjectLines,
+                    columnX[0] + 3,
+                    y
+                );
+
+                doc.text(
+                    String(result.ca),
+                    columnX[1] + columnWidths[1] / 2,
+                    y,
+                    { align: "center" }
+                );
+
+                doc.text(
+                    String(result.exam),
+                    columnX[2] + columnWidths[2] / 2,
+                    y,
+                    { align: "center" }
+                );
+
+                doc.text(
+                    String(result.total),
+                    columnX[3] + columnWidths[3] / 2,
+                    y,
+                    { align: "center" }
+                );
+
+                doc.text(
+                    String(result.grade),
+                    columnX[4] + columnWidths[4] / 2,
+                    y,
+                    { align: "center" }
+                );
+
+                doc.text(
+                    remarkLines,
+                    columnX[5] + 3,
+                    y
+                );
+
+                y += currentRowHeight;
+                };
+
+                addPageIfNeeded(25);
+
+                drawTableHeader();
+
+                resultData.results.forEach((result) => {
+                drawTableRow(result);
+                });
+
+
+                /* --------------------------------
+                          Overall Result
+                -------------------------------- */
+
+                addPageIfNeeded(55);
+
+                y += 5;
+
+                const totalScore = resultData.results.reduce(
+                (sum, result) => sum + result.total,
+                0
+                );
+
+                const subjectCount = resultData.results.length;
+
+                const average =
+                subjectCount > 0
+                    ? (totalScore / subjectCount).toFixed(2)
+                    : "0.00";
+
+                const overallGrade = gradingScale.find(
+                (item) =>
+                    Number(average) >= item.min &&
+                    Number(average) <= item.max
+                );
+
+                const summaryX = 20;
+                const summaryY = y - 5;
+                const summaryWidth = 170;
+                const summaryHeight = 42;
+
+                doc.setDrawColor(220, 220, 220);
+                doc.setFillColor(248, 250, 252);
+
+                doc.roundedRect(
+                summaryX,
+                summaryY,
+                summaryWidth,
+                summaryHeight,
+                3,
+                3,
+                "FD"
+                );
+
+                doc.setFont("helvetica", "bold");
+                doc.setFontSize(12);
+
+                doc.text(
+                "Overall Result",
+                summaryX + 5,
+                summaryY + 9
+                );
+
+                doc.setFontSize(10);
+
+                doc.setFont("helvetica", "normal");
+
+                doc.text(
+                `Total Score: ${totalScore}`,
+                summaryX + 5,
+                summaryY + 19
+                );
+
+                doc.text(
+                `Average: ${average}%`,
+                summaryX + 5,
+                summaryY + 28
+                );
+
+                doc.setFont("helvetica", "bold");
+
+                doc.text(
+                `Grade: ${overallGrade?.grade || "-"}`,
+                summaryX + 95,
+                summaryY + 19
+                );
+
+                doc.text(
+                `Remark: ${overallGrade?.remark || "-"}`,
+                summaryX + 95,
+                summaryY + 28
+                );
+
+                y = summaryY + summaryHeight + 8;
+
+
+
+                /* --------------------------------
+                  Footer + Page Numbers
+                -------------------------------- */
+
+            const totalPages = doc.internal.getNumberOfPages();
+
+            const generatedDate = new Date().toLocaleDateString(
+            "en-GB",
+            {
+                day: "2-digit",
+                month: "2-digit",
+                year: "numeric",
+            }
+            );
+
+            for (let page = 1; page <= totalPages; page++) {
+            doc.setPage(page);
+
+            const footerY = pageHeight - 15;
+
+            doc.setDrawColor(225, 225, 225);
+
+            doc.line(
+                20,
+                footerY - 7,
+                190,
+                footerY - 7
+            );
+
+            doc.setFont("helvetica", "normal");
+            doc.setFontSize(7);
+
+            doc.setTextColor(150, 150, 150);
+
+            doc.text(
+                `Generated: ${generatedDate}`,
+                20,
+                footerY
+            );
+
+            doc.text(
+                `Page ${page} of ${totalPages}`,
+                105,
+                footerY,
+                { align: "center" }
+            );
+
+            doc.text(
+                "Powered by WeMoren Web Services",
+                190,
+                footerY,
+                { align: "right" }
+            );
+
+            doc.setTextColor(0, 0, 0);
+            }
+
+            /* --------------------------------
+            Download
+            -------------------------------- */
+
+            doc.save(
+            `${student.firstName}-${student.lastName}-Result.pdf`
+            );
+        }
+
   return (
     <div className="results-page">
       <h1>Results</h1>
@@ -505,14 +1098,55 @@ setScoreEntries(existingScores);
                 </div>
             )}
 
-         {resultsLoaded && loadedStudents.length > 0 && loadedSubjects.length > 0 && (
-            <button
-                type="button"
-                onClick={handleSaveResults}
-            >
-                Save Results
-            </button>
-)}
+         {resultsLoaded && 
+            loadedStudents.length > 0 && 
+            loadedSubjects.length > 0 && 
+            (
+                <button
+                    type="button"
+                    onClick={handleSaveResults}
+                >
+                    Save Results
+                </button>
+             )}
+
+
+             {resultsLoaded && loadedStudents.length > 0 && (
+                <div className="results-students">
+                    <div className="results-students__header">
+                    <h2>Student Results</h2>
+                    <p>
+                        Select a student to download their individual result.
+                    </p>
+                    </div>
+
+                    <div className="results-students__list">
+                    {loadedStudents.map((student) => (
+                        <div
+                        key={student.id}
+                        className="results-students__item"
+                        >
+                        <div className="results-students__info">
+                            <strong>
+                            {student.firstName} {student.lastName}
+                            </strong>
+
+                            <span>
+                            Admission No: {student.admissionNo}
+                            </span>
+                        </div>
+
+                        <button
+                            type="button"
+                            onClick={() => handleDownloadResult(student)}
+                            >
+                            Download Result
+                        </button>
+                        </div>
+                    ))}
+                </div>
+            </div>
+            )}
     </div>
   );
 };
