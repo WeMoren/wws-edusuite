@@ -1,0 +1,126 @@
+/* Setting */
+
+.settings-page {
+  padding: 24px;
+}
+
+.settings-page > h1 {
+  margin-bottom: 8px;
+}
+
+.settings-page > p {
+  margin-bottom: 24px;
+  color: #64748b;
+}
+
+/* School Profile */
+
+.school-profile {
+  max-width: 900px;
+  padding: 24px;
+  background: #ffffff;
+  border-radius: 10px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+}
+
+.school-profile h2 {
+  margin-bottom: 8px;
+}
+
+.school-profile > p {
+  margin-bottom: 24px;
+  color: #64748b;
+}
+
+/* Form */
+
+.school-profile__form {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 18px;
+  margin-bottom: 24px;
+}
+
+.school-profile__form > div {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.school-profile__form label {
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.school-profile__form input {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid #cbd5e1;
+  border-radius: 6px;
+  background: #ffffff;
+  font-size: 14px;
+  outline: none;
+}
+
+.school-profile__form input:focus {
+  border-color: #2563eb;
+}
+
+.school-profile > button {
+  padding: 10px 18px;
+  border: none;
+  border-radius: 6px;
+  background: #2563eb;
+  color: #ffffff;
+  cursor: pointer;
+}
+
+.school-profile > button:hover {
+  opacity: 0.85;
+}
+
+
+/* School profile logo preview */
+.school-profile__logo-preview {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.school-profile__logo-preview p {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.school-profile__logo-preview img {
+  width: 100px;
+  height: 100px;
+  object-fit: contain;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 8px;
+  background: #ffffff;
+}
+
+
+/* Mobile */
+
+@media (max-width: 768px) {
+  .settings-page {
+    padding: 16px;
+  }
+
+  .school-profile {
+    padding: 16px;
+  }
+
+  .school-profile__form {
+    grid-template-columns: 1fr;
+  }
+
+  .school-profile > button {
+    width: 100%;
+  }
+}
