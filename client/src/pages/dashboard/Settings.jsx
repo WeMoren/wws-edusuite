@@ -1,5 +1,8 @@
 import React, { useEffect, useState } from "react";
 import "./Settings.css";
+import NotificationDialog from "../../components/common/NotificationDialog/NotificationDialog";
+
+
 
 const Settings = () => {
   const [schoolProfile, setSchoolProfile] = useState({
@@ -9,6 +12,14 @@ const Settings = () => {
     email: "",
     website: "",
     logo: "",
+  });
+
+
+  const [showNotification, setShowNotification] = useState(false);
+
+  const [notification, setNotification] = useState({
+    title: "",
+    message: "",
   });
 
   useEffect(() => {
@@ -33,6 +44,13 @@ const Settings = () => {
       "schoolProfile",
       JSON.stringify(schoolProfile)
     );
+
+      setNotification({
+      title: "Profile Saved",
+      message: "School profile has been saved successfully.",
+    });
+
+    setShowNotification(true);
   };
 
   return (
@@ -155,6 +173,15 @@ const Settings = () => {
           Save School Profile
         </button>
       </section>
+
+
+      {showNotification && (
+        <NotificationDialog
+          title={notification.title}
+          message={notification.message}
+          onClose={() => setShowNotification(false)}
+        />
+      )}
     </div>
   );
 };

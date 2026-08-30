@@ -36,6 +36,17 @@
   border-bottom: 2px solid #e5e7eb;
 }
 
+.payment-receipt__logo {
+  width: 80px;
+  height: 80px;
+
+  object-fit: contain;
+
+  display: block;
+
+  margin: 0 auto 12px;
+}
+
 .payment-receipt__header h2 {
   margin: 0;
 
