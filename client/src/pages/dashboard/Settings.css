@@ -1,4 +1,4 @@
-/* Setting */
+/* Settings */
 
 .settings-page {
   padding: 24px;
@@ -18,8 +18,11 @@
 .school-profile {
   max-width: 900px;
   padding: 24px;
+
   background: #ffffff;
+  border: 1px solid #e5e7eb;
   border-radius: 10px;
+
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
 }
 
@@ -38,6 +41,7 @@
   display: grid;
   grid-template-columns: repeat(2, 1fr);
   gap: 18px;
+
   margin-bottom: 24px;
 }
 
@@ -50,60 +54,88 @@
 .school-profile__form label {
   font-size: 14px;
   font-weight: 600;
+  color: #111827;
 }
 
 .school-profile__form input {
   width: 100%;
   padding: 10px 12px;
+
   border: 1px solid #cbd5e1;
   border-radius: 6px;
+
   background: #ffffff;
+
   font-size: 14px;
   outline: none;
+
+  box-sizing: border-box;
 }
 
 .school-profile__form input:focus {
   border-color: #2563eb;
 }
 
-.school-profile > button {
-  padding: 10px 18px;
-  border: none;
-  border-radius: 6px;
-  background: #2563eb;
-  color: #ffffff;
-  cursor: pointer;
-}
+/* Logo Preview */
 
-.school-profile > button:hover {
-  opacity: 0.85;
-}
-
-
-/* School profile logo preview */
 .school-profile__logo-preview {
   display: flex;
   flex-direction: column;
   gap: 8px;
-  margin-top: 8px;
+
+  margin-bottom: 24px;
 }
 
 .school-profile__logo-preview p {
   margin: 0;
+
   font-size: 14px;
   font-weight: 600;
+  color: #111827;
 }
 
 .school-profile__logo-preview img {
   width: 100px;
   height: 100px;
+
   object-fit: contain;
+
+  padding: 8px;
+
+  background: #f8fafc;
+
   border: 1px solid #e2e8f0;
   border-radius: 8px;
-  padding: 8px;
-  background: #ffffff;
 }
 
+/* Save Button */
+
+.school-profile > button {
+  padding: 10px 18px;
+
+  border: none;
+  border-radius: 6px;
+
+  background: #2563eb;
+  color: #ffffff;
+
+  font-size: 14px;
+  font-weight: 600;
+
+  cursor: pointer;
+
+  transition:
+    background-color 0.2s ease,
+    transform 0.2s ease;
+}
+
+.school-profile > button:hover {
+  background: #1d4ed8;
+}
+
+.school-profile > button:active {
+  transform: translateY(1px);
+}
 
 /* Mobile */
 
