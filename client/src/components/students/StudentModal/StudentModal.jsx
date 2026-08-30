@@ -9,6 +9,7 @@ const StudentModal = ({
   academicLevels,
   sections,
   classes,
+  enrollments
 }) => {
   const [student, setStudent] = useState({
     admissionNo: "",
@@ -24,10 +25,31 @@ const StudentModal = ({
     sectionId: "",
   });
 
-  useEffect(() => {
-    if (studentToEdit) setStudent(studentToEdit);
-  }, [studentToEdit]);
+      /* UseEffect */
 
+        useEffect(() => {
+            if (!studentToEdit) {
+              return;
+            }
+
+            setStudent(studentToEdit);
+
+            const studentEnrollment = enrollments.find(
+              (enrollment) => enrollment.studentId === studentToEdit.id
+            );
+
+            if (studentEnrollment) {
+              setEnrollment({
+                academicSessionId: studentEnrollment.academicSessionId,
+                academicLevelId: studentEnrollment.academicLevelId,
+                classId: studentEnrollment.classId,
+                sectionId: studentEnrollment.sectionId,
+              });
+            }
+          }, [studentToEdit, enrollments]);
+
+
+      /* Handle change */
   const handleChange = (e) => {
     const { name, value } = e.target;
 
@@ -49,6 +71,8 @@ const StudentModal = ({
       [name]: value,
     }));
   };
+
+
 
   // ✅ Filter sections by both level and session
   const availableSections = sections.filter((section) => {

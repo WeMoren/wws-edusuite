@@ -1,15 +1,14 @@
 import React from 'react';
 import "./StudentTable.css";
-
 import classFees from "../../data/classFees";
-import sections from "../../data/sections";
-import classes from "../../data/classes";
-import academicLevels from "../../data/academicLevels";
 
 const StudentTable = ({
   students,
   payments,
   enrollments,
+  academicLevels,
+  sections,
+  classes,
   onEdit,
   onDelete,
   onView

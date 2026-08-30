@@ -128,6 +128,9 @@ const Students = () => {
             students ={currentStudents}
             payments={payments}
             enrollments={enrollments}
+            academicLevels={academicLevels}
+            sections={sections}
+            classes={classes}
             onEdit={(students)  =>  {
                 setEditingStudent(students);
                 setShowModal(true)
@@ -209,6 +212,7 @@ const Students = () => {
                 academicLevels={academicLevels}
                 sections={sections}
                 classes={classes}
+                enrollments={enrollments}
                 onAddStudent={(studentData, enrollmentData, studentToEdit) => {
                     if (studentToEdit) {
                         // Update existing student
@@ -245,7 +249,7 @@ const Students = () => {
                                             enrollmentData.academicSessionId
                                         ),
                                         academicLevelId: Number(
-                                            enrollmentData.sectionId
+                                            enrollmentData.academicLevelId
                                         ),
 
                                         classId:enrollmentData.classId
