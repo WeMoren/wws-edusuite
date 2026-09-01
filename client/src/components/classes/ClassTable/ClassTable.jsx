@@ -7,6 +7,8 @@ const ClassTable = ({
   academicSessions,
   onEdit,
   onDelete,
+  canEdit,
+  canDelete,
 }) => {
   return (
     <table className="class-table">
@@ -35,36 +37,43 @@ const ClassTable = ({
 
             return (
               <tr key={schoolClass.id}>
-  <td data-label="ID">{schoolClass.id}</td>
+                <td data-label="ID">{schoolClass.id}</td>
 
-  <td data-label="Class">{schoolClass.name}</td>
+                <td data-label="Class">{schoolClass.name}</td>
 
-  <td data-label="Academic Level">
-    {level?.name || "—"}
-  </td>
+                <td data-label="Academic Level">
+                  {level?.name || "—"}
+                </td>
 
-  <td data-label="Academic Session">
-    {session?.name || "—"}
-  </td>
+                <td data-label="Academic Session">
+                  {session?.name || "—"}
+                </td>
 
-  <td data-label="Actions">
-    <div className="class-table__actions">
-      <button
-        className="class-table__edit"
-        onClick={() => onEdit(schoolClass)}
-      >
-        Edit
-      </button>
+                <td data-label="Actions">
+                  {(canEdit || canDelete) && (
+                    <div className="class-table__actions">
+                      {canEdit && (
+                        <button
+                          className="class-table__edit"
+                          onClick={() => onEdit(schoolClass)}
+                        >
+                          Edit
+                        </button>
+                      )}
 
-      <button
-        className="class-table__delete"
-        onClick={() => onDelete(schoolClass.id)}
-      >
-        Delete
-      </button>
-    </div>
-  </td>
-</tr>            );
+                      {canDelete && (
+                        <button
+                          className="class-table__delete"
+                          onClick={() => onDelete(schoolClass.id)}
+                        >
+                          Delete
+                        </button>
+                      )}
+                    </div>
+                  )}
+                </td>
+              </tr>
+            );
           })
         ) : (
           <tr>

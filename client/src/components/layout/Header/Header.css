@@ -1,14 +1,11 @@
 .header {
   height: 70px;
   padding: 0 1.5rem;
-
   display: flex;
   align-items: center;
   justify-content: space-between;
-
   background: #ffffff;
   border-bottom: 1px solid #e5e7eb;
-
   position: sticky;
   top: 0;
   z-index: 100;
@@ -29,19 +26,14 @@
 .header__actions > button {
   width: 40px;
   height: 40px;
-
   display: flex;
   align-items: center;
   justify-content: center;
-
   border: none;
   border-radius: 50%;
-
   background: #f3f4f6;
-
   font-size: 1.1rem;
   cursor: pointer;
-
   transition: background 0.2s ease;
 }
 
@@ -52,13 +44,42 @@
 .header__profile {
   display: flex;
   align-items: center;
-
+  gap: 0.75rem;
   padding: 0.5rem 0.85rem;
-
   border-radius: 8px;
   background: #f3f4f6;
-
   font-weight: 600;
+}
+
+.header__profile-info {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.25rem;
+}
+
+.header__profile-name {
+  line-height: 1.2;
+}
+
+.header__profile-role {
+  font-size: 0.65rem;
+  font-weight: 600;
+  color: #64748b;
+  text-transform: capitalize;
+  position: relative;
+  top: -0.15rem;
+}
+
+.header__profile-logout {
+  border: none;
+  background: transparent;
+  font: inherit;
+  color: #dc2626;
+  cursor: pointer;
+}
+
+.header__profile-logout:hover {
+  text-decoration: underline;
 }
 
 @media (max-width: 600px) {
@@ -78,5 +99,9 @@
   .header__profile {
     padding: 0.45rem 0.65rem;
     font-size: 0.9rem;
+  }
+
+  .header__profile-role {
+    font-size: 0.6rem;
   }
 }

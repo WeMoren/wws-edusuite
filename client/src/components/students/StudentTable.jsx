@@ -11,7 +11,9 @@ const StudentTable = ({
   classes,
   onEdit,
   onDelete,
-  onView
+  onView, 
+  canEdit,
+  canDelete,
 }) => {
 
   return (
@@ -116,19 +118,22 @@ const StudentTable = ({
 
 <td data-label="Actions">
   <div className="student-table__actions">
-    <button
+
+   { canEdit && (<button
       className="student-table__edit"
       onClick={() => onEdit(student)}
     >
       Edit
     </button>
+   )}
 
-    <button
+    {canDelete && (<button
       className="student-table__delete"
       onClick={() => onDelete(student.id)}
     >
       Delete
     </button>
+    )}
   </div>
 </td>
                 </tr>

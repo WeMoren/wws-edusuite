@@ -1,19 +1,46 @@
 import React, { useEffect, useState } from "react";
 import { useOutletContext } from "react-router-dom";
-
 import SectionTable from "../../components/classes/SectionTable/SectionTable";
 import SectionModal from "../../components/classes/SectionModal/SectionModal";
 import ConfirmDialog from "../../components/common/ConfirmDialog/ConfirmDialog";
-
+import { useAuth } from "../../auth/AuthContext";
+import { hasPermission } from "../../auth/permissions";
 import "./Sections.css";
 
+
 const Sections = () => {
+   
+
+    const { currentUser } = useAuth();
+
+            const canCreateSection = hasPermission(
+                currentUser?.role,
+                "sections",
+                "create"
+            );
+
+            const canEditSection = hasPermission(
+                currentUser?.role,
+                "sections",
+                "edit"
+            );
+
+            const canDeleteSection = hasPermission(
+                currentUser?.role,
+                "sections",
+                "delete"
+            );
+           
+    // 
+
+
 
     const {
         sections,
         setSections,
         classes,
-        teachers
+        teachers,
+        
     } = useOutletContext();
 
     const [showModal, setShowModal] = useState(false);
@@ -99,15 +126,17 @@ const Sections = () => {
 
                 <h1>Sections</h1>
 
-                <button
-                    className="sections-page__button"
-                    onClick={() => {
-                        setEditingSection(null);
-                        setShowModal(true);
-                    }}
-                >
-                    + Add Section
-                </button>
+                {canCreateSection && (
+                    <button
+                        className="sections-page__button"
+                        onClick={() => {
+                            setEditingSection(null);
+                            setShowModal(true);
+                        }}
+                    >
+                        + Add Section
+                    </button>
+                )}
 
             </div>
 
@@ -156,13 +185,25 @@ const Sections = () => {
                 sections={currentSections}
                 classes={classes}
                 teachers={teachers}
+                canEdit={canEditSection}
+                canDelete={canDeleteSection}
 
                 onEdit={(section) => {
+                     if (!canEditSection) {
+                            return;
+                        }
+
+
                     setEditingSection(section);
                     setShowModal(true);
                 }}
 
                 onDelete={(sectionId) => {
+                    if (!canDeleteSection) {
+                        return;
+                    }
+
+
 
                     const selectedSection =
                         sections.find(
@@ -222,6 +263,10 @@ const Sections = () => {
                         setSectionToDelete(null)
                     }
                     onConfirm={() => {
+                         if (!canDeleteSection) {
+                            return;
+                        }
+
 
                         setSections((prevSections) =>
                             prevSections.filter(

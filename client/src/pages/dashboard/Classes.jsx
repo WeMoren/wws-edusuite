@@ -7,9 +7,33 @@ import ClassModal from '../../components/classes/ClassModal/ClassModal'
 import ConfirmDialog from "../../components/common/ConfirmDialog/ConfirmDialog";
 import academicLevels from "../../data/academicLevels";
 import academicSessions from "../../data/academicSessions";
+import { useAuth } from "../../auth/AuthContext";
+import { hasPermission } from "../../auth/permissions";
 
 
 const Classes = () => {
+      const { currentUser } = useAuth();
+
+      const canCreateClass = hasPermission(
+          currentUser?.role,
+          "classes",
+          "create"
+      );
+
+      const canEditClass = hasPermission(
+          currentUser?.role,
+          "classes",
+          "edit"
+      );
+
+      const canDeleteClass = hasPermission(
+          currentUser?.role,
+          "classes",
+          "delete"
+      );
+
+
+
     const [classToDelete, setClassToDelete] = useState(null);
     const [showModal, setShowModal] = useState(false);
     const [editingClass, setEditingClass] = useState(null);
@@ -79,12 +103,14 @@ const Classes = () => {
     <div className="classes-page">
         <div className="classes-page__header">
             <h1>Classes</h1>
-            <button 
-                className="classes-page__button"
-                onClick={() => setShowModal(true)}
-            >
-                + Add Class
-            </button>
+              {canCreateClass && (
+                <button 
+                  className="classes-page__button"
+                  onClick={() => setShowModal(true)}
+              >
+                  + Add Class
+              </button>
+          )}
         </div>
 
 
@@ -119,13 +145,23 @@ const Classes = () => {
               classes={currentClasses}
               academicLevels={academicLevels}
              academicSessions={academicSessions}
+             canEdit={canEditClass}
+             canDelete={canDeleteClass}
                     
             onEdit={(schoolClass) => {
+               if (!canEditClass) {
+                    return;
+                }
+
                 setEditingClass(schoolClass);
                 setShowModal(true);
             }}
 
                 onDelete={(classId) => {
+                  if (!canDeleteClass) {
+                      return;
+                  }
+
                      const selectedClass = classes.find(
             (schoolClass) => schoolClass.id === classId
   );
@@ -164,6 +200,11 @@ const Classes = () => {
                 message={`Are you sure you want to delete ${classToDelete.name}?`}
                 onCancel={() => setClassToDelete(null)}
                 onConfirm={() => {
+                  if (!canDeleteClass) {
+                      return;
+                  }
+
+
                 setClasses((prevClasses) =>
                     prevClasses.filter(
                     (schoolClass) => schoolClass.id !== classToDelete.id

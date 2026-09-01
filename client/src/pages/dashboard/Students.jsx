@@ -6,7 +6,8 @@ import StudentModal from '../../components/students/StudentModal/StudentModal'
 import initialStudents from "../../data/students";
 import StudentDetails from '../../components/students/StudentDetails/StudentDetails'
 import ConfirmDialog from "../../components/common/ConfirmDialog/ConfirmDialog";
-
+import { useAuth } from "../../auth/AuthContext";
+import { hasPermission } from "../../auth/permissions";
 
 
 const Students = () => {
@@ -48,6 +49,27 @@ const Students = () => {
 
 
 
+    const { currentUser } = useAuth();
+
+    const canCreateStudent = hasPermission(
+    currentUser?.role,
+    "students",
+    "create"
+    );
+
+    const canEditStudent = hasPermission(
+    currentUser?.role,
+    "students",
+    "edit"
+    );
+
+    const canDeleteStudent = hasPermission(
+    currentUser?.role,
+    "students",
+    "delete"
+    );
+
+
     const filteredStudents = students.filter((student) => {
         const search = searchTerm.toLowerCase();
 
@@ -81,12 +103,14 @@ const Students = () => {
         <div className="students-page__header">
              <h1>Students</h1>
 
-             <button
-                 className="students-page__button"
+        {canCreateStudent && (
+            <button
+                className="students-page__button"
                 onClick={() => setShowModal(true)}
-             >
+            >
                 + Add Student
-             </button>
+            </button>
+            )}
         </div>
 
         <div className="students-page__search">
@@ -131,12 +155,21 @@ const Students = () => {
             academicLevels={academicLevels}
             sections={sections}
             classes={classes}
+            canEdit={canEditStudent}
+            canDelete={canDeleteStudent}
             onEdit={(students)  =>  {
+                if(!canEditStudent){
+                    return;
+                }
                 setEditingStudent(students);
                 setShowModal(true)
             }}
 
             onDelete={(studentId) => {
+
+                if(!canDeleteStudent){
+                    return;
+                }
              const student = students.find(
              (student) => student.id === studentId
   );
@@ -154,7 +187,11 @@ const Students = () => {
                 student={selectedStudent}
                 onClose={() => setSelectedStudent(null)}
                 payments={payments}
+                canEdit={canEditStudent}
                 onEdit={(student) => {
+                    if(!canEditStudent){
+                        return;
+                    }
                     setSelectedStudent(null)
                     setEditingStudent(student)
                     setShowModal(true)

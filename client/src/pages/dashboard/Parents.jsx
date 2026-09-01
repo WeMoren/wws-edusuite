@@ -5,10 +5,11 @@ import ParentTable from '../../components/parents/ParentTable/ParentTable';
 import "./Parents.css"
 import ParentModal from "../../components/parents/ParentModal/ParentModal";
 import ConfirmDialog from "../../components/common/ConfirmDialog/ConfirmDialog";
-
+import { useAuth } from "../../auth/AuthContext";
 
 
 const Parents = () => {
+  const { currentUser } = useAuth();
     const [showModal, setShowModal] = useState(false);
     const { parents, setParents } = useOutletContext();
 
@@ -19,6 +20,15 @@ const Parents = () => {
      const [currentPage, setCurrentPage] = useState(1);
     const parentsPerPage = 5;
     
+
+     if (currentUser?.role !== "admin") {
+      return (
+        <div className="parents-page">
+          <h1>🔒Access Denied</h1>
+          <p>You do not have permission to access the Parents module.</p>
+        </div>
+      );
+    }
 
         useEffect(() => {
             setCurrentPage(1);

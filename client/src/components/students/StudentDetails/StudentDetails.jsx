@@ -3,7 +3,11 @@ import classFees from "../../../data/classFees";
 import "./StudentDetails.css";
 import PaymentReceipt from "../../accountant/PaymentReceipt/PaymentReceipt";
 import { Receipt } from "lucide-react";
-const StudentDetails = ({ student, payments, onClose, onEdit }) => {
+
+
+const StudentDetails = ({ student, payments, onClose, onEdit , canEdit}) => {
+
+ 
 
   const [selectedPayment, setSelectedPayment] = useState(null);
 
@@ -135,11 +139,15 @@ const StudentDetails = ({ student, payments, onClose, onEdit }) => {
           )}
         </section>       
 
+       { canEdit && (
         <div className="student-details__actions">
-            <button onClick={() => onEdit(student)}>
+
+         <button onClick={() => onEdit(student)}>
                 Edit Student
             </button>
+           
         </div> 
+        )} 
       </div>
 
       {selectedPayment && (

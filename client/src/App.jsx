@@ -1,4 +1,4 @@
-import { Routes, Route} from "react-router-dom";
+import { Routes, Route } from "react-router-dom";
 import Home from "./pages/Home";
 import Login from "./pages/auth/Login";
 import Dashboard from "./pages/dashboard/Dashboard";
@@ -16,31 +16,74 @@ import Sections from "./pages/dashboard/Sections";
 import AcademicSetup from "./pages/dashboard/AcademicSetup";
 import Events from "./pages/dashboard/Events";
 import Results from "./pages/dashboard/Results";
+import ProtectedRoute from "./auth/ProtectedRoute";
+import RoleRoute from "./auth/RoleRoute";
 
 const App = () => {
   return (
     <Routes>
-      <Route path="/" element={<Home />}/>
-      <Route path="/login" element={<Login />}/>
-      <Route path="/dashboard" element={<DashboardLayout />}>
-      <Route index element={<Dashboard/>} />
-          <Route path="students" element={<Students />}/>
-          <Route path="teachers" element={<Teachers />}/>
-          <Route path="classes" element={<Classes />}/> 
+      <Route path="/" element={<Home />} />
+      <Route path="/login" element={<Login />} />
+
+      {/* Login protection */}
+      <Route element={<ProtectedRoute />}>
+        <Route path="/dashboard" element={<DashboardLayout />}>
+
+          <Route index element={<Dashboard />} />
+
+          <Route path="students" element={<Students />} />
+
+          <Route path="teachers" element={<Teachers />} />
+
+          <Route path="classes" element={<Classes />} />
+
           <Route path="sections" element={<Sections />} />
-          <Route path="academic-setup" element={<AcademicSetup />} />
+
+            <Route
+              path="academic-setup"
+              element={
+                <RoleRoute allowedRoles={["admin"]}>
+                  <AcademicSetup />
+                </RoleRoute>
+              }
+            />
+          
           <Route path="attendance" element={<Attendance />} />
+
           <Route path="results" element={<Results />} />
+
           <Route path="events" element={<Events />} />
-          <Route path="parents" element={<Parents />}/>
-          <Route path="accountant" element={<Accountant />}/>
-          <Route path="library" element={<Library />}/>
-          <Route path="reception" element={<Reception />}/>
-          <Route path="settings" element={<Settings />}/>
+
+          {/* Admin only */}
+            <Route
+              path="parents"
+              element={
+                <RoleRoute allowedRoles={["admin"]}>
+                  <Parents />
+                </RoleRoute>
+              }
+            />
+
+          <Route path="accountant" element={<Accountant />} />
+
+          <Route path="library" element={<Library />} />
+
+          <Route path="reception" element={<Reception />} />
+
+          {/* Admin only */}
+          <Route
+            path="settings"
+            element={
+              <RoleRoute allowedRoles={["admin"]}>
+                <Settings />
+              </RoleRoute>
+            }
+          />
+
+        </Route>
       </Route>
-      
     </Routes>
   );
-}
+};
 
 export default App;

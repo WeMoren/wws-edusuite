@@ -5,9 +5,32 @@ import TeacherTable from '../../components/teachers/TeacherTable';
 import "./Teachers.css";
 import TeacherModal from '../../components/teachers/TeacherModal/TeacherModal';
 import ConfirmDialog from "../../components/common/ConfirmDialog/ConfirmDialog";
-
+import { useAuth } from "../../auth/AuthContext";
+import { hasPermission } from "../../auth/permissions";
 
 const Teachers = () => {
+
+    const { currentUser } = useAuth();
+
+    const canCreateTeacher = hasPermission(
+        currentUser?.role,
+        "teachers",
+        "create"
+    );
+
+    const canEditTeacher = hasPermission(
+        currentUser?.role,
+        "teachers",
+        "edit"
+    );
+
+    const canDeleteTeacher = hasPermission(
+        currentUser?.role,
+        "teachers",
+        "delete"
+    );
+
+
     const [teacherToDelete, setTeacherToDelete] = useState(null);
     const [ showModal, setShowModal] = useState(false);
     const [editingTeacher, setEditingTeacher] = useState(null);
@@ -70,12 +93,14 @@ const filteredTeachers = teachers.filter((teacher) => {
         <div className="teachers-page_header">
             <h1>Teachers</h1>
 
+         {canCreateTeacher && (
             <button
-             className="teachers-page__button"
-             onClick={() => setShowModal(true)}
-             >
+                className="teachers-page__button"
+                onClick={() => setShowModal(true)}
+            >
                 + Add Teacher
             </button>
+             )}
         </div>
 
         <div className="teachers-page__filters">
@@ -111,13 +136,23 @@ const filteredTeachers = teachers.filter((teacher) => {
 
         <TeacherTable 
             teachers={currentTeachers}
-
+             canEdit={canEditTeacher}
+             canDelete={canDeleteTeacher}
             onEdit={(teacher) => {
+                 if (!canEditTeacher) {
+                    return;
+                }
+
                 setEditingTeacher(teacher);
                 setShowModal(true)
             }}
 
             onDelete={(teacherId) => {
+                 if (!canDeleteTeacher) {
+                    return;
+                }
+
+
                 const teacher = teachers.find(
               (teacher) => teacher.id === teacherId
         );
@@ -155,6 +190,10 @@ const filteredTeachers = teachers.filter((teacher) => {
                     message={`Are you sure you want to delete ${teacherToDelete.firstName} ${teacherToDelete.lastName}?`}
                     onCancel={() => setTeacherToDelete(null)}
                     onConfirm={() => {
+                            if (!canDeleteTeacher) {
+                                return;
+                            }
+
                     setTeachers((prevTeachers) =>
                         prevTeachers.filter(
                         (teacher) => teacher.id !== teacherToDelete.id

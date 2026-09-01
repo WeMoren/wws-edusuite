@@ -1,14 +1,13 @@
 import React, { useState }  from 'react';
 import { useOutletContext } from 'react-router-dom';
 import StatCard from '../../components/dashboard/StatCard/StatCard';
-import currentUser from '../../data/currentUser';
 import ActivityItem from '../../components/dashboard/ActivityItem/ActivityItem';
 import EventItem from '../../components/dashboard/EventItem/EventItem';
 import quickActions from '../../data/quickActions';
 import ActionButton from '../../components/dashboard/ActionButton/ActionButton';
 import "./Dashboard.css";
 import EventModal from '../../components/dashboard/EventModal/EventModal';
-
+import { useAuth } from "../../auth/AuthContext";
 
 
 const getRelativeTime = (createdAt) => {
@@ -46,10 +45,23 @@ const getRelativeTime = (createdAt) => {
 }
 
 
+//Dynamic greeting
+const getGreeting = () => {
+    const hour = new Date().getHours();
 
+    if (hour < 12) {
+        return "Good morning";
+    }
+
+    if (hour < 17) {
+        return "Good afternoon";
+    }
+
+    return "Good evening";
+};
 
 const Dashboard = () => {
-
+const { currentUser } = useAuth();
 
     const { 
             students, 
@@ -88,8 +100,8 @@ const Dashboard = () => {
 
          <div className="dashboard__welcome">
             <h1>
-                Good Evening, {currentUser.role} {currentUser.lastName} 👋
-            </h1>
+                 {getGreeting()}, {currentUser?.firstName} {currentUser?.lastName} 👋
+            </h1>            
             <p>Welcome back to WWS Edusuite.</p>
          </div>
 
