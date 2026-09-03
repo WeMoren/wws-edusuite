@@ -9,7 +9,10 @@ const StudentModal = ({
   academicLevels,
   sections,
   classes,
-  enrollments
+  enrollments,
+  streams,
+  streamLevels,
+  subjectCombinations,
 }) => {
   const [student, setStudent] = useState({
     admissionNo: "",
@@ -23,6 +26,8 @@ const StudentModal = ({
     academicLevelId: "",
     classId: "",
     sectionId: "",
+    streamId: "",
+  combinationId: "",
   });
 
       /* UseEffect */
@@ -44,6 +49,8 @@ const StudentModal = ({
                 academicLevelId: studentEnrollment.academicLevelId,
                 classId: studentEnrollment.classId,
                 sectionId: studentEnrollment.sectionId,
+                 streamId: studentEnrollment.streamId || "",
+                combinationId: studentEnrollment.combinationId || "",
               });
             }
           }, [studentToEdit, enrollments]);
@@ -51,26 +58,79 @@ const StudentModal = ({
 
       /* Handle change */
   const handleChange = (e) => {
-    const { name, value } = e.target;
+  const { name, value } = e.target;
 
-    if (
-      name === "academicSessionId" ||
-      name === "academicLevelId" ||
-      name === "classId" ||
-      name === "sectionId"
-    ) {
-      setEnrollment((prev) => ({
+  if (
+    name === "academicSessionId" ||
+    name === "academicLevelId" ||
+    name === "classId" ||
+    name === "sectionId" ||
+    name === "streamId" ||
+    name === "combinationId"
+  ) {
+    setEnrollment((prev) => {
+      const numericValue = Number(value);
+
+      if (name === "academicLevelId") {
+        return {
+          ...prev,
+          academicLevelId: numericValue,
+          streamId: "",
+          combinationId: "",
+          classId: "",
+          sectionId: "",
+        };
+      }
+
+      if (name === "streamId") {
+        return {
+          ...prev,
+          streamId: numericValue,
+          combinationId: "",
+        };
+      }
+
+      return {
         ...prev,
-        [name]: Number(value),
-      }));
-      return;
-    }
+        [name]: numericValue,
+      };
+    });
 
-    setStudent((prev) => ({
-      ...prev,
-      [name]: value,
-    }));
-  };
+    return;
+  }
+
+  setStudent((prev) => ({
+    ...prev,
+    [name]: value,
+  }));
+};
+
+
+
+  // Senior secondary stream options
+const isSeniorSecondary =
+  academicLevels.find(
+    (level) =>
+      level.id === Number(enrollment.academicLevelId)
+  )?.category === "Senior Secondary";
+
+const availableStreams = streams.filter((stream) =>
+  streamLevels.some(
+    (streamLevel) =>
+      streamLevel.streamId === stream.id &&
+      streamLevel.academicLevelId ===
+        Number(enrollment.academicLevelId) &&
+      streamLevel.isActive
+  )
+);
+
+const availableCombinations = subjectCombinations.filter(
+  (combination) =>
+    combination.academicLevelId ===
+      Number(enrollment.academicLevelId) &&
+    combination.streamId === Number(enrollment.streamId) &&
+    combination.isActive
+);
 
 
 
@@ -100,6 +160,8 @@ const StudentModal = ({
       academicLevelId: "",
       classId: "",
       sectionId: "",
+      streamId: "",
+      combinationId: "",
     });
   };
 
@@ -226,6 +288,63 @@ const StudentModal = ({
               })}
             </select>
           </div>
+
+
+              {/* Stream */}
+        {isSeniorSecondary && (
+          <div className="student-form__group">
+            <label htmlFor="streamId">Stream</label>
+
+            <select
+              id="streamId"
+              name="streamId"
+              value={enrollment.streamId}
+              onChange={handleChange}
+              disabled={!enrollment.academicLevelId}
+              required
+            >
+              <option value="">Select stream</option>
+
+              {availableStreams.map((stream) => (
+                <option key={stream.id} value={stream.id}>
+                  {stream.name}
+                </option>
+              ))}
+            </select>
+          </div>
+        )}
+
+        {/* Subject Combination */}
+        {isSeniorSecondary && (
+          <div className="student-form__group">
+            <label htmlFor="combinationId">
+              Subject Combination
+            </label>
+
+            <select
+              id="combinationId"
+              name="combinationId"
+              value={enrollment.combinationId}
+              onChange={handleChange}
+              disabled={!enrollment.streamId}
+              required
+            >
+              <option value="">
+                Select subject combination
+              </option>
+
+              {availableCombinations.map((combination) => (
+                <option
+                  key={combination.id}
+                  value={combination.id}
+                >
+                  {combination.name}
+                </option>
+              ))}
+            </select>
+          </div>
+        )}
+
 
           {/* Gender */}
           <div className="student-form__group">

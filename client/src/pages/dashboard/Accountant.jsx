@@ -11,7 +11,6 @@ import ConfirmDialog from "../../components/common/ConfirmDialog/ConfirmDialog";
 import initialExpenses from "../../data/expenses";
 import ExpenseModal from "../../components/accountant/ExpenseModal/ExpenseModal";
 import ExpenseTable from "../../components/accountant/ExpenseTable/ExpenseTable";
-import students from "../../data/students";
 import { calculateFinancialSummary } from "../../data/financialSummary";
 import PaymentReceipt from "../../components/accountant/PaymentReceipt/PaymentReceipt";
 
@@ -37,6 +36,7 @@ const {
     payments, 
     setPayments,
     setRecentActivities,
+    students
   } = useOutletContext();
 
 

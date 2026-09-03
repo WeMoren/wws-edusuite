@@ -64,7 +64,8 @@
 .header__profile-role {
   font-size: 0.65rem;
   font-weight: 600;
-  color: #64748b;
+ /* color: #64748b;*/
+ color: #3cb43c;
   text-transform: capitalize;
   position: relative;
   top: -0.15rem;

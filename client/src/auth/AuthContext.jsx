@@ -27,6 +27,14 @@ const initialUsers = [
     password: "accountant123",
     role: "accountant",
   },
+  {
+  id: 4,
+  firstName: "Michael",
+  lastName: "Brown",
+  username: "examofficer",
+  password: "exam123",
+  role: "examOfficer",
+},
 ];
 
 export const AuthProvider = ({ children }) => {

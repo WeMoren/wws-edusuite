@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { Navigate, useNavigate } from "react-router-dom";
 import { useAuth } from "../../auth/AuthContext";
-
+import "./Login.css";
 const Login = () => {
   const { currentUser, login } = useAuth();
   const navigate = useNavigate();
@@ -30,11 +30,15 @@ const Login = () => {
   };
 
   return (
-    <div>
-      <h1>Staff Login</h1>
+  <div className="login-page">
+    <div className="login-card">
+      <div className="login-card__header">
+        <h1>WWS-EduSuite</h1>
+        <p>Staff Login</p>
+      </div>
 
-      <form onSubmit={handleSubmit}>
-        <div>
+      <form className="login-form" onSubmit={handleSubmit}>
+        <div className="login-form__group">
           <label htmlFor="username">Username</label>
 
           <input
@@ -42,11 +46,12 @@ const Login = () => {
             type="text"
             value={username}
             onChange={(e) => setUsername(e.target.value)}
+            placeholder="Enter your username"
             required
           />
         </div>
 
-        <div>
+        <div className="login-form__group">
           <label htmlFor="password">Password</label>
 
           <input
@@ -54,18 +59,27 @@ const Login = () => {
             type="password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
+            placeholder="Enter your password"
             required
           />
         </div>
 
-        {error && <p>{error}</p>}
+        {error && (
+          <p className="login-form__error">
+            {error}
+          </p>
+        )}
 
-        <button type="submit">
+        <button
+          type="submit"
+          className="login-form__button"
+        >
           Login
         </button>
       </form>
     </div>
-  );
+  </div>
+);
 };
 
 export default Login;

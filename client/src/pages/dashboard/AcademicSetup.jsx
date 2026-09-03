@@ -56,6 +56,28 @@ const AcademicSetup = () => {
   const [newClassName, setNewClassName] = useState("");
   const [selectedClassId, setSelectedClassId] = useState("");
   const [newSectionName, setNewSectionName] = useState("");
+    const [newStreamName, setNewStreamName] = useState("");
+  const [newStreamCode, setNewStreamCode] = useState("");
+  const [newStreamDescription, setNewStreamDescription] = useState("");
+
+    const [streamLevelDialog, setStreamLevelDialog] = useState({
+    open: false,
+    stream: null,
+    selectedLevels: [],
+  });
+
+  const [newCombinationLevelId, setNewCombinationLevelId] = useState("");
+  const [newCombinationStreamId, setNewCombinationStreamId] = useState("");
+  const [newCombinationName, setNewCombinationName] = useState("");
+  const [newCombinationCode, setNewCombinationCode] = useState("");
+
+  const [combinationSubjectDialog, setCombinationSubjectDialog] =
+    useState({
+      open: false,
+      combination: null,
+      selectedSubjects: [],
+    });
+
   const [newSubjectName, setNewSubjectName] = useState("");
   const [newSubjectCode, setNewSubjectCode] = useState("");
   const [newSubjectCategory, setNewSubjectCategory] = useState("");
@@ -197,6 +219,12 @@ const AcademicSetup = () => {
     setClasses,
     sections,
     setSections,
+     streams,
+    setStreams,
+    streamLevels,
+    setStreamLevels,
+    subjectCombinations,
+    setSubjectCombinations,
    
   } = useOutletContext();
 
@@ -330,6 +358,144 @@ const AcademicSetup = () => {
 
     setNewTermName("");
   };
+
+
+    // Add Stream
+  const handleAddStream = () => {
+    const name = newStreamName.trim();
+    const code = newStreamCode.trim().toUpperCase();
+    const description = newStreamDescription.trim();
+
+    if (!name || !code) {
+      notify({
+        title: "Missing fields",
+        message: "Please enter a stream name and code.",
+      });
+
+      return;
+    }
+
+    const alreadyExists = streams.some(
+      (stream) =>
+        stream.name.toLowerCase() === name.toLowerCase() ||
+        stream.code.toLowerCase() === code.toLowerCase()
+    );
+
+    if (alreadyExists) {
+      notify({
+        title: "Stream exists",
+        message: "A stream with this name or code already exists.",
+      });
+
+      return;
+    }
+
+    const newStream = {
+      id: generateId(streams),
+      name,
+      code,
+      description,
+      isActive: true,
+    };
+
+    setStreams((prev) => [...prev, newStream]);
+
+    setNewStreamName("");
+    setNewStreamCode("");
+    setNewStreamDescription("");
+
+    notify({
+      title: "Stream Added",
+      message: `${name} has been added successfully.`,
+    });
+  };
+
+
+  const handleAddCombination = () => {
+  const academicLevelId = Number(newCombinationLevelId);
+  const streamId = Number(newCombinationStreamId);
+  const name = newCombinationName.trim();
+  const code = newCombinationCode.trim().toUpperCase();
+
+  if (!academicLevelId || !streamId || !name || !code) {
+    notify({
+      title: "Missing fields",
+      message:
+        "Please select an academic level and stream, then enter a combination name and code.",
+    });
+    return;
+  }
+
+  const selectedStream = streams.find(
+    (stream) => stream.id === streamId
+  );
+
+  if (!selectedStream) {
+    notify({
+      title: "Invalid stream",
+      message: "The selected stream could not be found.",
+    });
+    return;
+  }
+
+  const streamIsAvailable = streamLevels.some(
+    (streamLevel) =>
+      streamLevel.academicLevelId === academicLevelId &&
+      streamLevel.streamId === streamId &&
+      streamLevel.isActive
+  );
+
+  if (!streamIsAvailable) {
+    notify({
+      title: "Stream unavailable",
+      message:
+        "The selected stream is not assigned to this academic level.",
+    });
+    return;
+  }
+
+  const alreadyExists = subjectCombinations.some(
+    (combination) =>
+      combination.academicLevelId === academicLevelId &&
+      combination.streamId === streamId &&
+      (combination.name.toLowerCase() === name.toLowerCase() ||
+        combination.code.toLowerCase() === code.toLowerCase())
+  );
+
+  if (alreadyExists) {
+    notify({
+      title: "Combination exists",
+      message:
+        "A combination with this name or code already exists for the selected stream and academic level.",
+    });
+    return;
+  }
+
+  const newCombination = {
+    id: generateId(subjectCombinations),
+    academicLevelId,
+    streamId,
+    name,
+    code,
+    subjectIds: [],
+    isActive: true,
+  };
+
+  setSubjectCombinations((prev) => [
+    ...prev,
+    newCombination,
+  ]);
+
+  setNewCombinationLevelId("");
+  setNewCombinationStreamId("");
+  setNewCombinationName("");
+  setNewCombinationCode("");
+
+  notify({
+    title: "Combination Added",
+    message: `${name} has been added successfully.`,
+  });
+};
 
 
 const handleAddSubject = () => {
@@ -1049,6 +1215,249 @@ const handleAddSubject = () => {
 
 
 
+                      {/* Streams */}
+        <div className="academic-streams">
+          <h2>Streams</h2>
+
+          <p>
+            Configure the streams offered by your school and the academic
+            levels where each stream is available.
+          </p>
+
+          <div className="academic-streams__form">
+            <input
+              type="text"
+              value={newStreamName}
+              onChange={(e) => setNewStreamName(e.target.value)}
+              placeholder="Stream name e.g. Science"
+            />
+
+            <input
+              type="text"
+              value={newStreamCode}
+              onChange={(e) => setNewStreamCode(e.target.value)}
+              placeholder="Stream code e.g. SCI"
+            />
+
+            <input
+              type="text"
+              value={newStreamDescription}
+              onChange={(e) =>
+                setNewStreamDescription(e.target.value)
+              }
+              placeholder="Description"
+            />
+
+            <button type="button" onClick={handleAddStream}>
+              + Add Stream
+            </button>
+          </div>
+
+          <div className="academic-streams__list">
+            {streams.map((stream) => {
+              const assignedLevels = streamLevels
+                .filter(
+                  (streamLevel) =>
+                    streamLevel.streamId === stream.id &&
+                    streamLevel.isActive
+                )
+                .map(
+                  (streamLevel) => streamLevel.academicLevelId
+                );
+
+              return (
+                <div
+                  key={stream.id}
+                  className="academic-streams__item"
+                >
+                  <div>
+                    <strong>{stream.name}</strong>
+                    <span>{stream.code}</span>
+
+                    {stream.description && (
+                      <small>{stream.description}</small>
+                    )}
+
+                    <small>
+                      {assignedLevels.length} academic level
+                      {assignedLevels.length !== 1 ? "s" : ""}
+                    </small>
+                  </div>
+
+                  <div className="academic-streams__actions">
+                    <button
+                      type="button"
+                      className="assign"
+                      onClick={() =>
+                        setStreamLevelDialog({
+                          open: true,
+                          stream,
+                          selectedLevels: assignedLevels,
+                        })
+                      }
+                    >
+                      Assign Levels
+                    </button>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+
+
+                {/* Subject Combinations */}
+        <div className="academic-combinations">
+          <h2>Subject Combinations</h2>
+          <p>
+            Create subject combinations for senior secondary streams.
+            Subjects can be assigned to each combination after it is created.
+          </p>
+
+          <div className="academic-combinations__form">
+            <select
+              value={newCombinationLevelId}
+              onChange={(e) =>
+                setNewCombinationLevelId(e.target.value)
+              }
+            >
+              <option value="">Select Academic Level</option>
+
+              {academicLevels
+                .filter(
+                  (level) =>
+                    level.category === "Senior Secondary"
+                )
+                .map((level) => (
+                  <option key={level.id} value={level.id}>
+                    {level.name}
+                  </option>
+                ))}
+            </select>
+
+            <select
+              value={newCombinationStreamId}
+              onChange={(e) =>
+                setNewCombinationStreamId(e.target.value)
+              }
+            >
+              <option value="">Select Stream</option>
+
+              {streams
+                .filter((stream) =>
+                  streamLevels.some(
+                    (streamLevel) =>
+                      streamLevel.streamId === stream.id &&
+                      streamLevel.academicLevelId ===
+                        Number(newCombinationLevelId) &&
+                      streamLevel.isActive
+                  )
+                )
+                .map((stream) => (
+                  <option key={stream.id} value={stream.id}>
+                    {stream.name}
+                  </option>
+                ))}
+            </select>
+
+            <input
+              type="text"
+              value={newCombinationName}
+              onChange={(e) =>
+                setNewCombinationName(e.target.value)
+              }
+              placeholder="Combination name e.g. Science Combination A"
+            />
+
+            <input
+              type="text"
+              value={newCombinationCode}
+              onChange={(e) =>
+                setNewCombinationCode(e.target.value)
+              }
+              placeholder="Combination code e.g. SCI-A"
+            />
+
+            <button
+              type="button"
+              onClick={handleAddCombination}
+            >
+              + Add Combination
+            </button>
+          </div>
+
+          <div className="academic-combinations__list">
+            {subjectCombinations.map((combination) => {
+              const level = academicLevels.find(
+                (item) =>
+                  item.id === combination.academicLevelId
+              );
+
+              const stream = streams.find(
+                (item) => item.id === combination.streamId
+              );
+
+              const combinationSubjects = combination.subjectIds
+                .map((subjectId) =>
+                  subjects.find(
+                    (subject) => subject.id === subjectId
+                  )
+                )
+                .filter(Boolean);
+
+              return (
+                <div
+                  key={combination.id}
+                  className="academic-combinations__item"
+                >
+                  <div>
+                    <strong>{combination.name}</strong>
+
+                    <span>
+                      {level?.name} · {stream?.name}
+                    </span>
+
+                    <small>{combination.code}</small>
+
+                    <small>
+                      {combinationSubjects.length} subject
+                      {combinationSubjects.length !== 1
+                        ? "s"
+                        : ""}
+                    </small>
+                  </div>
+
+                  <div className="academic-combinations__subjects">
+                    {combinationSubjects.map((subject) => (
+                      <span key={subject.id}>
+                        {subject.name}
+                      </span>
+                    ))}
+                  </div>
+
+                  <div className="academic-combinations__actions">
+                    <button
+                      type="button"
+                      className="assign"
+                      onClick={() =>
+                        setCombinationSubjectDialog({
+                          open: true,
+                          combination,
+                          selectedSubjects:
+                            combination.subjectIds,
+                        })
+                      }
+                    >
+                      Assign Subjects
+                    </button>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+
+
             {/* Subjects */}
         <div className="academic-subjects">
           <h2>Subjects</h2>
@@ -1075,6 +1484,7 @@ const handleAddSubject = () => {
               <option value="">Select category</option>
               <option value="Core">Core</option>
               <option value="Science">Science</option>
+              <option value="Art">Art</option>
               <option value="Commercial">Commercial</option>
               <option value="Humanities">Humanities</option>
               <option value="Language">Language</option>
@@ -1864,6 +2274,276 @@ const handleAddSubject = () => {
           </div>
         </div>
       )}
+
+
+
+                {/* Stream Level Assignment Dialog */}
+          {streamLevelDialog.open && (
+            <div className="edit-modal">
+              <div className="edit-modal__content">
+                <h3>
+                  Assign Levels — {streamLevelDialog.stream?.name}
+                </h3>
+
+                <p>
+                  Select the academic levels where this stream is offered.
+                </p>
+
+                <div className="subject-levels">
+                  {academicLevels
+                    .filter(
+                      (level) =>
+                        level.category === "Senior Secondary"
+                    )
+                    .map((level) => (
+                      <label
+                        key={level.id}
+                        className="subject-levels__item"
+                      >
+                        <input
+                          type="checkbox"
+                          checked={streamLevelDialog.selectedLevels.includes(
+                            level.id
+                          )}
+                          onChange={() => {
+                            setStreamLevelDialog((prev) => ({
+                              ...prev,
+                              selectedLevels:
+                                prev.selectedLevels.includes(level.id)
+                                  ? prev.selectedLevels.filter(
+                                      (id) => id !== level.id
+                                    )
+                                  : [
+                                      ...prev.selectedLevels,
+                                      level.id,
+                                    ],
+                            }));
+                          }}
+                        />
+
+                        <span>{level.name}</span>
+                      </label>
+                    ))}
+                </div>
+
+                <div className="edit-modal__actions">
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setStreamLevelDialog({
+                        open: false,
+                        stream: null,
+                        selectedLevels: [],
+                      })
+                    }
+                  >
+                    Cancel
+                  </button>
+
+                                    <button
+                    type="button"
+                    onClick={() => {
+                      const {
+                        stream,
+                        selectedLevels,
+                      } = streamLevelDialog;
+
+                      const existingForStream =
+                        streamLevels.filter(
+                          (item) =>
+                            item.streamId === stream.id
+                        );
+
+                      const nextStreamLevels =
+                        streamLevels.filter(
+                          (item) =>
+                            item.streamId !== stream.id
+                        );
+
+                      const usedIds = streamLevels.map(
+                        (item) => item.id
+                      );
+
+                      let nextId =
+                        usedIds.length > 0
+                          ? Math.max(...usedIds) + 1
+                          : 1;
+
+                      const newAssignments =
+                        selectedLevels.map(
+                          (academicLevelId) => {
+                            const existing =
+                              existingForStream.find(
+                                (item) =>
+                                  item.academicLevelId ===
+                                  academicLevelId
+                              );
+
+                            if (existing) {
+                              return existing;
+                            }
+
+                            const assignment = {
+                              id: nextId,
+                              academicLevelId,
+                              streamId: stream.id,
+                              isActive: true,
+                            };
+
+                            nextId += 1;
+
+                            return assignment;
+                          }
+                        );
+
+                      setStreamLevels([
+                        ...nextStreamLevels,
+                        ...newAssignments,
+                      ]);
+
+                      setStreamLevelDialog({
+                        open: false,
+                        stream: null,
+                        selectedLevels: [],
+                      });
+
+                      notify({
+                        title: "Levels Saved",
+                        message: `${stream.name} has been assigned to the selected academic levels.`,
+                      });
+                    }}
+                  >
+                    Save Levels
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
+
+          {/* Combination Subject Assignment Dialog */}
+{combinationSubjectDialog.open && (
+  <div className="edit-modal">
+    <div className="edit-modal__content">
+      <h3>
+        Assign Subjects —{" "}
+        {combinationSubjectDialog.combination?.name}
+      </h3>
+
+      <p>
+        Select the subjects that belong to this
+        combination. Only subjects available for the
+        combination's academic level are shown.
+      </p>
+
+      <div className="subject-levels">
+        {subjects
+          .filter((subject) =>
+            subject.academicLevelIds?.includes(
+              combinationSubjectDialog.combination
+                ?.academicLevelId
+            )
+          )
+          .map((subject) => (
+            <label
+              key={subject.id}
+              className="subject-levels__item"
+            >
+              <input
+                type="checkbox"
+                checked={combinationSubjectDialog.selectedSubjects.includes(
+                  subject.id
+                )}
+                onChange={() => {
+                  setCombinationSubjectDialog((prev) => ({
+                    ...prev,
+                    selectedSubjects:
+                      prev.selectedSubjects.includes(
+                        subject.id
+                      )
+                        ? prev.selectedSubjects.filter(
+                            (id) => id !== subject.id
+                          )
+                        : [
+                            ...prev.selectedSubjects,
+                            subject.id,
+                          ],
+                  }));
+                }}
+              />
+
+              <span>
+                {subject.name} ({subject.code})
+              </span>
+            </label>
+          ))}
+      </div>
+
+      <div className="edit-modal__actions">
+        <button
+          type="button"
+          onClick={() =>
+            setCombinationSubjectDialog({
+              open: false,
+              combination: null,
+              selectedSubjects: [],
+            })
+          }
+        >
+          Cancel
+        </button>
+
+        <button
+          type="button"
+          onClick={() => {
+            const {
+              combination,
+              selectedSubjects,
+            } = combinationSubjectDialog;
+
+            if (!combination) return;
+
+            const validSubjectIds = selectedSubjects.filter(
+              (subjectId) => {
+                const subject = subjects.find(
+                  (item) => item.id === subjectId
+                );
+
+                return subject?.academicLevelIds?.includes(
+                  combination.academicLevelId
+                );
+              }
+            );
+
+            setSubjectCombinations((prev) =>
+              prev.map((item) =>
+                item.id === combination.id
+                  ? {
+                      ...item,
+                      subjectIds: validSubjectIds,
+                    }
+                  : item
+              )
+            );
+
+            setCombinationSubjectDialog({
+              open: false,
+              combination: null,
+              selectedSubjects: [],
+            });
+
+            notify({
+              title: "Subjects Saved",
+              message: `Subjects for ${combination.name} have been updated successfully.`,
+            });
+          }}
+        >
+          Save Subjects
+        </button>
+      </div>
+    </div>
+  </div>
+)}
 
 
           {/* Subject Level Assignment Dialog */}

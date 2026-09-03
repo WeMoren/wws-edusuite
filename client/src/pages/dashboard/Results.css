@@ -264,6 +264,13 @@
   transform: translateY(0);
 }
 
+.result-not-applicable {
+  text-align: center;
+  vertical-align: middle;
+  font-size: 1.2rem;
+  color: #999;
+}
+
 @media (max-width: 600px) {
   .results-students {
     padding: 18px;

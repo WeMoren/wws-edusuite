@@ -19,6 +19,9 @@ import initialRecentActivities from "../data/recentActivity";
 import initialUpcomingEvents from "../data/upcomingEvents";
 import initialSubjects from "../data/subjects";
 import initialResults from "../data/results";
+import initialStreams from "../data/streams";
+import initialStreamLevels from "../data/streamLevels";
+import initialSubjectCombinations from "../data/subjectCombinations";
 
 
 const DashboardLayout = () => {
@@ -173,6 +176,50 @@ useEffect(() => {
 }, [subjects]);
 
 
+const [streams, setStreams] = useState(() => {
+  const savedStreams = localStorage.getItem("streams");
+
+  return savedStreams
+    ? JSON.parse(savedStreams)
+    : initialStreams;
+});
+
+useEffect(() => {
+  localStorage.setItem("streams", JSON.stringify(streams));
+}, [streams]);
+
+
+const [streamLevels, setStreamLevels] = useState(() => {
+  const savedStreamLevels = localStorage.getItem("streamLevels");
+
+  return savedStreamLevels
+    ? JSON.parse(savedStreamLevels)
+    : initialStreamLevels;
+});
+
+useEffect(() => {
+  localStorage.setItem("streamLevels", JSON.stringify(streamLevels));
+}, [streamLevels]);
+
+
+
+const [subjectCombinations, setSubjectCombinations] = useState(() => {
+  const savedSubjectCombinations = localStorage.getItem(
+    "subjectCombinations"
+  );
+
+  return savedSubjectCombinations
+    ? JSON.parse(savedSubjectCombinations)
+    : initialSubjectCombinations;
+});
+
+useEffect(() => {
+  localStorage.setItem(
+    "subjectCombinations",
+    JSON.stringify(subjectCombinations)
+  );
+}, [subjectCombinations]);
+
 
 const [results, setResults] = useState(() => {
   const savedResults = localStorage.getItem("results");
@@ -300,6 +347,12 @@ useEffect(() => {
                       setAcademicTerms,
                       academicLevels,
                       setAcademicLevels,
+                      streams,
+                        setStreams,
+                        streamLevels,
+                        setStreamLevels,
+                        subjectCombinations,
+                        setSubjectCombinations,
                       attendance,
                       setAttendance,
                       recentActivities,

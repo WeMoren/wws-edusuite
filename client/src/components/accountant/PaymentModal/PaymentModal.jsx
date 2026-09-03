@@ -1,8 +1,10 @@
-import React, { useState } from "react";
-import "./PaymentModal.css";
-import initialStudents from "../../../data/students";
 
-const PaymentModal = ({payment, onClose, onAddPayment }) => {
+import React, { useState } from "react";
+import { useOutletContext } from "react-router-dom";
+import "./PaymentModal.css";
+
+const PaymentModal = ({ payment, onClose, onAddPayment }) => {
+  const { students } = useOutletContext();
 
   const [paymentData, setPaymentData] = useState({
     studentId: payment?.studentId || "",
@@ -20,22 +22,22 @@ const PaymentModal = ({payment, onClose, onAddPayment }) => {
     }));
   };
 
-    const handleSubmit = (e) => {
-     e.preventDefault();
+  const handleSubmit = (e) => {
+    e.preventDefault();
 
-    const selectedStudent = initialStudents.find(
-    (student) => student.id === Number(paymentData.studentId)
-  );
+    const selectedStudent = students.find(
+      (student) => student.id === Number(paymentData.studentId)
+    );
 
-  onAddPayment({
-    ...paymentData,
-    id: payment?.id,
-    studentId: Number(paymentData.studentId),
-    studentName: `${selectedStudent.firstName} ${selectedStudent.lastName}`,
-    amount: Number(paymentData.amount),
-    date: payment?.date || new Date().toISOString(),
-  });
-};
+    onAddPayment({
+      ...paymentData,
+      id: payment?.id,
+      studentId: Number(paymentData.studentId),
+      studentName: `${selectedStudent.firstName} ${selectedStudent.lastName}`,
+      amount: Number(paymentData.amount),
+      date: payment?.date || new Date().toISOString(),
+    });
+  };
 
   return (
     <div className="payment-modal__overlay">
@@ -53,31 +55,31 @@ const PaymentModal = ({payment, onClose, onAddPayment }) => {
 
         <form onSubmit={handleSubmit}>
           <div className="payment-form__group">
-                    <label htmlFor="studentId">
-                        Student
-                    </label>
+            <label htmlFor="studentId">
+              Student
+            </label>
 
-                    <select
-                        id="studentId"
-                        name="studentId"
-                        value={paymentData.studentId}
-                        onChange={handleChange}
-                        required
-                    >
-                        <option value="">
-                        Select a student
-                        </option>
+            <select
+              id="studentId"
+              name="studentId"
+              value={paymentData.studentId}
+              onChange={handleChange}
+              required
+            >
+              <option value="">
+                Select a student
+              </option>
 
-                        {initialStudents.map((student) => (
-                        <option
-                            key={student.id}
-                            value={student.id}
-                        >
-                            {student.firstName} {student.lastName}
-                        </option>
-                        ))}
-                    </select>
-            </div>
+              {students.map((student) => (
+                <option
+                  key={student.id}
+                  value={student.id}
+                >
+                  {student.firstName} {student.lastName}
+                </option>
+              ))}
+            </select>
+          </div>
 
           <div className="payment-form__group">
             <label htmlFor="amount">
@@ -106,11 +108,17 @@ const PaymentModal = ({payment, onClose, onAddPayment }) => {
               value={paymentData.paymentMethod}
               onChange={handleChange}
             >
-              <option value="Cash">Cash</option>
+              <option value="Cash">
+                Cash
+              </option>
+
               <option value="Bank Transfer">
                 Bank Transfer
               </option>
-              <option value="Card">Card</option>
+
+              <option value="Card">
+                Card
+              </option>
             </select>
           </div>
 
@@ -138,3 +146,4 @@ const PaymentModal = ({payment, onClose, onAddPayment }) => {
 };
 
 export default PaymentModal;
+

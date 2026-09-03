@@ -35,6 +35,9 @@ const Students = () => {
             academicSessions,
             sections,
             classes,
+             streams,
+            streamLevels,
+            subjectCombinations,
             setRecentActivities,
          } = useOutletContext();
 
@@ -250,6 +253,9 @@ const Students = () => {
                 sections={sections}
                 classes={classes}
                 enrollments={enrollments}
+                 streams={streams}
+                streamLevels={streamLevels}
+                subjectCombinations={subjectCombinations}
                 onAddStudent={(studentData, enrollmentData, studentToEdit) => {
                     if (studentToEdit) {
                         // Update existing student
@@ -294,6 +300,14 @@ const Students = () => {
 
                                         sectionId:enrollmentData.sectionId
                                         ? Number(enrollmentData.sectionId) : null,
+
+                                        streamId: enrollmentData.streamId
+                                        ? Number(enrollmentData.streamId)
+                                        : null,
+
+                                    combinationId: enrollmentData.combinationId
+                                        ? Number(enrollmentData.combinationId)
+                                        : null,
                                     }
                                     : enrollment
                             )
@@ -347,6 +361,12 @@ const Students = () => {
 
                                 sectionId: enrollmentData.sectionId
                                     ? Number(enrollmentData.sectionId)
+                                    : null,
+                                streamId: enrollmentData.streamId
+                                    ? Number(enrollmentData.streamId)
+                                    : null,
+                                combinationId: enrollmentData.combinationId
+                                    ? Number(enrollmentData.combinationId)
                                     : null,
                             }
                         ]);
