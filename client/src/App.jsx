@@ -1,5 +1,5 @@
 import { Routes, Route } from "react-router-dom";
-import Home from "./pages/Home";
+import LandingPage from "./pages/Landing/LandingPage";
 import Login from "./pages/auth/Login";
 import Dashboard from "./pages/dashboard/Dashboard";
 import DashboardLayout from "./layouts/DashboardLayout";
@@ -22,7 +22,7 @@ import RoleRoute from "./auth/RoleRoute";
 const App = () => {
   return (
     <Routes>
-      <Route path="/" element={<Home />} />
+      <Route path="/" element={<LandingPage />} />
       <Route path="/login" element={<Login />} />
 
       {/* Login protection */}
