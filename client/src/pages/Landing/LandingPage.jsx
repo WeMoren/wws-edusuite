@@ -1,6 +1,7 @@
 import React, { useState }  from "react";
 import { Link } from "react-router-dom";
 import "./LandingPage.css";
+import logo from "../../assets/wws-edusuite-logo.png";
 
 const LandingPage = () => {
 
@@ -11,7 +12,7 @@ const LandingPage = () => {
     <div className="landing-page">
       <header className="landing-navbar">
         <div className="landing-navbar__logo">
-          WWS-<span>EduSuite</span>
+          <img src={logo} alt="WWS-EduSuite Logo" />
         </div>
 
         <nav className={`landing-navbar__nav ${isMenuOpen ? "is-open" : ""}`}>
@@ -513,7 +514,7 @@ const LandingPage = () => {
             <div className="landing-footer__content">
                 <div className="landing-footer__brand">
                 <div className="landing-footer__logo">
-                    WWS-<span>EduSuite</span>
+                    <img src={logo} alt="WWS-EduSuite Logo" />
                 </div>
 
                 <p>

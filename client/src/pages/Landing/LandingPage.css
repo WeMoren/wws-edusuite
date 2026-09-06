@@ -37,13 +37,14 @@ html{
 }
 
 .landing-navbar__logo {
-  font-size: 1.6rem;
-  font-weight: 800;
-  letter-spacing: -0.5px;
+  display: flex;
+  align-items: center;
 }
 
-.landing-navbar__logo span {
-  color: #60a5fa;
+.landing-navbar__logo img {
+  width: 150px;
+  height: auto;
+  display: block;
 }
 
 .landing-navbar__nav {
@@ -1216,13 +1217,16 @@ html{
 }
 
 .landing-footer__logo {
-  margin-bottom: 1rem;
-  font-size: 1.25rem;
-  font-weight: 700;
+  display: flex;
+  align-items: center;
+  
 }
 
-.landing-footer__logo span {
-  color: #60a5fa;
+.landing-footer__logo img {
+  width: 130px;
+  height: auto;
+  display: block;
+  margin-bottom: 1rem;
 }
 
 .landing-footer__brand p {
@@ -1280,7 +1284,23 @@ html{
   .landing-footer__content {
     grid-template-columns: 1fr;
     gap: 2.5rem;
+    
   }
+
+  .landing-footer__logo {
+  display: flex;
+  align-items: center;
+  
+}
+
+.landing-footer__logo img {
+  width: 130px;
+  height: auto;
+  display: block;
+  margin-bottom: 1rem;
+  
+}
+
 
   .landing-footer__bottom {
     flex-direction: column;
