@@ -227,3 +227,49 @@ export const createSchoolSubscription = async (req, res) => {
         });
     }
 };
+
+
+export const getSubscriptionPayments = async (req, res) => {
+    try {
+        const { schoolId } = req;
+
+        const result = await pool.query(
+            `
+            SELECT
+                sp.id,
+                sp.subscription_id,
+                sp.school_id,
+
+                sp.amount,
+                sp.currency,
+
+                sp.status,
+                sp.payment_reference,
+                sp.payment_method,
+
+                sp.paid_at,
+                sp.created_at
+
+            FROM subscription_payments sp
+
+            WHERE sp.school_id = $1
+
+            ORDER BY sp.created_at DESC;
+            `,
+            [schoolId]
+        );
+
+        return res.status(200).json({
+            payments: result.rows,
+        });
+    } catch (error) {
+        console.error(
+            "Failed to fetch subscription payments:",
+            error.message
+        );
+
+        return res.status(500).json({
+            message: "Failed to fetch subscription payments.",
+        });
+    }
+};

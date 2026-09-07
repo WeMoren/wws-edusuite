@@ -2,11 +2,14 @@ import express from "express";
 
 import {
     getSchoolSubscription,
-    createSchoolSubscription
+    createSchoolSubscription,
+    getSubscriptionPayments
 } from "../controllers/subscriptionController.js";
 
 import { authenticateToken } from "../middleware/authMiddleware.js";
+
 import { requireSchoolContext } from "../middleware/schoolMiddleware.js";
+
 import { requireRole } from "../middleware/roleMiddleware.js";
 
 const router = express.Router();
@@ -18,6 +21,12 @@ router.get(
     getSchoolSubscription
 );
 
+router.get(
+    "/payments",
+    authenticateToken,
+    requireSchoolContext,
+    getSubscriptionPayments
+);
 
 router.post(
     "/",
