@@ -4,11 +4,18 @@ dotenv.config();
 import express from "express";
 import pool from "./config/db.js";
 import authRoutes from "./routes/authRoutes.js";
+import subscriptionPlanRoutes from "./routes/subscriptionPlanRoutes.js";
+import subscriptionRoutes from "./routes/subscriptionRoutes.js";
 
 const app = express();
 
 app.use(express.json());
+
 app.use("/api/auth", authRoutes);
+app.use("/api/subscription", subscriptionRoutes);
+app.use("/api/subscription-plans", subscriptionPlanRoutes);
+
+
 
 const PORT = process.env.PORT || 5000;
 
