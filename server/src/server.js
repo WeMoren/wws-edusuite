@@ -10,6 +10,7 @@ import studentRoutes from "./routes/studentRoutes.js";
 import enrollmentRoutes from "./routes/enrollmentRoutes.js";
 import academicSessionRoutes from "./routes/academicSessionRoutes.js";
 import academicLevelRoutes from "./routes/academicLevelRoutes.js";
+import classRoutes from "./routes/classRoutes.js";
 
 const app = express();
 
@@ -21,6 +22,7 @@ app.use("/api/subscription-plans", subscriptionPlanRoutes);
 app.use("/api/students", studentRoutes);
 app.use("/api/enrollments", enrollmentRoutes);
 app.use("/api/academic-levels", academicLevelRoutes);
+app.use("/api/classes", classRoutes);
 app.use("/api/academic-sessions", academicSessionRoutes);
 
 const PORT = process.env.PORT || 5000;
