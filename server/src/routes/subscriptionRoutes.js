@@ -3,7 +3,8 @@ import express from "express";
 import {
     getSchoolSubscription,
     createSchoolSubscription,
-    getSubscriptionPayments
+    getSubscriptionPayments,
+    activateOrRenewSchoolSubscription
 } from "../controllers/subscriptionController.js";
 
 import { authenticateToken } from "../middleware/authMiddleware.js";
@@ -34,6 +35,14 @@ router.post(
     requireSchoolContext,
     requireRole("Admin"),
     createSchoolSubscription
+);
+
+router.post(
+    "/activate-renew",
+    authenticateToken,
+    requireSchoolContext,
+    requireRole("Admin"),
+    activateOrRenewSchoolSubscription
 );
 
 export default router;

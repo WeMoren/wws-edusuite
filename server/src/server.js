@@ -6,6 +6,7 @@ import pool from "./config/db.js";
 import authRoutes from "./routes/authRoutes.js";
 import subscriptionPlanRoutes from "./routes/subscriptionPlanRoutes.js";
 import subscriptionRoutes from "./routes/subscriptionRoutes.js";
+import studentRoutes from "./routes/studentRoutes.js";
 
 const app = express();
 
@@ -14,6 +15,7 @@ app.use(express.json());
 app.use("/api/auth", authRoutes);
 app.use("/api/subscription", subscriptionRoutes);
 app.use("/api/subscription-plans", subscriptionPlanRoutes);
+app.use("/api/students", studentRoutes);
 
 
 

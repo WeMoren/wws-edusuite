@@ -1,4 +1,5 @@
 import pool from "../config/db.js";
+import { activateOrRenewSubscription } from "../services/subscriptionService.js";
 
 export const getSchoolSubscription = async (req, res) => {
     try {
@@ -88,8 +89,6 @@ export const getSchoolSubscription = async (req, res) => {
         });
     }
 };
-
-
 
 export const createSchoolSubscription = async (req, res) => {
     try {
@@ -228,7 +227,6 @@ export const createSchoolSubscription = async (req, res) => {
     }
 };
 
-
 export const getSubscriptionPayments = async (req, res) => {
     try {
         const { schoolId } = req;
@@ -270,6 +268,78 @@ export const getSubscriptionPayments = async (req, res) => {
 
         return res.status(500).json({
             message: "Failed to fetch subscription payments.",
+        });
+    }
+};
+
+export const activateOrRenewSchoolSubscription = async (req, res) => {
+    try {
+        const { schoolId } = req;
+        const {
+            subscriptionId,
+            paymentAmount,
+            paymentReference,
+            paymentMethod = null,
+        } = req.body;
+
+        if (!subscriptionId) {
+            return res.status(400).json({
+                message: "Subscription ID is required.",
+            });
+        }
+
+        if (
+            paymentAmount === undefined ||
+            paymentAmount === null ||
+            Number.isNaN(Number(paymentAmount)) ||
+            Number(paymentAmount) < 0
+        ) {
+            return res.status(400).json({
+                message: "Payment amount must be a non-negative number.",
+            });
+        }
+
+        if (!paymentReference) {
+            return res.status(400).json({
+                message: "Payment reference is required.",
+            });
+        }
+
+        const subscriptionResult = await pool.query(
+            `
+            SELECT id
+            FROM subscriptions
+            WHERE id = $1
+              AND school_id = $2;
+            `,
+            [subscriptionId, schoolId]
+        );
+
+        if (subscriptionResult.rows.length === 0) {
+            return res.status(404).json({
+                message: "Subscription not found for this school.",
+            });
+        }
+
+        const result = await activateOrRenewSubscription({
+            subscriptionId,
+            paymentAmount: Number(paymentAmount),
+            paymentReference,
+            paymentMethod,
+        });
+
+        return res.status(200).json({
+            message: "Subscription activated or renewed successfully.",
+            ...result,
+        });
+    } catch (error) {
+        console.error(
+            "Failed to activate or renew subscription:",
+            error.message
+        );
+
+        return res.status(400).json({
+            message: error.message,
         });
     }
 };
