@@ -13,6 +13,7 @@ import academicLevelRoutes from "./routes/academicLevelRoutes.js";
 import classRoutes from "./routes/classRoutes.js";
 import sectionRoutes from "./routes/sectionRoutes.js";
 
+
 const app = express();
 
 app.use(express.json());
@@ -26,6 +27,7 @@ app.use("/api/academic-levels", academicLevelRoutes);
 app.use("/api/classes", classRoutes);
 app.use("/api/sections", sectionRoutes);
 app.use("/api/academic-sessions", academicSessionRoutes);
+
 
 const PORT = process.env.PORT || 5000;
 
