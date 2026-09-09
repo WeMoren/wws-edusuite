@@ -363,7 +363,7 @@ export const deleteClass = async (req, res) => {
             message: "Class deleted successfully.",
         });
     } catch (error) {
-        if (error.code === "23503") {
+        if (error.code === "23001") {
             return res.status(409).json({
                 message:
                     "Class cannot be deleted because related records exist.",
@@ -372,6 +372,7 @@ export const deleteClass = async (req, res) => {
 
         console.error(
             "Failed to delete class:",
+            error.code,
             error.message
         );
 
