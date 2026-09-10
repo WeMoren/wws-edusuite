@@ -18,11 +18,13 @@ import Events from "./pages/dashboard/Events";
 import Results from "./pages/dashboard/Results";
 import ProtectedRoute from "./auth/ProtectedRoute";
 import RoleRoute from "./auth/RoleRoute";
+import Register from "./pages/auth/register/Register";
 
 const App = () => {
   return (
     <Routes>
       <Route path="/" element={<LandingPage />} />
+      <Route path="/register" element={<Register />} />
       <Route path="/login" element={<Login />} />
 
       {/* Login protection */}

@@ -82,7 +82,7 @@
   padding: 13px 16px;
   border: none;
   border-radius: 8px;
-  background: #0a0f24;
+  background: #2563eb;
   color: #ffffff;
   font-size: 15px;
   font-weight: 600;
@@ -96,6 +96,19 @@
 
 .login-form__button:active {
   transform: translateY(1px);
+}
+
+.login-register {
+  margin: 16px 0 0;
+  text-align: center;
+  color: #667085;
+  font-size: 14px;
+}
+
+.login-register a {
+  color: #2563eb;
+  font-weight: 600;
+  text-decoration: none;
 }
 
 @media (max-width: 480px) {

@@ -48,7 +48,7 @@ const LandingPage = () => {
         </button>
 
         <Link to="/login" className="landing-navbar__login">
-             Login
+             Register / Login
         </Link>
        </div> 
       </header>
