@@ -1,0 +1,115 @@
+.developer-subscriptions {
+  width: 100%;
+}
+
+.developer-subscriptions-summary {
+  margin-top: 20px;
+  padding: 24px;
+}
+
+.developer-subscriptions-summary span {
+  display: block;
+  color: #64748b;
+  font-size: 12px;
+}
+
+.developer-subscriptions-summary strong {
+  display: block;
+  margin-top: 7px;
+  color: #60a5fa;
+  font-size: 28px;
+}
+
+.developer-subscriptions-summary p {
+  margin: 7px 0 0;
+  color: #64748b;
+  font-size: 12px;
+}
+
+.developer-subscriptions-panel {
+  margin-top: 20px;
+  padding: 24px;
+}
+
+.developer-subscriptions-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 20px 0;
+}
+
+.developer-subscriptions-search {
+  flex: 1;
+}
+
+.developer-subscriptions-search input,
+.developer-subscriptions-filter select {
+  width: 100%;
+  box-sizing: border-box;
+  min-height: 40px;
+  padding: 0 12px;
+  border: 1px solid #263449;
+  border-radius: 7px;
+  outline: none;
+  background: #0f172a;
+  color: #f8fafc;
+  font: inherit;
+  font-size: 12px;
+}
+
+.developer-subscriptions-search input:focus,
+.developer-subscriptions-filter select:focus {
+  border-color: #2563eb;
+}
+
+.developer-subscriptions-filter {
+  width: 190px;
+}
+
+.developer-subscription-school {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.developer-subscription-school strong {
+  color: #f8fafc;
+  font-size: 13px;
+}
+
+.developer-subscription-school span {
+  color: #64748b;
+  font-size: 11px;
+}
+
+.developer-subscription-period {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  white-space: nowrap;
+}
+
+.developer-subscription-period small {
+  color: #64748b;
+  font-size: 11px;
+}
+
+.developer-subscriptions .developer-table {
+  min-width: 1050px;
+}
+
+.developer-subscriptions .developer-table th,
+.developer-subscriptions .developer-table td {
+  padding: 15px 14px;
+}
+
+@media (max-width: 700px) {
+  .developer-subscriptions-toolbar {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .developer-subscriptions-filter {
+    width: 100%;
+  }
+}

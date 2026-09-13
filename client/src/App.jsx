@@ -19,6 +19,17 @@ import Results from "./pages/dashboard/Results";
 import ProtectedRoute from "./auth/ProtectedRoute";
 import RoleRoute from "./auth/RoleRoute";
 import Register from "./pages/auth/register/Register";
+import DeveloperLogin from "./platform/pages/DeveloperLogin";
+import PlatformProtectedRoute from "./platform/auth/PlatformProtectedRoute";
+import DeveloperLayout from "./platform/layouts/DeveloperLayout";
+import DeveloperOverview from "./platform/pages/overview/DeveloperOverview";
+import DeveloperSchools from "./platform/pages/schools/DeveloperSchools";
+import DeveloperSchoolDetails from "./platform/pages/schools/DeveloperSchoolDetails";
+import DeveloperSchoolUsers from "./platform/pages/schools/DeveloperSchoolUsers";
+import DeveloperSchoolSubscription from "./platform/pages/schools/DeveloperSchoolSubscription";
+import DeveloperSubscriptions from "./platform/pages/subscriptions/DeveloperSubscriptions";
+
+
 
 const App = () => {
   return (
@@ -26,6 +37,60 @@ const App = () => {
       <Route path="/" element={<LandingPage />} />
       <Route path="/register" element={<Register />} />
       <Route path="/login" element={<Login />} />
+      <Route path="/platform/login" element={<DeveloperLogin />} />
+      <Route element={<PlatformProtectedRoute />}>
+        <Route path="/platform" element={<DeveloperLayout />}>
+          <Route index element={<DeveloperOverview />} />
+              <Route
+                path="schools"
+                element={<DeveloperSchools />}
+              />
+
+              <Route
+                path="schools/:schoolId"
+                element={<DeveloperSchoolDetails />}
+              />
+
+
+              <Route
+                  path="schools/:schoolId/users"
+                  element={<DeveloperSchoolUsers />}
+                />
+
+              <Route
+                path="schools/:schoolId/subscription"
+                element={<DeveloperSchoolSubscription />}
+              />
+
+
+              <Route
+                path="users"
+                element={<div>Users & Staff</div>}
+              />
+
+             <Route
+              path="subscriptions"
+              element={<DeveloperSubscriptions />}
+            />
+
+              <Route
+                path="activity"
+                element={<div>Activity Log</div>}
+              />
+
+              <Route
+                path="system-health"
+                element={<div>System Health</div>}
+              />
+
+              <Route
+                path="development"
+                element={<div>Development</div>}
+              />
+
+
+        </Route>
+    </Route>
 
       {/* Login protection */}
       <Route element={<ProtectedRoute />}>

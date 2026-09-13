@@ -63,7 +63,7 @@
 }
 
 .login-form__group input:focus {
-  border-color: #00e5ff;
+  border-color: #2563eb;
   box-shadow: 0 0 0 3px rgba(0, 229, 255, 0.12);
 }
 

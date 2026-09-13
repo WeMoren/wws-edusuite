@@ -8,7 +8,8 @@ const initialUsers = [
     firstName: "Johnson",
     lastName: "Smith",
     username: "admin",
-    password: "admin123",
+    email:"admin@wwstestschool.com",
+    password: "Admin@1234",
     role: "admin",
   },
   {
@@ -16,6 +17,7 @@ const initialUsers = [
     firstName: "John",
     lastName: "Doe",
     username: "teacher",
+    email: "teacher@wwstestschool.com",
     password: "teacher123",
     role: "teacher",
   },
@@ -24,6 +26,7 @@ const initialUsers = [
     firstName: "Sarah",
     lastName: "Williams",
     username: "accountant",
+    email: "accountant@wwstestschool.com",
     password: "accountant123",
     role: "accountant",
   },
@@ -32,6 +35,7 @@ const initialUsers = [
   firstName: "Michael",
   lastName: "Brown",
   username: "examofficer",
+  email: "examofficer@wwstestschool.com",
   password: "exam123",
   role: "examOfficer",
 },
@@ -44,10 +48,10 @@ export const AuthProvider = ({ children }) => {
     return savedUser ? JSON.parse(savedUser) : null;
   });
 
-  const login = (username, password) => {
+  const login = (email, password) => {
     const user = initialUsers.find(
       (user) =>
-        user.username === username &&
+        user.email === email &&
         user.password === password
     );
 

@@ -1,0 +1,46 @@
+.developer-school-users {
+  width: 100%;
+}
+
+.developer-users-panel {
+  margin-top: 24px;
+  padding: 24px;
+}
+
+.developer-user-name {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.developer-user-name strong {
+  color: #f8fafc;
+  font-size: 14px;
+}
+
+.developer-user-name span {
+  color: #64748b;
+  font-size: 12px;
+}
+
+.developer-role-badge {
+  display: inline-flex;
+  align-items: center;
+  min-height: 27px;
+  padding: 0 9px;
+  border: 1px solid #263449;
+  border-radius: 999px;
+  background: #0f172a;
+  color: #94a3b8;
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.developer-school-users .developer-table {
+  min-width: 760px;
+}
+
+.developer-school-users .developer-table th,
+.developer-school-users .developer-table td {
+  padding: 15px 14px;
+}

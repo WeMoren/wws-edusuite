@@ -59,7 +59,6 @@ html{
   font-size: 0.95rem;
   font-weight: 500;
   opacity: 0.9;
-
   transition: color 0.2s ease, opacity 0.2s ease;
 }
 
@@ -123,16 +122,12 @@ html{
 .landing-hero {
   position: relative;
   min-height: 720px;
-
   display: grid;
   grid-template-columns: 1.05fr 0.95fr;
   align-items: center;
   gap: 3rem;
-
   padding: 8rem 6% 5rem;
-
   overflow: hidden;
-
   background:
     radial-gradient(
       circle at 80% 45%,
@@ -155,9 +150,7 @@ html{
 
 .landing-hero__eyebrow {
   margin: 0 0 1rem;
-
   color: #60a5fa;
-
   font-size: 0.8rem;
   font-weight: 700;
   letter-spacing: 2px;
@@ -165,9 +158,7 @@ html{
 
 .landing-hero h1 {
   margin: 0;
-
   color: #ffffff;
-
   font-size: clamp(3rem, 6vw, 5rem);
   line-height: 1.05;
   letter-spacing: -2px;
@@ -175,7 +166,6 @@ html{
 
 .landing-hero h1 span {
   display: block;
-
   background: linear-gradient(
     90deg,
     #60a5fa,
@@ -188,11 +178,8 @@ html{
 
 .landing-hero__description {
   max-width: 590px;
-
   margin: 1.5rem 0 0;
-
   color: #dbeafe;
-
   font-size: 1.05rem;
   line-height: 1.8;
 }
@@ -201,7 +188,6 @@ html{
   display: flex;
   align-items: center;
   gap: 1rem;
-
   margin-top: 2rem;
 }
 
@@ -244,16 +230,13 @@ html{
 
 .landing-hero__primary:hover {
   transform: translateY(-2px);
-
   box-shadow:
     0 10px 25px rgba(37, 99, 235, 0.35);
 }
 
 .landing-hero__secondary {
   border: 1px solid rgba(255, 255, 255, 0.3);
-
   background: rgba(255, 255, 255, 0.06);
-
   color: #ffffff;
 }
 
@@ -302,30 +285,23 @@ html{
 
 .landing-dashboard-card__header span {
   color: #93c5fd;
-
   font-size: 0.75rem;
 }
 
 .landing-dashboard-card__header h3 {
   margin: 0.3rem 0 0;
-
   color: #ffffff;
-
   font-size: 1.2rem;
 }
 
 .landing-dashboard-card__avatar {
   width: 42px;
   height: 42px;
-
   display: grid;
   place-items: center;
-
   border-radius: 50%;
-
   background: #2563eb;
   color: #ffffff;
-
   font-weight: 700;
 }
 
@@ -333,67 +309,51 @@ html{
   display: grid;
   grid-template-columns: repeat(3, 1fr);
   gap: 0.75rem;
-
   margin-top: 1.5rem;
 }
 
 .landing-dashboard-card__stats div {
   padding: 1rem;
-
   border-radius: 10px;
-
   background: rgba(255, 255, 255, 0.08);
 }
 
 .landing-dashboard-card__stats small {
   display: block;
-
   color: #bfdbfe;
-
   font-size: 0.7rem;
 }
 
 .landing-dashboard-card__stats strong {
   display: block;
-
   margin-top: 0.3rem;
-
   color: #ffffff;
-
   font-size: 1.2rem;
 }
 
 .landing-dashboard-card__chart {
   margin-top: 1rem;
-
   padding: 1rem;
-
   border-radius: 10px;
-
   background: rgba(255, 255, 255, 0.08);
 }
 
 .landing-dashboard-card__chart > span {
   color: #bfdbfe;
-
   font-size: 0.75rem;
 }
 
 .landing-chart {
   height: 120px;
-
   display: flex;
   align-items: flex-end;
   gap: 0.6rem;
-
   margin-top: 1rem;
 }
 
 .landing-chart i {
   flex: 1;
-
   border-radius: 5px 5px 0 0;
-
   background: linear-gradient(
     to top,
     #2563eb,

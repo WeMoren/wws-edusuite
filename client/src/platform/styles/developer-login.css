@@ -1,0 +1,90 @@
+.platform-login-page {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background:
+    radial-gradient(circle at top right, #172554 0%, transparent 38%),
+    #0a0f24;
+}
+
+.platform-login-card {
+  width: 100%;
+  max-width: 420px;
+  padding: 34px;
+  background: #ffffff;
+  border-radius: 14px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+}
+
+.platform-login-header {
+  margin-bottom: 28px;
+  text-align: center;
+}
+
+.platform-login-header h1 {
+  margin: 0;
+  color: #0a0f24;
+  font-size: 25px;
+}
+
+.platform-login-header p {
+  margin: 7px 0 0;
+  color: #64748b;
+  font-size: 14px;
+}
+
+.platform-login-card form {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.platform-login-card label {
+  display: block;
+  margin-bottom: 7px;
+  color: #334155;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.platform-login-card input {
+  width: 100%;
+  box-sizing: border-box;
+  min-height: 44px;
+  padding: 0 13px;
+  border: 1px solid #cbd5e1;
+  border-radius: 7px;
+  outline: none;
+  font: inherit;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.platform-login-card input:focus {
+  border-color: #2563eb;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
+}
+
+.platform-login-card button {
+  min-height: 45px;
+  margin-top: 4px;
+  border: none;
+  border-radius: 7px;
+  background: #2563eb;
+  color: #ffffff;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 600;
+  transition: background 0.2s ease;
+}
+
+.platform-login-card button:hover {
+  background: #1d4ed8;
+}
+
+.platform-login-error {
+  margin: -5px 0 0;
+  color: #b91c1c;
+  font-size: 13px;
+}

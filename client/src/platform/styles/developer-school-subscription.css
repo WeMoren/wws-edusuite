@@ -1,0 +1,97 @@
+.developer-school-subscription {
+  width: 100%;
+}
+
+.developer-subscription-overview {
+  display: grid;
+  grid-template-columns: 2fr 1fr;
+  gap: 20px;
+  margin-top: 24px;
+}
+
+.developer-subscription-status-card {
+  padding: 24px;
+}
+
+.developer-subscription-status {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  padding-top: 8px;
+}
+
+.developer-subscription-label {
+  color: #64748b;
+  font-size: 12px;
+}
+
+.developer-subscription-status strong {
+  margin-top: 8px;
+  color: #60a5fa;
+  font-size: 28px;
+}
+
+.developer-subscription-status p {
+  margin: 8px 0 0;
+  color: #94a3b8;
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+.developer-subscription-highlight {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  padding: 8px 0;
+}
+
+.developer-subscription-highlight strong {
+  color: #60a5fa;
+  font-size: 32px;
+}
+
+.developer-subscription-highlight span {
+  color: #94a3b8;
+  font-size: 13px;
+}
+
+.developer-subscription-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 20px;
+  margin-top: 20px;
+}
+
+.developer-subscription-grid .developer-panel-card {
+  padding: 24px;
+}
+
+.developer-payment-history {
+  margin-top: 20px;
+  padding: 24px;
+}
+
+.developer-subscription-actions {
+  margin-top: 20px;
+  padding: 24px;
+}
+
+@media (max-width: 900px) {
+  .developer-subscription-overview {
+    grid-template-columns: 1fr;
+  }
+
+  .developer-subscription-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 600px) {
+  .developer-subscription-status strong {
+    font-size: 24px;
+  }
+
+  .developer-subscription-highlight strong {
+    font-size: 28px;
+  }
+}
