@@ -28,7 +28,7 @@ import DeveloperSchoolDetails from "./platform/pages/schools/DeveloperSchoolDeta
 import DeveloperSchoolUsers from "./platform/pages/schools/DeveloperSchoolUsers";
 import DeveloperSchoolSubscription from "./platform/pages/schools/DeveloperSchoolSubscription";
 import DeveloperSubscriptions from "./platform/pages/subscriptions/DeveloperSubscriptions";
-
+import DeveloperSchoolActivity from "./platform/pages/schools/DeveloperSchoolActivity";
 
 
 const App = () => {
@@ -60,6 +60,12 @@ const App = () => {
               <Route
                 path="schools/:schoolId/subscription"
                 element={<DeveloperSchoolSubscription />}
+              />
+
+
+              <Route
+                path="schools/:schoolId/activity"
+                element={<DeveloperSchoolActivity />}
               />
 
 

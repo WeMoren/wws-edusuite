@@ -1,0 +1,89 @@
+.developer-school-activity {
+  width: 100%;
+}
+
+.developer-school-activity-panel {
+  margin-top: 24px;
+  padding: 24px;
+}
+
+.developer-activity-list {
+  display: flex;
+  flex-direction: column;
+  margin-top: 8px;
+}
+
+.developer-activity-item {
+  position: relative;
+  display: flex;
+  gap: 16px;
+  padding: 20px 0;
+  border-bottom: 1px solid #263449;
+}
+
+.developer-activity-item:last-child {
+  border-bottom: none;
+}
+
+.developer-activity-marker {
+  flex: 0 0 10px;
+  width: 10px;
+  height: 10px;
+  margin-top: 6px;
+  border-radius: 50%;
+  background: #2563eb;
+  box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.12);
+}
+
+.developer-activity-content {
+  flex: 1;
+  min-width: 0;
+}
+
+.developer-activity-top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 20px;
+}
+
+.developer-activity-top h3 {
+  margin: 0;
+  color: #f8fafc;
+  font-size: 14px;
+}
+
+.developer-activity-top p {
+  margin: 6px 0 0;
+  color: #94a3b8;
+  font-size: 12px;
+  line-height: 1.6;
+}
+
+.developer-activity-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 18px;
+  margin-top: 12px;
+}
+
+.developer-activity-meta span {
+  color: #64748b;
+  font-size: 11px;
+}
+
+@media (max-width: 600px) {
+  .developer-school-activity-panel {
+    padding: 18px;
+  }
+
+  .developer-activity-top {
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .developer-activity-meta {
+    flex-direction: column;
+    gap: 5px;
+  }
+}

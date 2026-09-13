@@ -207,10 +207,13 @@ const DeveloperSchoolDetails = () => {
             >
               View Users & Staff
             </Link>
-          <button type="button">
-            View Activity
-          </button>
-          
+         <Link
+          to={`/platform/schools/${schoolId}/activity`}
+          className="developer-action-button"
+        >
+          View Activity
+        </Link>
+
       <Link
           to={`/platform/schools/${schoolId}/subscription`}
           className="developer-action-button"
