@@ -1,0 +1,265 @@
+.developer-development {
+  width: 100%;
+}
+
+.developer-development-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  min-height: 40px;
+  padding: 0 14px;
+  border: 1px solid #854d0e;
+  border-radius: 8px;
+  background: #422006;
+  color: #fde68a;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.developer-development-badge span {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #f59e0b;
+}
+
+.developer-development-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 24px;
+  margin-top: 24px;
+}
+
+.developer-environment-card,
+.developer-integrations-card {
+  padding: 24px;
+}
+
+.developer-development-list {
+  display: flex;
+  flex-direction: column;
+}
+
+.developer-development-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  min-height: 54px;
+  border-bottom: 1px solid #263449;
+}
+
+.developer-development-item:last-child {
+  border-bottom: none;
+}
+
+.developer-development-item span {
+  color: #64748b;
+  font-size: 12px;
+}
+
+.developer-development-item strong {
+  color: #f8fafc;
+  font-size: 13px;
+  text-align: right;
+}
+
+.developer-integration-list {
+  display: flex;
+  flex-direction: column;
+}
+
+.developer-integration-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  padding: 15px 0;
+  border-bottom: 1px solid #263449;
+}
+
+.developer-integration-item:first-child {
+  padding-top: 4px;
+}
+
+.developer-integration-item:last-child {
+  border-bottom: none;
+  padding-bottom: 4px;
+}
+
+.developer-integration-item > div {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.developer-integration-item strong {
+  color: #f8fafc;
+  font-size: 13px;
+}
+
+.developer-integration-item span {
+  color: #64748b;
+  font-size: 11px;
+  line-height: 1.4;
+}
+
+.developer-development-status {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 27px;
+  padding: 0 9px;
+  flex: 0 0 auto;
+  border: 1px solid #263449;
+  border-radius: 999px;
+  font-size: 10px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.developer-development-status--connected,
+.developer-development-status--implemented {
+  border-color: #166534;
+  background: #052e16;
+  color: #86efac;
+}
+
+.developer-development-status--in-development {
+  border-color: #1d4ed8;
+  background: #172554;
+  color: #93c5fd;
+}
+
+.developer-development-status--pending {
+  border-color: #854d0e;
+  background: #422006;
+  color: #fde68a;
+}
+
+.developer-progress-card {
+  margin-top: 24px;
+  padding: 24px;
+}
+
+.developer-progress-list {
+  display: flex;
+  flex-direction: column;
+}
+
+.developer-progress-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  padding: 17px 0;
+  border-bottom: 1px solid #263449;
+}
+
+.developer-progress-item:first-child {
+  padding-top: 4px;
+}
+
+.developer-progress-item:last-child {
+  border-bottom: none;
+  padding-bottom: 4px;
+}
+
+.developer-progress-content {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.developer-progress-content h3 {
+  margin: 0;
+  color: #f8fafc;
+  font-size: 13px;
+}
+
+.developer-progress-content p {
+  margin: 0;
+  max-width: 700px;
+  color: #64748b;
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.developer-development-note {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  margin-top: 24px;
+  padding: 20px 24px;
+}
+
+.developer-development-note-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 34px;
+  height: 34px;
+  padding: 0 7px;
+  border: 1px solid #2563eb;
+  border-radius: 8px;
+  color: #60a5fa;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.developer-development-note h2 {
+  margin: 0 0 5px;
+  color: #f8fafc;
+  font-size: 14px;
+}
+
+.developer-development-note p {
+  margin: 0;
+  color: #94a3b8;
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+@media (max-width: 900px) {
+  .developer-development-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 760px) {
+  .developer-page-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .developer-development-badge {
+    width: 100%;
+  }
+
+  .developer-progress-item,
+  .developer-integration-item {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+}
+
+@media (max-width: 640px) {
+  .developer-environment-card,
+  .developer-integrations-card,
+  .developer-progress-card,
+  .developer-development-note {
+    padding: 18px;
+  }
+
+  .developer-development-item {
+    align-items: flex-start;
+    flex-direction: column;
+    justify-content: center;
+    gap: 5px;
+    padding: 13px 0;
+  }
+
+  .developer-development-item strong {
+    text-align: left;
+  }
+}

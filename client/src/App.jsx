@@ -32,6 +32,11 @@ import DeveloperSchoolActivity from "./platform/pages/schools/DeveloperSchoolAct
 import DeveloperUsers from "./platform/pages/users/DeveloperUsers";
 import DeveloperActivity from "./platform/pages/activity/DeveloperActivity";
 import DeveloperSystemHealth from "./platform/pages/system-health/DeveloperSystemHealth";
+import DeveloperDevelopment from "./platform/pages/development/DeveloperDevelopment";
+
+
+
+
 
 const App = () => {
   return (
@@ -93,9 +98,8 @@ const App = () => {
 
               <Route
                 path="development"
-                element={<div>Development</div>}
+                element={<DeveloperDevelopment />}
               />
-
 
         </Route>
     </Route>
