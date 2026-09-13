@@ -30,7 +30,7 @@ import DeveloperSchoolSubscription from "./platform/pages/schools/DeveloperSchoo
 import DeveloperSubscriptions from "./platform/pages/subscriptions/DeveloperSubscriptions";
 import DeveloperSchoolActivity from "./platform/pages/schools/DeveloperSchoolActivity";
 import DeveloperUsers from "./platform/pages/users/DeveloperUsers";
-
+import DeveloperActivity from "./platform/pages/activity/DeveloperActivity";
 
 
 const App = () => {
@@ -83,7 +83,7 @@ const App = () => {
 
               <Route
                 path="activity"
-                element={<div>Activity Log</div>}
+                element={<DeveloperActivity />}
               />
 
               <Route

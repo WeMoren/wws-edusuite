@@ -1,0 +1,100 @@
+.developer-activity {
+  width: 100%;
+}
+
+.developer-activity-panel {
+  margin-top: 24px;
+  padding: 24px;
+}
+
+.developer-activity-toolbar {
+  display: grid;
+  grid-template-columns: minmax(240px, 1fr) 220px 180px;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.developer-activity-toolbar input,
+.developer-activity-toolbar select {
+  width: 100%;
+  min-height: 42px;
+  padding: 0 12px;
+  border: 1px solid #263449;
+  border-radius: 8px;
+  background: #0f172a;
+  color: #f8fafc;
+  font: inherit;
+  font-size: 13px;
+  outline: none;
+}
+
+.developer-activity-toolbar input::placeholder {
+  color: #64748b;
+}
+
+.developer-activity-toolbar input:focus,
+.developer-activity-toolbar select:focus {
+  border-color: #2563eb;
+}
+
+.developer-activity-name,
+.developer-activity-school,
+.developer-activity-time {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.developer-activity-name strong,
+.developer-activity-school strong,
+.developer-activity-time strong {
+  color: #f8fafc;
+  font-size: 13px;
+}
+
+.developer-activity-name span,
+.developer-activity-school span,
+.developer-activity-time span {
+  color: #64748b;
+  font-size: 12px;
+}
+
+.developer-activity .developer-table {
+  min-width: 980px;
+}
+
+.developer-activity .developer-table th,
+.developer-activity .developer-table td {
+  padding: 15px 14px;
+  vertical-align: middle;
+}
+
+.developer-activity .developer-status-badge--success {
+  color: #86efac;
+  border-color: #166534;
+  background: #052e16;
+}
+
+.developer-activity .developer-status-badge--failed {
+  color: #fca5a5;
+  border-color: #991b1b;
+  background: #450a0a;
+}
+
+.developer-table-empty {
+  padding: 40px 20px !important;
+  color: #64748b;
+  text-align: center;
+}
+
+@media (max-width: 900px) {
+  .developer-activity-toolbar {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 640px) {
+  .developer-activity-panel {
+    padding: 18px;
+  }
+}
