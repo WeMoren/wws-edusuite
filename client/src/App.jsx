@@ -31,7 +31,7 @@ import DeveloperSubscriptions from "./platform/pages/subscriptions/DeveloperSubs
 import DeveloperSchoolActivity from "./platform/pages/schools/DeveloperSchoolActivity";
 import DeveloperUsers from "./platform/pages/users/DeveloperUsers";
 import DeveloperActivity from "./platform/pages/activity/DeveloperActivity";
-
+import DeveloperSystemHealth from "./platform/pages/system-health/DeveloperSystemHealth";
 
 const App = () => {
   return (
@@ -88,7 +88,7 @@ const App = () => {
 
               <Route
                 path="system-health"
-                element={<div>System Health</div>}
+                element={<DeveloperSystemHealth />}
               />
 
               <Route
