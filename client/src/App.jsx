@@ -29,6 +29,8 @@ import DeveloperSchoolUsers from "./platform/pages/schools/DeveloperSchoolUsers"
 import DeveloperSchoolSubscription from "./platform/pages/schools/DeveloperSchoolSubscription";
 import DeveloperSubscriptions from "./platform/pages/subscriptions/DeveloperSubscriptions";
 import DeveloperSchoolActivity from "./platform/pages/schools/DeveloperSchoolActivity";
+import DeveloperUsers from "./platform/pages/users/DeveloperUsers";
+
 
 
 const App = () => {
@@ -69,10 +71,10 @@ const App = () => {
               />
 
 
-              <Route
-                path="users"
-                element={<div>Users & Staff</div>}
-              />
+             <Route
+              path="users"
+              element={<DeveloperUsers />}
+            />
 
              <Route
               path="subscriptions"

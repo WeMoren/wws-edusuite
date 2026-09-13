@@ -1,0 +1,131 @@
+.developer-users {
+  width: 100%;
+}
+
+.developer-users-role-summary {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 16px;
+  margin-top: 20px;
+}
+
+.developer-users-role-summary .developer-panel-card {
+  padding: 20px;
+}
+
+.developer-users-role-summary span {
+  display: block;
+  color: #64748b;
+  font-size: 12px;
+}
+
+.developer-users-role-summary strong {
+  display: block;
+  margin-top: 7px;
+  color: #f8fafc;
+  font-size: 25px;
+}
+
+.developer-users-role-summary p {
+  margin: 6px 0 0;
+  color: #64748b;
+  font-size: 11px;
+}
+
+.developer-users-panel {
+  margin-top: 20px;
+  padding: 24px;
+}
+
+.developer-users-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 20px 0;
+}
+
+.developer-users-search {
+  flex: 1;
+}
+
+.developer-users-search input,
+.developer-users-filter select {
+  width: 100%;
+  box-sizing: border-box;
+  min-height: 40px;
+  padding: 0 12px;
+  border: 1px solid #263449;
+  border-radius: 7px;
+  outline: none;
+  background: #0f172a;
+  color: #f8fafc;
+  font: inherit;
+  font-size: 12px;
+}
+
+.developer-users-search input:focus,
+.developer-users-filter select:focus {
+  border-color: #2563eb;
+}
+
+.developer-users-filter {
+  width: 170px;
+}
+
+.developer-platform-user,
+.developer-platform-school {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.developer-platform-user strong,
+.developer-platform-school strong {
+  color: #f8fafc;
+  font-size: 13px;
+}
+
+.developer-platform-user span,
+.developer-platform-school span {
+  color: #64748b;
+  font-size: 11px;
+}
+
+.developer-users .developer-table {
+  min-width: 1050px;
+}
+
+.developer-users .developer-table th,
+.developer-users .developer-table td {
+  padding: 15px 14px;
+}
+
+@media (max-width: 900px) {
+  .developer-users-toolbar {
+    align-items: stretch;
+    flex-wrap: wrap;
+  }
+
+  .developer-users-search {
+    flex-basis: 100%;
+  }
+
+  .developer-users-filter {
+    flex: 1;
+    width: auto;
+  }
+}
+
+@media (max-width: 600px) {
+  .developer-users-role-summary {
+    grid-template-columns: 1fr;
+  }
+
+  .developer-users-toolbar {
+    flex-direction: column;
+  }
+
+  .developer-users-filter {
+    width: 100%;
+  }
+}
