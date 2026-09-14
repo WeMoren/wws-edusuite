@@ -16,18 +16,19 @@ const Results = () => {
     subjects,
     results,
     setResults,
-    subjectCombinations,
+    attendance,
+    subjectCombinations = [],
+    streams = [],
   } = useOutletContext();
 
   const [selectedSessionId, setSelectedSessionId] = useState("");
   const [selectedClassId, setSelectedClassId] = useState("");
   const [selectedTermId, setSelectedTermId] = useState("");
   const [selectedSectionId, setSelectedSectionId] = useState("");
-  const [resultsLoaded, setResultsLoaded] = useState(false);
 
+  const [resultsLoaded, setResultsLoaded] = useState(false);
   const [loadedStudents, setLoadedStudents] = useState([]);
   const [loadedSubjects, setLoadedSubjects] = useState([]);
-
   const [scoreEntries, setScoreEntries] = useState({});
 
   const [showNotification, setShowNotification] = useState(false);
@@ -37,7 +38,8 @@ const Results = () => {
   });
 
   const [assessmentSettings] = useState(() => {
-    const savedAssessment = localStorage.getItem("assessmentSettings");
+    const savedAssessment =
+      localStorage.getItem("assessmentSettings");
 
     if (savedAssessment) {
       return JSON.parse(savedAssessment);
@@ -50,7 +52,8 @@ const Results = () => {
   });
 
   const [gradingScale] = useState(() => {
-    const savedGradingScale = localStorage.getItem("gradingScale");
+    const savedGradingScale =
+      localStorage.getItem("gradingScale");
 
     if (savedGradingScale) {
       return JSON.parse(savedGradingScale);
@@ -117,90 +120,234 @@ const Results = () => {
   });
 
   const notify = ({ title, message }) => {
-    setNotification({ title, message });
+    setNotification({
+      title,
+      message,
+    });
+
     setShowNotification(true);
   };
 
-  /*
-   * --------------------------------
-   * Student Subject Resolver
-   * --------------------------------
-   *
-   * Determines the subjects that belong
-   * to a particular student based on
-   * their enrollment.
-   *
-   * Primary/JSS:
-   *   Subjects are determined by academic level.
-   *
-   * Senior Secondary:
-   *   Subjects are determined by the student's
-   *   subject combination.
-   *
-   * Legacy SS enrollment without a combination:
-   *   Falls back to academic-level subjects.
-   */
-  const getStudentSubjects = (student) => {
-    const enrollment = enrollments.find(
-      (item) =>
-        item.studentId === student.id &&
-        item.academicSessionId === Number(selectedSessionId) &&
-        item.sectionId === Number(selectedSectionId)
+  /* --------------------------------
+      Academic helpers
+  -------------------------------- */
+
+  const getStudentEnrollment = (
+    student,
+    sessionId = Number(selectedSessionId)
+  ) => {
+    return enrollments.find(
+      (enrollment) =>
+        enrollment.studentId === student.id &&
+        enrollment.academicSessionId === Number(sessionId)
+    );
+  };
+
+  const getEnrollmentForSection = (
+    student,
+    sectionId,
+    sessionId = Number(selectedSessionId)
+  ) => {
+    return enrollments.find(
+      (enrollment) =>
+        enrollment.studentId === student.id &&
+        enrollment.academicSessionId === Number(sessionId) &&
+        enrollment.sectionId === Number(sectionId)
+    );
+  };
+
+  const getStudentAcademicContext = (student) => {
+    const enrollment = getStudentEnrollment(student);
+
+    if (!enrollment) {
+      return null;
+    }
+
+    const section = sections.find(
+      (item) => item.id === Number(enrollment.sectionId)
     );
 
+    if (!section) {
+      return null;
+    }
+
+    const classItem = classes.find(
+      (item) =>
+        item.id === Number(section.classId) &&
+        item.academicSessionId === Number(selectedSessionId)
+    );
+
+    if (!classItem) {
+      return null;
+    }
+
+    const academicLevel = academicLevels.find(
+      (item) =>
+        item.id === Number(classItem.academicLevelId)
+    );
+
+    if (!academicLevel) {
+      return null;
+    }
+
+    return {
+      enrollment,
+      section,
+      classItem,
+      academicLevel,
+    };
+  };
+
+  const getStudentAttendanceStats = (
+    student,
+    termId
+  ) => {
+    const context =
+      getStudentAcademicContext(student);
+
+    if (!context) {
+      return {
+        present: 0,
+        absent: 0,
+        totalMarked: 0,
+        percentage: null,
+      };
+    }
+
+    const { classItem } = context;
+
+    const attendanceRecords = (
+      attendance || []
+    ).filter(
+      (record) =>
+        record.studentId === student.id &&
+        record.academicSessionId ===
+          Number(selectedSessionId) &&
+        record.academicTermId ===
+          Number(termId) &&
+        record.classId ===
+          Number(classItem.id)
+    );
+
+    const present =
+      attendanceRecords.filter(
+        (record) =>
+          record.status === "present"
+      ).length;
+
+    const absent =
+      attendanceRecords.filter(
+        (record) =>
+          record.status === "absent"
+      ).length;
+
+    const totalMarked =
+      present + absent;
+
+    const percentage =
+      totalMarked > 0
+        ? (present / totalMarked) * 100
+        : null;
+
+    return {
+      present,
+      absent,
+      totalMarked,
+      percentage,
+    };
+  };
+
+  /*
+    Determine the exact subjects a student is allowed
+    to take based on their academic level and, for SS2/SS3,
+    their selected subject combination.
+  */
+  const getStudentSubjectsForEnrollment = (
+    student,
+    enrollment
+  ) => {
     if (!enrollment) {
       return [];
     }
 
+    const section = sections.find(
+      (item) =>
+        item.id === Number(enrollment.sectionId)
+    );
+
+    if (!section) {
+      return [];
+    }
+
+    const classItem = classes.find(
+      (item) =>
+        item.id === Number(section.classId) &&
+        item.academicSessionId ===
+          Number(selectedSessionId)
+    );
+
+    if (!classItem) {
+      return [];
+    }
+
     const level = academicLevels.find(
-      (item) => item.id === Number(enrollment.academicLevelId)
+      (item) =>
+        item.id === Number(classItem.academicLevelId)
     );
 
     if (!level) {
       return [];
     }
 
-    const isSeniorSecondary =
-      level.category === "Senior Secondary";
-
-    // Primary, Kindergarten, Early Years and JSS
-    if (!isSeniorSecondary) {
-      return subjects.filter((subject) =>
-        subject.academicLevelIds?.includes(level.id)
-      );
-    }
-
-    // Legacy Senior Secondary enrollment
-    // without a subject combination.
-    if (!enrollment.combinationId) {
-      return subjects.filter((subject) =>
-        subject.academicLevelIds?.includes(level.id)
-      );
-    }
-
-    const combination = subjectCombinations.find(
-      (item) => item.id === Number(enrollment.combinationId)
+    const levelSubjects = subjects.filter((subject) =>
+      subject.academicLevelIds?.some(
+        (levelId) =>
+          Number(levelId) === Number(level.id)
+      )
     );
 
-    // Safe fallback if the combination no longer exists.
-    if (!combination) {
-      return subjects.filter((subject) =>
-        subject.academicLevelIds?.includes(level.id)
-      );
+    /*
+      SS1 remains level-wide.
+
+      SS2 and SS3 must use the student's
+      Science / Arts / Commercial combination.
+    */
+    const requiresCombination =
+      level.name === "SS 2" ||
+      level.name === "SS 3";
+
+    if (!requiresCombination) {
+      return levelSubjects;
     }
 
-    return subjects.filter(
-      (subject) =>
-        subject.academicLevelIds?.includes(level.id) &&
-        combination.subjectIds?.includes(subject.id)
+    if (!enrollment.combinationId) {
+      return [];
+    }
+
+    const combination =
+      subjectCombinations.find(
+        (item) =>
+          Number(item.id) ===
+          Number(enrollment.combinationId)
+      );
+
+    if (!combination) {
+      return [];
+    }
+
+    return levelSubjects.filter((subject) =>
+      combination.subjectIds?.some(
+        (subjectId) =>
+          Number(subjectId) ===
+          Number(subject.id)
+      )
     );
   };
 
-  /*
-   * --------------------------------
-   * Load Results
-   * --------------------------------
-   */
+  /* --------------------------------
+      Load results
+  -------------------------------- */
+
   const handleLoadResults = () => {
     if (
       !selectedSessionId ||
@@ -220,6 +367,7 @@ const Results = () => {
     const sessionId = Number(selectedSessionId);
     const classId = Number(selectedClassId);
     const sectionId = Number(selectedSectionId);
+    const termId = Number(selectedTermId);
 
     const selectedClass = classes.find(
       (classItem) =>
@@ -243,10 +391,6 @@ const Results = () => {
       return;
     }
 
-    /*
-     * Find students belonging to the selected
-     * session and section.
-     */
     const studentIds = enrollments
       .filter(
         (enrollment) =>
@@ -260,36 +404,37 @@ const Results = () => {
     );
 
     /*
-     * Build a union of all subjects required
-     * by the students in the selected section.
-     *
-     * This allows students with different
-     * combinations to coexist in the same section.
-     */
-    const applicableSubjectIds = new Set();
+      loadedSubjects remains the academic-level subject list
+      because the entry table is shared across students.
 
-    matchingStudents.forEach((student) => {
-      const studentSubjects = getStudentSubjects(student);
-
-      studentSubjects.forEach((subject) => {
-        applicableSubjectIds.add(subject.id);
-      });
-    });
-
+      Each individual student's actual offered subjects are
+      resolved separately below.
+    */
     const matchingSubjects = subjects.filter((subject) =>
-      applicableSubjectIds.has(subject.id)
+      subject.academicLevelIds?.some(
+        (levelId) =>
+          Number(levelId) ===
+          Number(selectedClass.academicLevelId)
+      )
     );
 
     setLoadedStudents(matchingStudents);
     setLoadedSubjects(matchingSubjects);
 
-    /*
-     * Load existing scores.
-     */
     const existingScores = {};
 
     matchingStudents.forEach((student) => {
-      const studentSubjects = getStudentSubjects(student);
+      const enrollment =
+        getStudentEnrollment(
+          student,
+          sessionId
+        );
+
+      const studentSubjects =
+        getStudentSubjectsForEnrollment(
+          student,
+          enrollment
+        );
 
       studentSubjects.forEach((subject) => {
         const existingResult = results.find(
@@ -297,12 +442,14 @@ const Results = () => {
             result.studentId === student.id &&
             result.subjectId === subject.id &&
             result.academicSessionId === sessionId &&
-            result.academicTermId === Number(selectedTermId) &&
+            result.academicTermId === termId &&
             result.sectionId === sectionId
         );
 
         if (existingResult) {
-          existingScores[`${student.id}-${subject.id}`] = {
+          existingScores[
+            `${student.id}-${subject.id}`
+          ] = {
             ca: existingResult.ca,
             exam: existingResult.exam,
           };
@@ -314,32 +461,73 @@ const Results = () => {
     setResultsLoaded(true);
   };
 
-  /*
-   * --------------------------------
-   * Save Results
-   * --------------------------------
-   */
+  /* --------------------------------
+      Save results
+  -------------------------------- */
+
   const handleSaveResults = () => {
-    const updatedResults = [...results];
-
-    loadedStudents.forEach((student) => {
-      const studentSubjects = getStudentSubjects(student);
-
-      const studentSubjectIds = new Set(
-        studentSubjects.map((subject) => subject.id)
+      let updatedResults = results.filter((result) => {
+      const student = loadedStudents.find(
+        (item) => item.id === result.studentId
       );
 
-      loadedSubjects.forEach((subject) => {
-        /*
-         * Never save a result for a subject
-         * that does not belong to the student.
-         */
-        if (!studentSubjectIds.has(subject.id)) {
-          return;
-        }
+      if (!student) {
+        return true;
+      }
 
-        const entryKey = `${student.id}-${subject.id}`;
-        const entry = scoreEntries[entryKey];
+      const enrollment = getStudentEnrollment(
+        student,
+        Number(selectedSessionId)
+      );
+
+      if (!enrollment) {
+        return true;
+      }
+
+      const studentSubjects =
+        getStudentSubjectsForEnrollment(
+          student,
+          enrollment
+        );
+
+      const isSameResultPeriod =
+        result.academicSessionId ===
+          Number(selectedSessionId) &&
+        result.academicTermId ===
+          Number(selectedTermId) &&
+        result.sectionId ===
+          Number(selectedSectionId);
+
+      if (!isSameResultPeriod) {
+        return true;
+      }
+
+      return studentSubjects.some(
+        (subject) =>
+          Number(subject.id) ===
+          Number(result.subjectId)
+      );
+    });
+
+    loadedStudents.forEach((student) => {
+      const enrollment =
+        getStudentEnrollment(
+          student,
+          Number(selectedSessionId)
+        );
+
+      const studentSubjects =
+        getStudentSubjectsForEnrollment(
+          student,
+          enrollment
+        );
+
+      studentSubjects.forEach((subject) => {
+        const entryKey =
+          `${student.id}-${subject.id}`;
+
+        const entry =
+          scoreEntries[entryKey];
 
         if (!entry) {
           return;
@@ -348,23 +536,28 @@ const Results = () => {
         const ca = Number(entry.ca) || 0;
         const exam = Number(entry.exam) || 0;
 
-        const existingIndex = updatedResults.findIndex(
-          (result) =>
-            result.studentId === student.id &&
-            result.subjectId === subject.id &&
-            result.academicSessionId ===
-              Number(selectedSessionId) &&
-            result.academicTermId ===
-              Number(selectedTermId) &&
-            result.sectionId === Number(selectedSectionId)
-        );
+        const existingIndex =
+          updatedResults.findIndex(
+            (result) =>
+              result.studentId === student.id &&
+              result.subjectId === subject.id &&
+              result.academicSessionId ===
+                Number(selectedSessionId) &&
+              result.academicTermId ===
+                Number(selectedTermId) &&
+              result.sectionId ===
+                Number(selectedSectionId)
+          );
 
         const resultData = {
           studentId: student.id,
           subjectId: subject.id,
-          academicSessionId: Number(selectedSessionId),
-          academicTermId: Number(selectedTermId),
-          sectionId: Number(selectedSectionId),
+          academicSessionId:
+            Number(selectedSessionId),
+          academicTermId:
+            Number(selectedTermId),
+          sectionId:
+            Number(selectedSectionId),
           ca,
           exam,
         };
@@ -376,7 +569,9 @@ const Results = () => {
           };
         } else {
           updatedResults.push({
-            id: Date.now() + updatedResults.length,
+            id:
+              Date.now() +
+              updatedResults.length,
             ...resultData,
           });
         }
@@ -392,88 +587,590 @@ const Results = () => {
     });
   };
 
-  /*
-   * --------------------------------
-   * Individual Student Result Data
-   * --------------------------------
-   */
-  const getStudentResultData = (student) => {
-    const studentSubjects = getStudentSubjects(student);
+  /* --------------------------------
+      Result calculations
+  -------------------------------- */
 
-    const studentResults = studentSubjects.map((subject) => {
-      const entryKey = `${student.id}-${subject.id}`;
-
-      const entry = scoreEntries[entryKey] || {
-        ca: 0,
-        exam: 0,
-      };
-
-      const ca = Number(entry.ca) || 0;
-      const exam = Number(entry.exam) || 0;
-      const total = ca + exam;
-
-      const grading = gradingScale.find(
-        (item) =>
-          total >= item.min &&
-          total <= item.max
+  const getStudentTermAverage = (
+    student,
+    termId
+  ) => {
+    const enrollment =
+      getStudentEnrollment(
+        student,
+        Number(selectedSessionId)
       );
 
+    if (!enrollment) {
+      return null;
+    }
+
+    const studentSubjects =
+      getStudentSubjectsForEnrollment(
+        student,
+        enrollment
+      );
+
+    if (studentSubjects.length === 0) {
+      return null;
+    }
+
+    const savedResults =
+      results.filter(
+        (result) =>
+          result.studentId === student.id &&
+          result.academicSessionId ===
+            Number(selectedSessionId) &&
+          result.academicTermId ===
+            Number(termId) &&
+          result.sectionId ===
+            Number(enrollment.sectionId)
+      );
+
+    if (savedResults.length === 0) {
+      return null;
+    }
+
+    let totalScore = 0;
+    let subjectCount = 0;
+
+    studentSubjects.forEach(
+      (subject) => {
+        const result =
+          savedResults.find(
+            (item) =>
+              Number(item.subjectId) ===
+              Number(subject.id)
+          );
+
+        if (!result) {
+          return;
+        }
+
+        const ca =
+          Number(result.ca) || 0;
+
+        const exam =
+          Number(result.exam) || 0;
+
+        totalScore += ca + exam;
+        subjectCount += 1;
+      }
+    );
+
+    if (subjectCount === 0) {
+      return null;
+    }
+
+    return (
+      totalScore /
+      subjectCount
+    );
+  };
+
+  const getSessionTermIds = () => {
+    return academicTerms
+      .filter(
+        (term) =>
+          term.academicSessionId ===
+          Number(selectedSessionId)
+      )
+      .sort((a, b) => a.id - b.id)
+      .slice(0, 3)
+      .map((term) => term.id);
+  };
+
+  const getStudentSessionAverage = (
+    student
+  ) => {
+    const termIds = getSessionTermIds();
+
+    if (termIds.length < 3) {
+      return null;
+    }
+
+    const termAverages = termIds.map(
+      (termId) =>
+        getStudentTermAverage(
+          student,
+          termId
+        )
+    );
+
+    if (
+      termAverages.some(
+        (average) =>
+          average === null ||
+          average === undefined
+      )
+    ) {
+      return null;
+    }
+
+    const sessionAverage =
+      termAverages.reduce(
+        (sum, average) =>
+          sum + average,
+        0
+      ) / 3;
+
+    return sessionAverage;
+  };
+
+  const formatPosition = (position) => {
+    if (!position) {
+      return "—";
+    }
+
+    const lastTwoDigits =
+      position % 100;
+
+    if (
+      lastTwoDigits >= 11 &&
+      lastTwoDigits <= 13
+    ) {
+      return `${position}th`;
+    }
+
+    switch (position % 10) {
+      case 1:
+        return `${position}st`;
+
+      case 2:
+        return `${position}nd`;
+
+      case 3:
+        return `${position}rd`;
+
+      default:
+        return `${position}th`;
+    }
+  };
+
+  const getCompetitionPosition = (
+    studentsToRank,
+    student,
+    averageGetter
+  ) => {
+    const rankedStudents = studentsToRank
+      .map((item) => ({
+        student: item,
+        average: averageGetter(item),
+      }))
+      .filter(
+        (item) =>
+          item.average !== null &&
+          item.average !== undefined &&
+          Number.isFinite(item.average)
+      )
+      .sort(
+        (a, b) =>
+          b.average - a.average
+      );
+
+    const studentAverage =
+      averageGetter(student);
+
+    if (
+      studentAverage === null ||
+      studentAverage === undefined ||
+      !Number.isFinite(studentAverage)
+    ) {
+      return null;
+    }
+
+    const studentExists =
+      rankedStudents.some(
+        (item) =>
+          item.student.id ===
+          student.id
+      );
+
+    if (!studentExists) {
+      return null;
+    }
+
+    const position =
+      rankedStudents.filter(
+        (item) =>
+          item.average >
+          studentAverage
+      ).length + 1;
+
+    return {
+      position,
+      total: rankedStudents.length,
+      average: studentAverage,
+    };
+  };
+
+  const getStudentPositions = (
+    student
+  ) => {
+    const context =
+      getStudentAcademicContext(
+        student
+      );
+
+    if (!context) {
       return {
-        subject: subject.name,
-        ca,
-        exam,
-        total,
-        grade: grading?.grade || "-",
-        remark: grading?.remark || "-",
+        classPositionLabel: "—",
+        academicLevelPositionLabel:
+          "—",
+        sessionAcademicLevelPositionLabel:
+          "—",
+        classTotal: 0,
+        academicLevelTotal: 0,
+        sessionAcademicLevelTotal: 0,
+        termAverage: null,
+        sessionAverage: null,
       };
-    });
+    }
+
+    const {
+      classItem,
+      academicLevel,
+    } = context;
+
+    const sessionId =
+      Number(selectedSessionId);
+
+    const enrolledStudents =
+      students.filter((item) =>
+        enrollments.some(
+          (enrollment) =>
+            enrollment.studentId ===
+              item.id &&
+            enrollment.academicSessionId ===
+              sessionId &&
+            enrollment.sectionId
+        )
+      );
+
+    const classStudents =
+      enrolledStudents.filter(
+        (item) => {
+          const itemContext =
+            getStudentAcademicContext(
+              item
+            );
+
+          return (
+            itemContext?.classItem?.id ===
+            classItem.id
+          );
+        }
+      );
+
+    const academicLevelStudents =
+      enrolledStudents.filter(
+        (item) => {
+          const itemContext =
+            getStudentAcademicContext(
+              item
+            );
+
+          return (
+            itemContext?.academicLevel
+              ?.id ===
+            academicLevel.id
+          );
+        }
+      );
+
+    const currentTermAverage =
+      getStudentTermAverage(
+        student,
+        Number(selectedTermId)
+      );
+
+    const classPosition =
+      getCompetitionPosition(
+        classStudents,
+        student,
+        (item) =>
+          getStudentTermAverage(
+            item,
+            Number(selectedTermId)
+          )
+      );
+
+    const academicLevelPosition =
+      getCompetitionPosition(
+        academicLevelStudents,
+        student,
+        (item) =>
+          getStudentTermAverage(
+            item,
+            Number(selectedTermId)
+          )
+      );
+
+    let sessionAcademicLevelPosition =
+      null;
+
+    let sessionAverage = null;
+
+    if (
+      Number(selectedTermId) ===
+      getSessionTermIds()[2]
+    ) {
+      sessionAverage =
+        getStudentSessionAverage(
+          student
+        );
+
+      sessionAcademicLevelPosition =
+        getCompetitionPosition(
+          academicLevelStudents,
+          student,
+          (item) =>
+            getStudentSessionAverage(
+              item
+            )
+        );
+    }
+
+    return {
+      classPosition:
+        classPosition?.position ||
+        null,
+
+      classPositionLabel:
+        classPosition
+          ? `${formatPosition(
+              classPosition.position
+            )} of ${
+              classPosition.total
+            }`
+          : "—",
+
+      classTotal:
+        classPosition?.total || 0,
+
+      academicLevelPosition:
+        academicLevelPosition
+          ?.position || null,
+
+      academicLevelPositionLabel:
+        academicLevelPosition
+          ? `${formatPosition(
+              academicLevelPosition.position
+            )} of ${
+              academicLevelPosition.total
+            }`
+          : "—",
+
+      academicLevelTotal:
+        academicLevelPosition?.total ||
+        0,
+
+      sessionAcademicLevelPosition:
+        sessionAcademicLevelPosition
+          ?.position || null,
+
+      sessionAcademicLevelPositionLabel:
+        sessionAcademicLevelPosition
+          ? `${formatPosition(
+              sessionAcademicLevelPosition.position
+            )} of ${
+              sessionAcademicLevelPosition.total
+            }`
+          : "—",
+
+      sessionAcademicLevelTotal:
+        sessionAcademicLevelPosition
+          ?.total || 0,
+
+      termAverage:
+        currentTermAverage,
+
+      sessionAverage,
+    };
+  };
+
+  /* --------------------------------
+      Student result data
+  -------------------------------- */
+
+  const getStudentResultData = (
+    student
+  ) => {
+    const enrollment =
+      getStudentEnrollment(
+        student,
+        Number(selectedSessionId)
+      );
+
+    const studentSubjects =
+      getStudentSubjectsForEnrollment(
+        student,
+        enrollment
+      );
+
+    const studentResults =
+      studentSubjects.map(
+        (subject) => {
+          const entryKey =
+            `${student.id}-${subject.id}`;
+
+          const entry =
+            scoreEntries[entryKey] || {
+              ca: 0,
+              exam: 0,
+            };
+
+            /*
+              A subject that is not part of
+              this student's combination must
+              not participate in result entry,
+              grading, totals, or averages.
+            */
+           
+
+
+          const ca =
+            Number(entry.ca) || 0;
+
+          const exam =
+            Number(entry.exam) || 0;
+
+          const total = ca + exam;
+
+          const grading =
+            gradingScale.find(
+              (item) =>
+                total >= item.min &&
+                total <= item.max
+            );
+
+          return {
+            subjectId: subject.id,
+            subject: subject.name,
+            ca,
+            exam,
+            total,
+            grade:
+              grading?.grade || "-",
+            remark:
+              grading?.remark || "-",
+          };
+        }
+      );
+
+    const positions =
+      getStudentPositions(
+        student
+      );
+
+    const attendanceStats =
+      getStudentAttendanceStats(
+        student,
+        Number(selectedTermId)
+      );
 
     return {
       student,
       results: studentResults,
+      positions,
+      attendanceStats,
     };
   };
 
-  /*
-   * --------------------------------
-   * Download Student Result
-   * --------------------------------
-   */
-  const handleDownloadResult = (student) => {
-    const resultData = getStudentResultData(student);
+  /* --------------------------------
+      Download result
+  -------------------------------- */
+
+  const handleDownloadResult = (
+    student
+  ) => {
+    const resultData =
+      getStudentResultData(
+        student
+      );
+
+
+      /* number of subjects offered by student */
+
+      const enrollment =
+         getStudentEnrollment(
+        student,
+        Number(selectedSessionId)
+      );
+
+      const studentStream = streams.find(
+        (stream) =>
+          Number(stream.id) ===
+          Number(enrollment?.streamId)
+      );
+
+      const studentSubjects =
+        getStudentSubjectsForEnrollment(
+          student,
+          enrollment
+        );
+
+      const totalSubjectsOffered =
+        studentSubjects.length;
+
+      const studentSubjectIds =
+        studentSubjects.map(
+          (subject) => subject.id
+        );
+     
+
+
+    const attendanceStats =
+      resultData.attendanceStats || {
+        present: 0,
+        absent: 0,
+        totalMarked: 0,
+        percentage: null,
+      };
 
     const savedProfile =
-      localStorage.getItem("schoolProfile");
+      localStorage.getItem(
+        "schoolProfile"
+      );
 
-    const schoolProfile = savedProfile
-      ? JSON.parse(savedProfile)
-      : {
-          name: "",
-          address: "",
-          phone: "",
-          email: "",
-          logo: "",
-        };
+    const schoolProfile =
+      savedProfile
+        ? JSON.parse(savedProfile)
+        : {
+            name: "",
+            address: "",
+            phone: "",
+            email: "",
+            logo: "",
+          };
 
-    const selectedSession = academicSessions.find(
-      (session) =>
-        session.id === Number(selectedSessionId)
-    );
+    const selectedSession =
+      academicSessions.find(
+        (session) =>
+          session.id ===
+          Number(selectedSessionId)
+      );
 
-    const selectedTerm = academicTerms.find(
-      (term) =>
-        term.id === Number(selectedTermId)
-    );
+    const selectedTerm =
+      academicTerms.find(
+        (term) =>
+          term.id ===
+          Number(selectedTermId)
+      );
 
-    const selectedClass = classes.find(
-      (classItem) =>
-        classItem.id === Number(selectedClassId)
-    );
+    const selectedClass =
+      classes.find(
+        (classItem) =>
+          classItem.id ===
+          Number(selectedClassId)
+      );
 
-    const selectedSection = sections.find(
-      (section) =>
-        section.id === Number(selectedSectionId)
-    );
+    const selectedSection =
+      sections.find(
+        (section) =>
+          section.id ===
+          Number(selectedSectionId)
+      );
 
     const doc = new jsPDF();
 
@@ -484,49 +1181,90 @@ const Results = () => {
 
     let y = 20;
 
-    /* --------------------------------
-       Helpers
-    -------------------------------- */
-
-    const addPageIfNeeded = (requiredSpace = 10) => {
+    const addPageIfNeeded = (
+      requiredSpace = 10
+    ) => {
       if (
         y + requiredSpace >
         pageHeight - bottomMargin
       ) {
         doc.addPage();
-
         y = 20;
-
         return true;
       }
 
       return false;
     };
 
-    const addResultsHeader = () => {
-      doc.setFont("helvetica", "bold");
+    const drawResultsHeader = () => {
+      doc.setFont(
+        "helvetica",
+        "bold"
+      );
+
       doc.setFontSize(10);
 
-      doc.text("Subject", 20, y);
-      doc.text("CAT", 90, y);
-      doc.text("Exam", 115, y);
-      doc.text("Total", 140, y);
-      doc.text("Grade", 160, y);
-      doc.text("Remark", 180, y);
+      doc.text(
+        "Subject",
+        20,
+        y
+      );
+
+      doc.text(
+        "CAT",
+        90,
+        y
+      );
+
+      doc.text(
+        "Exam",
+        115,
+        y
+      );
+
+      doc.text(
+        "Total",
+        140,
+        y
+      );
+
+      doc.text(
+        "Grade",
+        160,
+        y
+      );
+
+      doc.text(
+        "Remark",
+        180,
+        y
+      );
 
       y += 5;
 
-      doc.setDrawColor(220, 220, 220);
+      doc.setDrawColor(
+        220,
+        220,
+        220
+      );
 
-      doc.line(20, y, 190, y);
+      doc.line(
+        20,
+        y,
+        190,
+        y
+      );
 
       y += 8;
 
-      doc.setFont("helvetica", "normal");
+      doc.setFont(
+        "helvetica",
+        "normal"
+      );
     };
 
     /* --------------------------------
-       School Header
+        School Header
     -------------------------------- */
 
     if (schoolProfile.logo) {
@@ -552,10 +1290,13 @@ const Results = () => {
     doc.setFontSize(18);
 
     doc.text(
-      schoolProfile.name || "School",
+      schoolProfile.name ||
+        "School",
       105,
       y,
-      { align: "center" }
+      {
+        align: "center",
+      }
     );
 
     y += 8;
@@ -567,7 +1308,9 @@ const Results = () => {
         schoolProfile.address,
         105,
         y,
-        { align: "center" }
+        {
+          align: "center",
+        }
       );
 
       y += 6;
@@ -588,14 +1331,16 @@ const Results = () => {
         contactInfo,
         105,
         y,
-        { align: "center" }
+        {
+          align: "center",
+        }
       );
 
       y += 10;
     }
 
     /* --------------------------------
-       Result Title
+        Result title
     -------------------------------- */
 
     doc.setFontSize(14);
@@ -604,13 +1349,15 @@ const Results = () => {
       "STUDENT RESULT",
       105,
       y,
-      { align: "center" }
+      {
+        align: "center",
+      }
     );
 
     y += 14;
 
     /* --------------------------------
-       Student Information
+        Student information
     -------------------------------- */
 
     addPageIfNeeded(55);
@@ -620,8 +1367,17 @@ const Results = () => {
     const infoWidth = 170;
     const infoHeight = 46;
 
-    doc.setDrawColor(220, 220, 220);
-    doc.setFillColor(248, 250, 252);
+    doc.setDrawColor(
+      220,
+      220,
+      220
+    );
+
+    doc.setFillColor(
+      248,
+      250,
+      252
+    );
 
     doc.roundedRect(
       infoX,
@@ -639,26 +1395,40 @@ const Results = () => {
       `${student.firstName} ${student.lastName}`;
 
     const studentInfo = [
-      ["Student:", studentName],
+      [
+        "Student:",
+        studentName,
+      ],
       [
         "Admission No:",
-        student.admissionNo || "—",
+        student.admissionNo ||
+          "—",
       ],
       [
         "Class:",
-        selectedClass?.name || "—",
+        selectedClass?.name ||
+          "—",
       ],
       [
         "Section:",
-        selectedSection?.name || "—",
+        selectedSection?.name ||
+          "—",
+      ],
+       [
+        "Category:", studentStream?.name || "—"
+      ],
+       [
+        "Subjects Offered:", totalSubjectsOffered
       ],
       [
         "Session:",
-        selectedSession?.name || "—",
+        selectedSession?.name ||
+          "—",
       ],
       [
         "Term:",
-        selectedTerm?.name || "—",
+        selectedTerm?.name ||
+          "—",
       ],
     ];
 
@@ -670,20 +1440,26 @@ const Results = () => {
 
     studentInfo.forEach(
       ([label, value], index) => {
-        const row = Math.floor(index / 2);
+        const row =
+          Math.floor(index / 2);
+
         const isRightColumn =
           index % 2 === 1;
 
-        const labelX = isRightColumn
-          ? rightColumnX
-          : leftColumnX;
+        const labelX =
+          isRightColumn
+            ? rightColumnX
+            : leftColumnX;
 
-        const valueX = isRightColumn
-          ? rightValueX
-          : leftValueX;
+        const valueX =
+          isRightColumn
+            ? rightValueX
+            : leftValueX;
 
         const rowY =
-          infoY + 9 + row * 8;
+          infoY +
+          9 +
+          row * 8;
 
         doc.setFont(
           "helvetica",
@@ -715,7 +1491,7 @@ const Results = () => {
       10;
 
     /* --------------------------------
-       Results Table
+        Results table
     -------------------------------- */
 
     const tableX = 20;
@@ -732,13 +1508,23 @@ const Results = () => {
 
     const columnX =
       columnWidths.reduce(
-        (positions, width, index) => {
+        (
+          positions,
+          width,
+          index
+        ) => {
           if (index === 0) {
-            positions.push(tableX);
+            positions.push(
+              tableX
+            );
           } else {
             positions.push(
-              positions[index - 1] +
-                columnWidths[index - 1]
+              positions[
+                index - 1
+              ] +
+                columnWidths[
+                  index - 1
+                ]
             );
           }
 
@@ -749,166 +1535,133 @@ const Results = () => {
 
     const rowHeight = 9;
 
-    const drawTableHeader = () => {
-      doc.setFillColor(
-        248,
-        250,
-        252
-      );
-
-      doc.setDrawColor(
-        220,
-        220,
-        220
-      );
-
-      doc.rect(
-        tableX,
-        y - 6,
-        tableWidth,
-        rowHeight,
-        "FD"
-      );
-
-      doc.setFont(
-        "helvetica",
-        "bold"
-      );
-
-      doc.setFontSize(9);
-
-      const headers = [
-        "Subject",
-        "CAT",
-        "Exam",
-        "Total",
-        "Grade",
-        "Remark",
-      ];
-
-      headers.forEach(
-        (header, index) => {
-          doc.text(
-            header,
-            columnX[index] + 3,
-            y
-          );
-        }
-      );
-
-      y += rowHeight;
-
-      doc.setFont(
-        "helvetica",
-        "normal"
-      );
-    };
-
-    const drawTableRow = (result) => {
-      const subjectLines =
-        doc.splitTextToSize(
-          String(result.subject),
-          columnWidths[0] - 6
+    const drawTableHeader =
+      () => {
+        doc.setFillColor(
+          248,
+          250,
+          252
         );
 
-      const remarkLines =
-        doc.splitTextToSize(
-          String(result.remark),
-          columnWidths[5] - 6
+        doc.setDrawColor(
+          220,
+          220,
+          220
         );
 
-      const lineCount = Math.max(
-        subjectLines.length,
-        remarkLines.length,
-        1
-      );
-
-      const currentRowHeight =
-        Math.max(
+        doc.rect(
+          tableX,
+          y - 6,
+          tableWidth,
           rowHeight,
-          lineCount * 5 + 4
+          "FD"
         );
 
-      if (
-        y + currentRowHeight >
-        pageHeight - bottomMargin
-      ) {
-        doc.addPage();
+        doc.setFont(
+          "helvetica",
+          "bold"
+        );
 
-        y = 20;
+        doc.setFontSize(9);
 
-        drawTableHeader();
-      }
+        const headers = [
+          "Subject",
+          "CAT",
+          "Exam",
+          "Total",
+          "Grade",
+          "Remark",
+        ];
 
-      doc.setDrawColor(
-        220,
-        220,
-        220
-      );
+        headers.forEach(
+          (header, index) => {
+            doc.text(
+              header,
+              columnX[index] +
+                3,
+              y
+            );
+          }
+        );
 
-      let currentX = tableX;
+        y += rowHeight;
 
-      columnWidths.forEach(
-        (width) => {
-          doc.rect(
-            currentX,
-            y - 6,
-            width,
-            currentRowHeight
-          );
+        doc.setFont(
+          "helvetica",
+          "normal"
+        );
+      };
 
-          currentX += width;
-        }
-      );
+  const drawTableRow = (result) => {
+  const isOffered = 
+    studentSubjectIds.includes(
+      Number(result.subjectId));
 
-      doc.setFontSize(9);
+  // If subject is not offered, mark all fields as N/A
+  const ca = isOffered ? (Number(result.ca) || 0) : "N/A";
+  const exam = isOffered ? (Number(result.exam) || 0) : "N/A";
+  const total = isOffered ? (Number(result.total) || 0) : "N/A";
+  const grade = isOffered ? (result.grade || "-") : "N/A";
+  const remark = isOffered ? (result.remark || "-") : "N/A";
 
-      doc.text(
-        subjectLines,
-        columnX[0] + 3,
-        y
-      );
+  const subjectLines = doc.splitTextToSize(
+    String(result.subject),
+    columnWidths[0] - 6
+  );
 
-      doc.text(
-        String(result.ca),
-        columnX[1] +
-          columnWidths[1] / 2,
-        y,
-        { align: "center" }
-      );
+  const remarkLines = doc.splitTextToSize(
+    String(remark),
+    columnWidths[5] - 6
+  );
 
-      doc.text(
-        String(result.exam),
-        columnX[2] +
-          columnWidths[2] / 2,
-        y,
-        { align: "center" }
-      );
+  const lineCount = Math.max(subjectLines.length, remarkLines.length, 1);
+  const currentRowHeight = Math.max(rowHeight, lineCount * 5 + 4);
 
-      doc.text(
-        String(result.total),
-        columnX[3] +
-          columnWidths[3] / 2,
-        y,
-        { align: "center" }
-      );
+  if (y + currentRowHeight > pageHeight - bottomMargin) {
+    doc.addPage();
+    y = 20;
+    drawTableHeader();
+  }
 
-      doc.text(
-        String(result.grade),
-        columnX[4] +
-          columnWidths[4] / 2,
-        y,
-        { align: "center" }
-      );
+  doc.setDrawColor(220, 220, 220);
 
-      doc.text(
-        remarkLines,
-        columnX[5] + 3,
-        y
-      );
+  let currentX = tableX;
+  columnWidths.forEach((width) => {
+    doc.rect(currentX, y - 6, width, currentRowHeight);
+    currentX += width;
+  });
 
-      y += currentRowHeight;
-    };
+  doc.setFontSize(9);
+
+  // Subject name
+  doc.text(subjectLines, columnX[0] + 3, y);
+
+  // CA
+  doc.text(String(ca), columnX[1] + columnWidths[1] / 2, y, {
+    align: "center",
+  });
+
+  // Exam
+  doc.text(String(exam), columnX[2] + columnWidths[2] / 2, y, {
+    align: "center",
+  });
+
+  // Total
+  doc.text(String(total), columnX[3] + columnWidths[3] / 2, y, {
+    align: "center",
+  });
+
+  // Grade
+  doc.text(String(grade), columnX[4] + columnWidths[4] / 2, y, {
+    align: "center",
+  });
+
+  // Remark
+  doc.text(remarkLines, columnX[5] + 3, y);
+
+  y += currentRowHeight;
+};
+
 
     addPageIfNeeded(25);
 
@@ -921,17 +1674,17 @@ const Results = () => {
     );
 
     /* --------------------------------
-       Overall Result
+        Overall result
     -------------------------------- */
 
-    addPageIfNeeded(55);
+    addPageIfNeeded(65);
 
     y += 5;
 
     const totalScore =
       resultData.results.reduce(
         (sum, result) =>
-          sum + result.total,
+          sum + (Number(result.total) || 0),
         0
       );
 
@@ -958,7 +1711,11 @@ const Results = () => {
     const summaryX = 20;
     const summaryY = y - 5;
     const summaryWidth = 170;
-    const summaryHeight = 42;
+    const summaryHeight =
+      Number(selectedTermId) ===
+      getSessionTermIds()[2]
+        ? 80
+        : 65;
 
     doc.setDrawColor(
       220,
@@ -1021,7 +1778,8 @@ const Results = () => {
 
     doc.text(
       `Grade: ${
-        overallGrade?.grade || "-"
+        overallGrade?.grade ||
+        "-"
       }`,
       summaryX + 95,
       summaryY + 19
@@ -1029,19 +1787,164 @@ const Results = () => {
 
     doc.text(
       `Remark: ${
-        overallGrade?.remark || "-"
+        overallGrade?.remark ||
+        "-"
       }`,
       summaryX + 95,
       summaryY + 28
     );
 
+    doc.setFont(
+      "helvetica",
+      "normal"
+    );
+
+    doc.text(
+      `Class Position: ${
+        resultData.positions
+          .classPositionLabel
+      }`,
+      summaryX + 5,
+      summaryY + 40
+    );
+
+    doc.text(
+      `Academic Level Position: ${
+        resultData.positions
+          .academicLevelPositionLabel
+      }`,
+      summaryX + 95,
+      summaryY + 40
+    );
+
+    doc.text(
+      `Attendance: ${
+        attendanceStats.percentage !== null
+          ? attendanceStats.percentage.toFixed(2) + "%"
+          : "—"
+      }`,
+      summaryX + 5,
+      summaryY + 51
+    );
+
+    if (
+      Number(selectedTermId) ===
+      getSessionTermIds()[2]
+    ) {
+      doc.text(
+        `Session Average: ${
+          resultData.positions
+            .sessionAverage !==
+          null
+            ? resultData.positions.sessionAverage.toFixed(
+                2
+              ) + "%"
+            : "—"
+        }`,
+        summaryX + 5,
+        summaryY + 62
+      );
+
+      doc.text(
+        `Final Academic Level Position: ${
+          resultData.positions
+            .sessionAcademicLevelPositionLabel
+        }`,
+        summaryX + 95,
+        summaryY + 62
+      );
+    }
+
     y =
       summaryY +
       summaryHeight +
-      8;
+      10;
 
     /* --------------------------------
-       Footer + Page Numbers
+        Official signatures/stamps
+    -------------------------------- */
+
+    addPageIfNeeded(60);
+
+    const signatureTopY = y;
+
+    const signatureWidth = 75;
+
+    const leftSignatureX = 25;
+    const rightSignatureX = 110;
+
+    doc.setFont(
+      "helvetica",
+      "bold"
+    );
+
+    doc.setFontSize(10);
+
+    doc.text(
+      "Exam Officer",
+      leftSignatureX,
+      signatureTopY
+    );
+
+    doc.text(
+      "Principal",
+      rightSignatureX,
+      signatureTopY
+    );
+
+    doc.setFont(
+      "helvetica",
+      "normal"
+    );
+
+    doc.setFontSize(8);
+
+    doc.text(
+      "Official Signature",
+      leftSignatureX,
+      signatureTopY + 25
+    );
+
+    doc.text(
+      "Official Signature",
+      rightSignatureX,
+      signatureTopY + 25
+    );
+
+    doc.rect(
+      leftSignatureX,
+      signatureTopY + 28,
+      signatureWidth,
+      18
+    );
+
+    doc.rect(
+      rightSignatureX,
+      signatureTopY + 28,
+      signatureWidth,
+      18
+    );
+
+    doc.setFontSize(8);
+
+    doc.text(
+      "Signature / Stamp",
+      leftSignatureX + 18,
+      signatureTopY + 39
+    );
+
+    doc.text(
+      "Signature / Stamp",
+      rightSignatureX + 18,
+      signatureTopY + 39
+    );
+
+    y =
+      signatureTopY +
+      55;
+
+    /* --------------------------------
+        Footer + page numbers
     -------------------------------- */
 
     const totalPages =
@@ -1103,14 +2006,18 @@ const Results = () => {
         `Page ${page} of ${totalPages}`,
         105,
         footerY,
-        { align: "center" }
+        {
+          align: "center",
+        }
       );
 
       doc.text(
         "Powered by WeMoren Web Services",
         190,
         footerY,
-        { align: "right" }
+        {
+          align: "right",
+        }
       );
 
       doc.setTextColor(
@@ -1120,14 +2027,14 @@ const Results = () => {
       );
     }
 
-    /* --------------------------------
-       Download
-    -------------------------------- */
-
     doc.save(
       `${student.firstName}-${student.lastName}-Result.pdf`
     );
   };
+
+  /* --------------------------------
+      Render
+  -------------------------------- */
 
   return (
     <div className="results-page">
@@ -1146,11 +2053,16 @@ const Results = () => {
 
           <select
             value={selectedSessionId}
-            onChange={(e) =>
+            onChange={(e) => {
               setSelectedSessionId(
                 e.target.value
-              )
-            }
+              );
+
+              setSelectedTermId("");
+              setSelectedClassId("");
+              setSelectedSectionId("");
+              setResultsLoaded(false);
+            }}
           >
             <option value="">
               Select session
@@ -1176,11 +2088,13 @@ const Results = () => {
 
           <select
             value={selectedTermId}
-            onChange={(e) =>
+            onChange={(e) => {
               setSelectedTermId(
                 e.target.value
-              )
-            }
+              );
+
+              setResultsLoaded(false);
+            }}
           >
             <option value="">
               Select term
@@ -1189,10 +2103,8 @@ const Results = () => {
             {academicTerms
               .filter(
                 (term) =>
-                  term.academicSessionId ===
-                  Number(
-                    selectedSessionId
-                  )
+                  Number(term.academicSessionId) ===
+                  Number(selectedSessionId)
               )
               .map((term) => (
                 <option
@@ -1212,26 +2124,36 @@ const Results = () => {
 
           <select
             value={selectedClassId}
-            onChange={(e) =>
+            onChange={(e) => {
               setSelectedClassId(
                 e.target.value
-              )
-            }
+              );
+
+              setSelectedSectionId("");
+              setResultsLoaded(false);
+            }}
           >
             <option value="">
               Select class
             </option>
 
-            {classes.map(
-              (classItem) => (
+            {classes
+              .filter(
+                (classItem) =>
+                  !selectedSessionId ||
+                  classItem.academicSessionId ===
+                    Number(
+                      selectedSessionId
+                    )
+              )
+              .map((classItem) => (
                 <option
                   key={classItem.id}
                   value={classItem.id}
                 >
                   {classItem.name}
                 </option>
-              )
-            )}
+              ))}
           </select>
         </div>
 
@@ -1242,11 +2164,13 @@ const Results = () => {
 
           <select
             value={selectedSectionId}
-            onChange={(e) =>
+            onChange={(e) => {
               setSelectedSectionId(
                 e.target.value
-              )
-            }
+              );
+
+              setResultsLoaded(false);
+            }}
           >
             <option value="">
               Select section
@@ -1273,19 +2197,25 @@ const Results = () => {
 
         <button
           type="button"
-          onClick={handleLoadResults}
+          onClick={
+            handleLoadResults
+          }
         >
           Load Results
         </button>
 
         {showNotification && (
           <NotificationDialog
-            title={notification.title}
+            title={
+              notification.title
+            }
             message={
               notification.message
             }
             onClose={() =>
-              setShowNotification(false)
+              setShowNotification(
+                false
+              )
             }
           />
         )}
@@ -1325,7 +2255,11 @@ const Results = () => {
             0 ? (
               loadedSubjects.map(
                 (subject) => (
-                  <p key={subject.id}>
+                  <p
+                    key={
+                      subject.id
+                    }
+                  >
                     {subject.name}
                   </p>
                 )
@@ -1342,8 +2276,10 @@ const Results = () => {
       )}
 
       {resultsLoaded &&
-        loadedStudents.length > 0 &&
-        loadedSubjects.length > 0 && (
+        loadedStudents.length >
+          0 &&
+        loadedSubjects.length >
+          0 && (
           <div className="results-entry">
             <h2>
               Enter Results
@@ -1364,7 +2300,9 @@ const Results = () => {
                             subject.id
                           }
                         >
-                          {subject.name}
+                          {
+                            subject.name
+                          }
                         </th>
                       )
                     )}
@@ -1374,17 +2312,18 @@ const Results = () => {
                 <tbody>
                   {loadedStudents.map(
                     (student) => {
-                      const studentSubjects =
-                        getStudentSubjects(
-                          student
+                      const enrollment =
+                        getStudentEnrollment(
+                          student,
+                          Number(
+                            selectedSessionId
+                          )
                         );
 
-                      const studentSubjectIds =
-                        new Set(
-                          studentSubjects.map(
-                            (subject) =>
-                              subject.id
-                          )
+                      const studentSubjects =
+                        getStudentSubjectsForEnrollment(
+                          student,
+                          enrollment
                         );
 
                       return (
@@ -1394,34 +2333,46 @@ const Results = () => {
                           }
                         >
                           <td>
-                            {student.firstName}{" "}
-                            {student.lastName}
+                            {
+                              student.firstName
+                            }{" "}
+                            {
+                              student.lastName
+                            }
                           </td>
 
                           {loadedSubjects.map(
                             (subject) => {
-                              const entryKey = `${student.id}-${subject.id}`;
-
-                              /*
-                               * This subject does not
-                               * belong to this student.
-                               */
-                              if (
-                                !studentSubjectIds.has(
-                                  subject.id
-                                )
-                              ) {
-                                return (
-                                  <td
-                                    key={
+                              const isSubjectOffered =
+                                studentSubjects.some(
+                                  (item) =>
+                                    Number(
+                                      item.id
+                                    ) ===
+                                    Number(
                                       subject.id
-                                    }
-                                    className="result-not-applicable"
-                                  >
-                                    —
-                                  </td>
+                                    )
                                 );
-                              }
+
+                                 /*
+                                  Unoffered subjects must be completely
+                                  excluded from result entry and grading.
+                                */
+                                if (!isSubjectOffered) {
+                                  return (
+                                    <td
+                                      key={subject.id}
+                                      className="results-entry__not-offered"
+                                    >
+                                      <span>
+                                        Not Offered
+                                      </span>
+                                    </td>
+                                  );
+                                }
+
+
+                              const entryKey = `${student.id}-${subject.id}`;
 
                               const entry =
                                 scoreEntries[
@@ -1447,6 +2398,8 @@ const Results = () => {
                                     total <=
                                       item.max
                                 );
+
+                             
 
                               return (
                                 <td
@@ -1544,14 +2497,18 @@ const Results = () => {
 
                                     <strong>
                                       Grade:{" "}
-                                      {grading?.grade ||
-                                        "-"}
+                                      {
+                                        grading?.grade ||
+                                        "-"
+                                      }
                                     </strong>
 
                                     <strong>
                                       Remark:{" "}
-                                      {grading?.remark ||
-                                        "-"}
+                                      {
+                                        grading?.remark ||
+                                        "-"
+                                      }
                                     </strong>
                                   </div>
                                 </td>
@@ -1569,8 +2526,10 @@ const Results = () => {
         )}
 
       {resultsLoaded &&
-        loadedStudents.length > 0 &&
-        loadedSubjects.length > 0 && (
+        loadedStudents.length >
+          0 &&
+        loadedSubjects.length >
+          0 && (
           <button
             type="button"
             onClick={
@@ -1582,7 +2541,8 @@ const Results = () => {
         )}
 
       {resultsLoaded &&
-        loadedStudents.length > 0 && (
+        loadedStudents.length >
+          0 && (
           <div className="results-students">
             <div className="results-students__header">
               <h2>
@@ -1590,45 +2550,104 @@ const Results = () => {
               </h2>
 
               <p>
-                Select a student to
-                download their
-                individual result.
+                Review positions and
+                download individual
+                student results.
               </p>
             </div>
 
             <div className="results-students__list">
               {loadedStudents.map(
-                (student) => (
-                  <div
-                    key={student.id}
-                    className="results-students__item"
-                  >
-                    <div className="results-students__info">
-                      <strong>
-                        {student.firstName}{" "}
-                        {student.lastName}
-                      </strong>
+                (student) => {
+                  const studentPositions =
+                    getStudentPositions(
+                      student
+                    );
 
-                      <span>
-                        Admission No:{" "}
-                        {
-                          student.admissionNo
-                        }
-                      </span>
-                    </div>
-
-                    <button
-                      type="button"
-                      onClick={() =>
-                        handleDownloadResult(
-                          student
-                        )
+                  return (
+                    <div
+                      key={
+                        student.id
                       }
+                      className="results-students__item"
                     >
-                      Download Result
-                    </button>
-                  </div>
-                )
+                      <div className="results-students__info">
+                        <strong>
+                          {
+                            student.firstName
+                          }{" "}
+                          {
+                            student.lastName
+                          }
+                        </strong>
+
+                        <span>
+                          Admission No:{" "}
+                          {
+                            student.admissionNo
+                          }
+                        </span>
+
+                        <span>
+                          Class Position:{" "}
+                          {
+                            studentPositions.classPositionLabel
+                          }
+                        </span>
+
+                        <span>
+                          Academic Level Position:{" "}
+                          {
+                            studentPositions.academicLevelPositionLabel
+                          }
+                        </span>
+
+                        <span>
+                          Attendance:{" "}
+                          {(() => {
+                            const attendanceStats =
+                              getStudentAttendanceStats(
+                                student,
+                                Number(
+                                  selectedTermId
+                                )
+                              );
+
+                            return attendanceStats.percentage !==
+                              null
+                              ? `${attendanceStats.percentage.toFixed(
+                                  2
+                                )}%`
+                              : "—";
+                          })()}
+                        </span>
+
+                        {Number(
+                          selectedTermId
+                        ) ===
+                          getSessionTermIds()[2] && (
+                          <span>
+                            Final Academic Level Position:{" "}
+                            {
+                              studentPositions.sessionAcademicLevelPositionLabel
+                            }
+                          </span>
+                        )}
+                      </div>
+
+                      <button
+                        type="button"
+                        onClick={() =>
+                          handleDownloadResult(
+                            student
+                          )
+                        }
+                      >
+                        Download Result
+                      </button>
+                    </div>
+                  );
+                }
               )}
             </div>
           </div>

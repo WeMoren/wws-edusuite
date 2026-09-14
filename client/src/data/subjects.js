@@ -132,7 +132,7 @@ const subjects = [
     id: 17,
     name: "Geography",
     code: "GEO",
-    category: "Arts",
+    category: "Science",
     isCore: false,
     academicLevelIds: [16, 17, 18],
   },
