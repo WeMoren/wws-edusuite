@@ -90,7 +90,12 @@ const StudentTable = ({
   <button
     className="student-table__name"
     title="Click to view student detail."
-    onClick={() => onView(student)}
+    onClick={() =>
+       onView({
+        ...student,
+    class: classItem?.name || "-",
+  })
+}
   >
     {student.firstName}
   </button>

@@ -24,7 +24,30 @@ const PaymentReceipt = ({ payment, student, onClose }) => {
   const receiptNumber = `REC-${String(payment.id).padStart(5, "0")}`;
 
   const handleDownloadReceipt = () => {
+    console.log("Receipt student:", student);
     const doc = new jsPDF();
+
+
+    const savedAuthorization =
+    localStorage.getItem("documentAuthorization");
+
+  const documentAuthorization =
+    savedAuthorization
+      ? JSON.parse(savedAuthorization)
+      : {
+          principal: {
+            name: "",
+            title: "Principal",
+            signature: "",
+            stamp: "",
+          },
+          accountingOfficer: {
+            name: "",
+            title: "Accounting Officer",
+            signature: "",
+            stamp: "",
+          },
+        };
 
     let y = 20;
 
@@ -150,6 +173,12 @@ const PaymentReceipt = ({ payment, student, onClose }) => {
       `${student.firstName} ${student.lastName}`
     );
 
+    addDetail(
+      "Gender:",
+      student.gender || "—"
+    );
+
+
     addDetail("Admission No:", student.admissionNo);
 
     addDetail("Class:", student.class);
@@ -169,40 +198,179 @@ const PaymentReceipt = ({ payment, student, onClose }) => {
       payment.description || "—"
     );
 
-    /* Footer */
+          /* --------------------------------
+            Official signatures/stamps
+        -------------------------------- */
 
-    /* Visual separator */
-    y += 4;
+        y += 12;
 
-    doc.setDrawColor(220, 220, 220);
-    doc.line(20, y, 190, y);
+        const signatureTopY = y;
 
-    y += 10;
+        const signatureWidth = 75;
+        const signatureHeight = 18;
 
-    doc.text(
-      "Thank you for your payment.",
-      105,
-      y,
-      { align: "center" }
-    );
+        const leftSignatureX = 25;
+        const rightSignatureX = 110;
 
-    y += 10;
+        const principal =
+          documentAuthorization.principal;
 
-    doc.setFontSize(8);
+        const accountingOfficer =
+          documentAuthorization.accountingOfficer;
 
-      doc.setTextColor(150, 150, 150);
+        const drawOfficial = ({
+          official,
+          x,
+          fallbackTitle,
+        }) => {
+          const officialName =
+            official?.name || "—";
 
-      doc.text(
-        "Powered by WeMoren Web Services",
-        105,
-        y,
-        { align: "center" }
-      );
+          const officialTitle =
+            official?.title ||
+            fallbackTitle;
 
-      doc.setTextColor(0, 0, 0);
+          doc.setFont(
+            "helvetica",
+            "bold"
+          );
 
-    doc.save(`${receiptNumber}.pdf`);
-  };
+          doc.setFontSize(10);
+
+          doc.text(
+            officialName,
+            x,
+            signatureTopY
+          );
+
+          doc.setFont(
+            "helvetica",
+            "normal"
+          );
+
+          doc.setFontSize(8);
+
+          doc.text(
+            officialTitle,
+            x,
+            signatureTopY + 7
+          );
+
+          /*
+            Digital signature
+          */
+
+          if (official?.signature) {
+            try {
+              doc.addImage(
+                official.signature,
+                "PNG",
+                x,
+                signatureTopY + 11,
+                signatureWidth,
+                signatureHeight
+              );
+            } catch (error) {
+              console.error(
+                `Unable to add ${officialTitle} digital signature:`,
+                error
+              );
+            }
+          }
+
+          /*
+            Physical signature area
+          */
+
+          doc.line(
+            x,
+            signatureTopY + 32,
+            x + signatureWidth,
+            signatureTopY + 32
+          );
+
+          /*
+            Digital stamp
+          */
+
+          if (official?.stamp) {
+            try {
+              doc.addImage(
+                official.stamp,
+                "PNG",
+                x + 48,
+                signatureTopY + 34,
+                27,
+                27
+              );
+            } catch (error) {
+              console.error(
+                `Unable to add ${officialTitle} digital stamp:`,
+                error
+              );
+            }
+          }
+
+          /*
+            Physical stamp area
+          */
+
+          doc.setFontSize(7);
+
+          doc.text(
+            "Signature / Stamp",
+            x,
+            signatureTopY + 40
+          );
+        };
+
+        drawOfficial({
+          official: principal,
+          x: leftSignatureX,
+          fallbackTitle: "Principal",
+        });
+
+        drawOfficial({
+          official: accountingOfficer,
+          x: rightSignatureX,
+          fallbackTitle: "Accounting Officer",
+        });
+
+        y =
+          signatureTopY +
+          68;
+
+        /* Footer */
+
+        doc.setFontSize(9);
+
+        doc.setTextColor(0, 0, 0);
+
+        doc.text(
+          "Thank you for your payment.",
+          105,
+          y,
+          { align: "center" }
+        );
+
+        y += 10;
+
+        doc.setFontSize(8);
+
+        doc.setTextColor(150, 150, 150);
+
+        doc.text(
+          "Powered by WeMoren Web Services",
+          105,
+          y,
+          { align: "center" }
+        );
+
+        doc.setTextColor(0, 0, 0);
+
+        doc.save(`${receiptNumber}.pdf`);
+
+    }
 
   return (
     <div className="payment-receipt">

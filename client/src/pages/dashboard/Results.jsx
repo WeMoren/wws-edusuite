@@ -1144,6 +1144,29 @@ const Results = () => {
             logo: "",
           };
 
+          const savedAuthorization =
+            localStorage.getItem(
+              "documentAuthorization"
+            );
+
+        const documentAuthorization =
+          savedAuthorization
+            ? JSON.parse(savedAuthorization)
+            : {
+                principal: {
+                  name: "",
+                  title: "Principal",
+                  signature: "",
+                  stamp: "",
+                },
+                examOfficer: {
+                  name: "",
+                  title: "Exam Officer",
+                  signature: "",
+                  stamp: "",
+                },
+              };
+
     const selectedSession =
       academicSessions.find(
         (session) =>
@@ -1365,7 +1388,7 @@ const Results = () => {
     const infoX = 20;
     const infoY = y - 6;
     const infoWidth = 170;
-    const infoHeight = 46;
+    const infoHeight = 52;
 
     doc.setDrawColor(
       220,
@@ -1398,6 +1421,10 @@ const Results = () => {
       [
         "Student:",
         studentName,
+      ],
+      [
+        "Gender:",
+        student.gender || "—",
       ],
       [
         "Admission No:",
@@ -1860,89 +1887,147 @@ const Results = () => {
       summaryHeight +
       10;
 
-    /* --------------------------------
-        Official signatures/stamps
-    -------------------------------- */
+          /* --------------------------------
+              Official signatures/stamps
+          -------------------------------- */
 
-    addPageIfNeeded(60);
+          addPageIfNeeded(60);
 
-    const signatureTopY = y;
+          const signatureTopY = y;
 
-    const signatureWidth = 75;
+          const signatureWidth = 75;
+          const signatureHeight = 18;
 
-    const leftSignatureX = 25;
-    const rightSignatureX = 110;
+          const leftSignatureX = 25;
+          const rightSignatureX = 110;
 
-    doc.setFont(
-      "helvetica",
-      "bold"
-    );
+          const examOfficer =
+            documentAuthorization.examOfficer;
 
-    doc.setFontSize(10);
+          const principal =
+            documentAuthorization.principal;
 
-    doc.text(
-      "Exam Officer",
-      leftSignatureX,
-      signatureTopY
-    );
+          const drawOfficial = ({
+            official,
+            x,
+            fallbackTitle,
+          }) => {
+            const officialName =
+              official?.name || "—";
 
-    doc.text(
-      "Principal",
-      rightSignatureX,
-      signatureTopY
-    );
+            const officialTitle =
+              official?.title ||
+              fallbackTitle;
 
-    doc.setFont(
-      "helvetica",
-      "normal"
-    );
+            doc.setFont(
+              "helvetica",
+              "bold"
+            );
 
-    doc.setFontSize(8);
+            doc.setFontSize(10);
 
-    doc.text(
-      "Official Signature",
-      leftSignatureX,
-      signatureTopY + 25
-    );
+            doc.text(
+              officialName,
+              x,
+              signatureTopY
+            );
 
-    doc.text(
-      "Official Signature",
-      rightSignatureX,
-      signatureTopY + 25
-    );
+            doc.setFont(
+              "helvetica",
+              "normal"
+            );
 
-    doc.rect(
-      leftSignatureX,
-      signatureTopY + 28,
-      signatureWidth,
-      18
-    );
+            doc.setFontSize(8);
 
-    doc.rect(
-      rightSignatureX,
-      signatureTopY + 28,
-      signatureWidth,
-      18
-    );
+            doc.text(
+              officialTitle,
+              x,
+              signatureTopY + 7
+            );
 
-    doc.setFontSize(8);
+            /*
+              Digital signature
+            */
 
-    doc.text(
-      "Signature / Stamp",
-      leftSignatureX + 18,
-      signatureTopY + 39
-    );
+            if (official?.signature) {
+              try {
+                doc.addImage(
+                  official.signature,
+                  "PNG",
+                  x,
+                  signatureTopY + 11,
+                  signatureWidth,
+                  signatureHeight
+                );
+              } catch (error) {
+                console.error(
+                  `Unable to add ${officialTitle} digital signature:`,
+                  error
+                );
+              }
+            }
 
-    doc.text(
-      "Signature / Stamp",
-      rightSignatureX + 18,
-      signatureTopY + 39
-    );
+            /*
+              Physical signature area
+            */
 
-    y =
-      signatureTopY +
-      55;
+            doc.line(
+              x,
+              signatureTopY + 32,
+              x + signatureWidth,
+              signatureTopY + 32
+            );
 
+            /*
+              Digital stamp
+            */
+
+            if (official?.stamp) {
+              try {
+                doc.addImage(
+                  official.stamp,
+                  "PNG",
+                  x + 48,
+                  signatureTopY + 34,
+                  27,
+                  27
+                );
+              } catch (error) {
+                console.error(
+                  `Unable to add ${officialTitle} digital stamp:`,
+                  error
+                );
+              }
+            }
+
+            /*
+              Physical stamp area
+            */
+
+            doc.setFontSize(7);
+
+            doc.text(
+              "Signature / Stamp",
+              x,
+              signatureTopY + 40
+            );
+          };
+
+          drawOfficial({
+            official: examOfficer,
+            x: leftSignatureX,
+            fallbackTitle: "Exam Officer",
+          });
+
+          drawOfficial({
+            official: principal,
+            x: rightSignatureX,
+            fallbackTitle: "Principal",
+          });
+
+          y =
+            signatureTopY +
+            68;
     /* --------------------------------
         Footer + page numbers
     -------------------------------- */
