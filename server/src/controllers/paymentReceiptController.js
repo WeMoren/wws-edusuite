@@ -5,84 +5,73 @@ export const getPaymentReceipt = async (req, res) => {
         const { schoolId } = req;
         const { paymentId } = req.params;
 
-        const paymentResult = await pool.query(
+        const receiptResult = await pool.query(
             `
             SELECT
-                p.id,
-                p.school_id,
-                p.student_id,
-                p.financial_account_id,
-                p.amount,
-                p.payment_date,
-                p.payment_method,
-                p.reference,
-                p.description,
-                p.created_at,
+                pr.id,
+                pr.school_id,
+                pr.payment_id,
+                pr.receipt_number,
 
-                s.admission_no,
-                s.first_name,
-                s.middle_name,
-                s.last_name,
-                s.gender,
+                pr.school_name,
+                pr.school_email,
+                pr.school_phone,
+                pr.school_address,
+                pr.school_logo_url,
 
-                sc.name AS school_name,
-                sc.phone AS school_phone,
-                sc.address AS school_address,
-                sc.logo_url AS school_logo_url,
+                pr.student_id,
+                pr.student_name,
+                pr.admission_number,
+                pr.gender,
 
-                sfa.academic_session_id,
-                sfa.term_id,
-                sfa.fee_structure_id,
-                sfa.total_due,
-                sfa.total_paid,
+                pr.academic_session_id,
+                pr.academic_session_name,
+                pr.term_id,
+                pr.term_name,
+                pr.academic_level_id,
+                pr.academic_level_name,
+                pr.class_id,
+                pr.class_name,
 
-                a.name AS academic_session_name,
+                pr.financial_account_id,
 
-                t.name AS term_name,
+                pr.total_due,
+                pr.amount_paid,
+                pr.total_paid_after_payment,
+                pr.outstanding_balance_after_payment,
 
-                c.name AS class_name,
+                pr.payment_date::text AS payment_date,
+                pr.payment_method,
+                pr.payment_reference,
+                pr.payment_description,
 
-                al.name AS academic_level_name
+                pr.principal_name,
+                pr.principal_title,
+                pr.principal_signature_url,
+                pr.principal_stamp_url,
 
-            FROM payments p
+                pr.accounting_officer_name,
+                pr.accounting_officer_title,
+                pr.accounting_officer_signature_url,
+                pr.accounting_officer_stamp_url,
 
-            JOIN students s
-                ON s.id = p.student_id
+                pr.created_at
 
-            JOIN schools sc
-                ON sc.id = p.school_id
+            FROM payment_receipts pr
 
-            JOIN student_financial_accounts sfa
-                ON sfa.id = p.financial_account_id
-
-            JOIN academic_sessions a
-                ON a.id = sfa.academic_session_id
-
-            JOIN terms t
-                ON t.id = sfa.term_id
-
-            JOIN student_enrollments se
-                ON se.id = sfa.enrollment_id
-
-            JOIN classes c
-                ON c.id = se.class_id
-
-            JOIN academic_levels al
-                ON al.id = c.academic_level_id
-
-            WHERE p.id = $1
-              AND p.school_id = $2;
+            WHERE pr.payment_id = $1
+              AND pr.school_id = $2;
             `,
             [paymentId, schoolId]
         );
 
-        if (paymentResult.rows.length === 0) {
+        if (receiptResult.rows.length === 0) {
             return res.status(404).json({
-                message: "Payment receipt data not found.",
+                message: "Payment receipt not found.",
             });
         }
 
-        const payment = paymentResult.rows[0];
+        const receipt = receiptResult.rows[0];
 
         const feeItemsResult = await pool.query(
             `
@@ -91,79 +80,117 @@ export const getPaymentReceipt = async (req, res) => {
                 name,
                 amount,
                 display_order
-            FROM fee_structure_items
-            WHERE fee_structure_id = $1
+            FROM payment_receipt_items
+            WHERE payment_receipt_id = $1
             ORDER BY display_order ASC;
             `,
-            [payment.fee_structure_id]
+            [receipt.id]
         );
 
-        const totalDue = Number(payment.total_due);
-        const totalPaid = Number(payment.total_paid);
-        const paymentAmount = Number(payment.amount);
-
+        const totalDue = Number(receipt.total_due);
+        const amountPaid = Number(receipt.amount_paid);
+        const totalPaidAfterPayment =
+            Number(receipt.total_paid_after_payment);
         const outstandingBalance =
-            totalDue - totalPaid;
+            Number(receipt.outstanding_balance_after_payment);
 
         return res.status(200).json({
             receipt: {
-                paymentId: payment.id,
+                id: receipt.id,
+                paymentId: receipt.payment_id,
+                receiptNumber: receipt.receipt_number,
 
                 school: {
-                    id: payment.school_id,
-                    name: payment.school_name,
-                    phone: payment.school_phone,
-                    address: payment.school_address,
-                    logoUrl: payment.school_logo_url,
+                    id: receipt.school_id,
+                    name: receipt.school_name,
+                    email: receipt.school_email,
+                    phone: receipt.school_phone,
+                    address: receipt.school_address,
+                    logoUrl: receipt.school_logo_url,
                 },
 
                 student: {
-                    id: payment.student_id,
-                    admissionNo: payment.admission_no,
-                    firstName: payment.first_name,
-                    middleName: payment.middle_name,
-                    lastName: payment.last_name,
-                    gender: payment.gender,
+                    id: receipt.student_id,
+                    name: receipt.student_name,
+                    admissionNo:
+                        receipt.admission_number,
+                    gender: receipt.gender,
                 },
 
                 academic: {
                     sessionId:
-                        payment.academic_session_id,
+                        receipt.academic_session_id,
                     sessionName:
-                        payment.academic_session_name,
-                    termId: payment.term_id,
-                    termName: payment.term_name,
+                        receipt.academic_session_name,
+
+                    termId: receipt.term_id,
+                    termName: receipt.term_name,
+
+                    academicLevelId:
+                        receipt.academic_level_id,
                     academicLevel:
-                        payment.academic_level_name,
-                    className: payment.class_name,
+                        receipt.academic_level_name,
+
+                    classId: receipt.class_id,
+                    className: receipt.class_name,
                 },
 
+                financialAccountId:
+                    receipt.financial_account_id,
+
                 payment: {
-                    amount: paymentAmount,
-                    paymentDate: payment.payment_date,
+                    amount: amountPaid,
+                    paymentDate: receipt.payment_date,
                     paymentMethod:
-                        payment.payment_method,
-                    reference: payment.reference,
-                    description: payment.description,
+                        receipt.payment_method,
+                    reference:
+                        receipt.payment_reference,
+                    description:
+                        receipt.payment_description,
                 },
 
                 fees: {
                     items: feeItemsResult.rows,
                     totalDue,
-                    totalPaid,
+                    amountPaid,
+                    totalPaidAfterPayment,
                     outstandingBalance,
                 },
+
+                authorization: {
+                    principal: {
+                        name: receipt.principal_name,
+                        title: receipt.principal_title,
+                        signatureUrl:
+                            receipt.principal_signature_url,
+                        stampUrl:
+                            receipt.principal_stamp_url,
+                    },
+
+                    accountingOfficer: {
+                        name:
+                            receipt.accounting_officer_name,
+                        title:
+                            receipt.accounting_officer_title,
+                        signatureUrl:
+                            receipt.accounting_officer_signature_url,
+                        stampUrl:
+                            receipt.accounting_officer_stamp_url,
+                    },
+                },
+
+                createdAt: receipt.created_at,
             },
         });
     } catch (error) {
         console.error(
-            "Failed to fetch payment receipt data:",
+            "Failed to fetch payment receipt:",
             error.message
         );
 
         return res.status(500).json({
             message:
-                "Failed to fetch payment receipt data.",
+                "Failed to fetch payment receipt.",
         });
     }
 };
