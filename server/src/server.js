@@ -13,11 +13,20 @@ import academicLevelRoutes from "./routes/academicLevelRoutes.js";
 import classRoutes from "./routes/classRoutes.js";
 import sectionRoutes from "./routes/sectionRoutes.js";
 import teacherRoutes from "./routes/teacherRoutes.js";
+import feeStructureRoutes from "./routes/feeStructureRoutes.js";
+import termRoutes from "./routes/termRoutes.js";
+import studentFinancialAccountRoutes from "./routes/studentFinancialAccountRoutes.js";
+import paymentRoutes from "./routes/paymentRoutes.js";
+import paymentReceiptRoutes from "./routes/paymentReceiptRoutes.js";
+import schoolOfficialRoutes from "./routes/schoolOfficialRoutes.js";
+
+
+
 
 const app = express();
 
 app.use(express.json());
-
+app.use("/api/school-officials", schoolOfficialRoutes);
 app.use("/api/auth", authRoutes);
 app.use("/api/subscription", subscriptionRoutes);
 app.use("/api/subscription-plans", subscriptionPlanRoutes);
@@ -27,8 +36,18 @@ app.use("/api/academic-levels", academicLevelRoutes);
 app.use("/api/classes", classRoutes);
 app.use("/api/sections", sectionRoutes);
 app.use("/api/academic-sessions", academicSessionRoutes);
+app.use("/api/terms", termRoutes);
 app.use("/api/teachers", teacherRoutes);
-
+app.use("/api/fee-structures", feeStructureRoutes);
+app.use(
+    "/api/student-financial-accounts",
+    studentFinancialAccountRoutes
+);
+app.use("/api/payments", paymentRoutes);
+app.use(
+    "/api/payment-receipts",
+    paymentReceiptRoutes
+);
 
 const PORT = process.env.PORT || 5000;
 

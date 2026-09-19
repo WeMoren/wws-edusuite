@@ -588,3 +588,284 @@ The assistant should:
 
 **Milestone:** Financial system — pre-Migration 017  
 **Next concrete action:** Identify the existing terms schema, then create Migration 017.
+
+
+# 🔥 LATEST BACKEND CHECKPOINT — SEPTEMBER 17, 2026
+
+## Financial Database Foundation — COMPLETE
+
+The financial database foundation has now been implemented, applied to PostgreSQL, verified, committed, and pushed to GitHub.
+
+### Migrations completed
+
+```text
+017_create_terms.sql
+018_create_fee_structures.sql
+019_create_student_financial_accounts.sql
+020_create_payments.sql
+```
+
+### PostgreSQL verification
+
+The database `wws_edusuite` now contains **21 tables**, including:
+
+```text
+terms
+fee_structures
+fee_structure_items
+student_financial_accounts
+payments
+```
+
+### Financial relationship
+
+```text
+School
+  │
+  └── Academic Session
+        ├── Terms
+        ├── Classes
+        │     └── Sections
+        │
+        └── Academic Levels
+              │
+              └── Fee Structure
+                    │
+                    └── Fee Structure Items
+                          │
+                          ↓
+                    Student Enrollment
+                          │
+                          ↓
+                 Financial Account
+                          │
+                          ↓
+                       Payments
+```
+
+### Migration 017 — Terms
+
+`terms` contains:
+
+* `id`
+* `school_id`
+* `academic_session_id`
+* `name`
+* `display_order`
+* `start_date`
+* `end_date`
+* `is_current`
+* timestamps
+
+Constraints include:
+
+* unique term name within an academic session
+* only one current term per academic session
+* positive display order
+* valid term dates
+
+Terms are database records. **Do not hardcode term names in the application.**
+
+### Migration 018 — Fee Structures
+
+`fee_structures` is tied to:
+
+* school
+* academic session
+* term
+* academic level
+
+`fee_structure_items` stores individual fee components and amounts.
+
+The total fee is calculated from fee structure items rather than stored as a second independent source of truth.
+
+Fee structures are intended to be historical/versioned. Used financial records must retain the applicable historical amount.
+
+### Migration 019 — Student Financial Accounts
+
+`student_financial_accounts` connects:
+
+```text
+Student
+Enrollment
+Academic Session
+Term
+Fee Structure
+```
+
+and stores:
+
+* `total_due`
+* `total_paid`
+* `status`
+
+Statuses:
+
+```text
+unpaid
+partially_paid
+paid
+```
+
+Outstanding balance is derived as:
+
+```text
+total_due - total_paid
+```
+
+It is intentionally not stored separately.
+
+A unique constraint prevents duplicate financial accounts for the same:
+
+```text
+student + enrollment + term
+```
+
+The account should only be created when an applicable fee structure exists. The application must never invent a fee amount when no applicable structure exists.
+
+### Migration 020 — Payments
+
+`payments` records school payment transactions.
+
+It contains:
+
+* student
+* financial account
+* amount
+* payment date
+* payment method
+* reference
+* description
+* school ownership
+* timestamps
+
+Supported database payment-method values currently defined by the migration:
+
+```text
+cash
+transfer
+pos
+cheque
+ussd
+other
+```
+
+WWS-EduSuite records school payments; it does not process school/student fee payments through its own gateway.
+
+The eventual workflow is:
+
+```text
+Fee Structure
+      ↓
+Financial Account
+      ↓
+Payment
+      ↓
+Balance Update
+      ↓
+Receipt
+```
+
+Payment and receipt remain separate concepts. A payment is the accounting transaction; a receipt is the document generated from that transaction.
+
+## Important integrity decision
+
+`payments` contains both `student_id` and `financial_account_id`.
+
+The database does not currently enforce that both references belong to the same student/school through a composite foreign key.
+
+This was intentionally left aligned with the existing project schema pattern rather than introducing a new composite-FK architecture.
+
+The Payments service must therefore validate that:
+
+```text
+payment.student_id
+        ↓
+belongs to
+        ↓
+financial_account.student_id
+```
+
+and that both belong to the authenticated school before creating a payment.
+
+Do not silently redesign the schema unless a concrete architectural conflict is identified and discussed first.
+
+---
+
+# Git Checkpoint
+
+Financial migrations were committed as a single milestone and pushed successfully.
+
+Current Git state:
+
+```text
+Branch: master
+Remote: origin/master
+Status: up to date with origin/master
+```
+
+The only remaining working-tree change is an unrelated frontend deletion:
+
+```text
+../client/AdminLogin.js
+```
+
+This deletion is **unstaged and has not been included in the financial backend commit**.
+
+Do not modify or commit that deletion as part of the backend financial work unless explicitly addressed.
+
+---
+
+# 🚀 NEXT BACKEND PHASE
+
+The financial database foundation is complete.
+
+Next phase is the **Financial Backend API**, following the existing backend architecture rather than introducing a new structure.
+
+Recommended implementation sequence:
+
+```text
+1. Fee Structures API
+        ↓
+2. Student Financial Accounts service/API
+        ↓
+3. Payments API
+        ↓
+4. Payment/account balance logic
+        ↓
+5. Receipt generation and authorization
+```
+
+Before creating new financial controllers/routes/services, inspect the existing Student, Enrollment, Teacher, Academic Session, Academic Level, Class, and Section backend implementations and mirror their established project structure.
+
+Do not invent a second backend architecture.
+
+## Current development rule
+
+Follow the existing project/schema pattern by default.
+
+If a stronger architectural approach is genuinely needed, explicitly flag the conflict before deviating and explain the tradeoff.
+
+**No hardcoded application business truth.**
+
+Database-backed values such as schools, sessions, terms, academic levels, fee structures, fee items, students, enrollments, and payments must ultimately come from the backend/database.
+
+Temporary frontend `localStorage`/demo truth remains acceptable only until frontend-backend integration. Before integration, audit and replace those demo/localStorage sources with backend/API state.
+
+
+# 🔥 LATEST BACKEND CHECKPOINT — SEPTEMBER 19, 2026
+
+## Financial System Backend — Migrations 017–023
+
+The financial system backend foundation and School Officials document-authorization foundation have now been implemented, applied to PostgreSQL, tested through the API, and verified successfully.
+
+### Database migrations completed
+
+```text
+017_create_terms.sql
+018_create_fee_structures.sql
+019_create_student_financial_accounts.sql
+020_create_payments.sql
+021_create_school_officials.sql
+022_add_settings_permissions.sql
+023_add_admin_settings_permissions.sql
