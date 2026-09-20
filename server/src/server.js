@@ -19,7 +19,8 @@ import studentFinancialAccountRoutes from "./routes/studentFinancialAccountRoute
 import paymentRoutes from "./routes/paymentRoutes.js";
 import paymentReceiptRoutes from "./routes/paymentReceiptRoutes.js";
 import schoolOfficialRoutes from "./routes/schoolOfficialRoutes.js";
-
+import expenseRoutes from "./routes/expenseRoutes.js";
+import expenseCategoryRoutes from "./routes/expenseCategoryRoutes.js";
 
 
 
@@ -44,6 +45,8 @@ app.use(
     studentFinancialAccountRoutes
 );
 app.use("/api/payments", paymentRoutes);
+app.use("/api/expenses", expenseRoutes);
+app.use("/api/expense-categories", expenseCategoryRoutes);
 app.use(
     "/api/payment-receipts",
     paymentReceiptRoutes
