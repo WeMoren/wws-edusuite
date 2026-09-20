@@ -1410,3 +1410,39 @@ Supported payment methods:
 - Direct PostgreSQL persistence verification
 
 Expense module is currently considered complete for the implemented backend scope.
+
+
+# 🔥 LATEST BACKEND CHECKPOINT — SEPTEMBER 20, 2026
+
+## Attendance Backend — COMPLETE
+
+The Attendance backend module has now been implemented, applied to PostgreSQL, wired into the Express API, tested through the API, verified successfully, committed, and pushed to GitHub.
+
+### Database Migration
+
+**026 — `026_create_attendance_records.sql`**
+
+The migration creates:
+
+- `attendance_records`
+
+Attendance records are linked to `student_enrollments` so the backend derives the student's academic session, class, and section context through the enrollment relationship rather than duplicating those relationships unnecessarily.
+
+### Attendance Record Structure
+
+Each attendance record contains:
+
+- School
+- Enrollment
+- Academic Term
+- Attendance Date
+- Status
+- Created By
+- Created At
+- Updated At
+
+Supported attendance statuses:
+
+```text
+present
+absent
