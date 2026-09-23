@@ -1442,7 +1442,50 @@ Each attendance record contains:
 - Updated At
 
 Supported attendance statuses:
-
-```text
 present
 absent
+
+
+# 🔥 LATEST BACKEND CHECKPOINT — SEPTEMBER 23, 2026
+
+## Subjects, Streams & Subject Combinations Backend — COMPLETE
+
+The Subjects, Streams, and Subject Combinations backend modules have now been implemented, applied to PostgreSQL, wired into the Express API, syntax-checked, tested through the API, relationship integrity verified, temporary test data cleaned up, and confirmed working with the existing school-scoped architecture.
+
+### Database Migration
+
+**027 — `027_create_subjects_streams_and_combinations.sql`**
+
+The migration creates:
+
+- `subjects`
+- `subject_academic_levels`
+- `streams`
+- `stream_academic_levels`
+- `subject_combinations`
+- `subject_combination_subjects`
+
+The relationship tables retain `school_id` for school ownership. Cross-school relationship integrity is enforced by the controllers rather than by introducing composite foreign keys into the existing schema.
+
+### Subjects
+
+Subjects are school-scoped and support:
+
+- Name
+- Code
+- Category
+- Core/non-core status
+- Academic-level assignments
+- Created/updated timestamps
+
+Supported subject categories are defined by the database schema:
+
+```text
+Core
+Science
+Art
+Commercial
+Humanities
+Language
+Vocational
+Other

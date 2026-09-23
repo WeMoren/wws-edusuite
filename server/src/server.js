@@ -22,6 +22,10 @@ import schoolOfficialRoutes from "./routes/schoolOfficialRoutes.js";
 import expenseRoutes from "./routes/expenseRoutes.js";
 import expenseCategoryRoutes from "./routes/expenseCategoryRoutes.js";
 import attendanceRoutes from "./routes/attendanceRoutes.js";
+import subjectRoutes from "./routes/subjectRoutes.js";
+import streamRoutes from "./routes/streamRoutes.js";
+import subjectCombinationRoutes from "./routes/subjectCombinationRoutes.js";
+
 
 
 const app = express();
@@ -38,6 +42,9 @@ app.use("/api/classes", classRoutes);
 app.use("/api/sections", sectionRoutes);
 app.use("/api/academic-sessions", academicSessionRoutes);
 app.use("/api/terms", termRoutes);
+app.use("/api/subject-combinations", subjectCombinationRoutes);
+app.use("/api/streams", streamRoutes);
+app.use("/api/subjects", subjectRoutes);
 app.use("/api/teachers", teacherRoutes);
 app.use("/api/fee-structures", feeStructureRoutes);
 app.use(
