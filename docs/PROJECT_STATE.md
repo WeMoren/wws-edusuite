@@ -1489,3 +1489,176 @@ Humanities
 Language
 Vocational
 Other
+
+
+# 🔥 LATEST BACKEND CHECKPOINT — SEPTEMBER 25, 2026
+
+## Enrollment Academic Assignment — COMPLETE
+
+Migration **028** and the corresponding Enrollment Controller updates are now implemented, applied to PostgreSQL, tested through the API, committed, and pushed to GitHub.
+
+### Database Migration
+
+**028 — `028_add_academic_assignment_to_enrollments.sql`**
+
+The migration extends `student_enrollments` with:
+
+* `stream_id`
+* `subject_combination_id`
+
+Both fields are nullable.
+
+Foreign-key relationships:
+
+```text
+student_enrollments.stream_id
+        ↓
+streams.id
+
+student_enrollments.subject_combination_id
+        ↓
+subject_combinations.id
+```
+
+The fields are intentionally optional because **streams and subject combinations are not required for every academic level**.
+
+### Enrollment Academic Assignment Rules
+
+The backend now supports the following:
+
+* A normal enrollment can exist without a stream or subject combination.
+* A stream can be assigned independently.
+* A subject combination requires a stream.
+* A stream must belong to the authenticated school.
+* A stream must be active.
+* A stream must be assigned to the academic level of the selected class.
+* A subject combination must belong to the authenticated school.
+* A subject combination must be active.
+* A subject combination must belong to the selected stream and academic level.
+* A subject combination must contain at least one subject.
+* Every subject in the selected combination must be assigned to the selected academic level.
+
+This preserves flexibility for levels such as Creche, Primary, and Junior Secondary School (JSS), while supporting stream/combination-based structures where they are applicable, such as Senior Secondary School (SS2/SS3).
+
+### Enrollment Controller Updates
+
+`enrollmentController.js` was updated so that:
+
+* Enrollment creation accepts `streamId` and `subjectCombinationId`.
+* Enrollment retrieval returns stream and subject-combination information.
+* Enrollment retrieval also returns the class academic level.
+* Enrollment updates support changing the stream and subject combination.
+* Omitting `streamId` or `subjectCombinationId` during an update preserves the existing value.
+* Explicitly sending `null` clears the existing stream or subject combination.
+* Invalid stream/combination relationships are rejected by the backend.
+* Existing school-scoped authorization and validation patterns remain in place.
+
+### API Testing Completed
+
+The following scenarios were successfully tested:
+
+1. Valid stream + subject combination enrollment → **successful**
+2. Enrollment retrieval → stream and combination IDs/names returned correctly
+3. Subject combination without a stream → **rejected**
+4. Stream from the same school but mismatched with the selected subject combination → **rejected**
+5. Partial enrollment update without stream/combination fields → existing assignment preserved
+6. Explicit `null` stream and combination values → assignments successfully cleared
+7. Normal enrollment without stream/combination → remains supported
+
+### Test Data
+
+Temporary test data was created through the actual APIs to verify the relationships, including:
+
+* Science stream
+* Arts test stream
+* Test Science subject
+* Science test subject combination
+* Test student
+
+The enrollment relationship was created, retrieved, updated, and cleared successfully.
+
+### Code Verification
+
+The Enrollment Controller passed the Node.js syntax check:
+
+```text
+Enrollment controller syntax: CLEAN
+```
+
+The Express server also started successfully and connected to PostgreSQL.
+
+### Git Checkpoint
+
+Migration 028 and the Enrollment Controller changes were committed as:
+
+```text
+278c1b8 feat: support stream and subject combination enrollment
+```
+
+The commit was successfully pushed to:
+
+```text
+origin/master
+```
+
+Only the intended backend files were included in the commit.
+
+The following unrelated working-tree files remain intentionally untouched and uncommitted:
+
+```text
+../client/AdminLogin.js
+cookies.txt
+login-response-new.json
+login-response.json
+```
+
+### Current Backend Status
+
+```text
+Authentication                         🟢 Complete
+Authorization / Permissions            🟢 Complete
+School Registration                    🟢 Complete
+Subscriptions                          🟢 Complete
+Students                               🟢 Complete
+Academic Sessions                      🟢 Complete
+Academic Levels                        🟢 Complete
+Classes                                🟢 Complete
+Sections                               🟢 Complete
+Enrollments                            🟢 Complete
+Terms                                  🟢 Complete
+Fee Structures                         🟢 Complete
+Student Financial Accounts             🟢 Complete
+Payments                               🟢 Complete
+School Officials                       🟢 Complete
+Payment Receipts                       🟢 Complete
+Expenses                               🟢 Complete
+Attendance                             🟢 Complete
+Subjects                               🟢 Complete
+Streams                                🟢 Complete
+Subject Combinations                   🟢 Complete
+Enrollment Academic Assignment        🟢 Complete
+```
+
+## Next Backend Phase
+
+The next major backend module is the **Results System**.
+
+The Results backend must remain authoritative for:
+
+* Subject applicability
+* Stream/subject-combination applicability
+* Continuous Assessment (CA) validation: maximum 30
+* Examination score validation: maximum 70
+* Total score calculation
+* Grade calculation
+* Remarks
+* Result finalization
+* Class ranking
+* Academic-level ranking
+* Third-term/session-level academic-level ranking where applicable
+* Result authorization by the Principal and Examination Officer
+* Historical result integrity
+
+The existing frontend Results implementation should be inspected before creating the Results schema so that the backend supports the established product requirements without introducing conflicting architecture.
+
+Before creating the next migration, inspect the existing Results frontend and backend structure, identify the exact data relationships required, and continue incrementally with schema design → controller/API → testing → Git checkpoint.
