@@ -1639,26 +1639,48 @@ Subject Combinations                   🟢 Complete
 Enrollment Academic Assignment        🟢 Complete
 ```
 
-## Next Backend Phase
 
-The next major backend module is the **Results System**.
+## Current Results Backend Position
 
-The Results backend must remain authoritative for:
+The Results backend foundation is now implemented and tested incrementally.
 
-* Subject applicability
-* Stream/subject-combination applicability
-* Continuous Assessment (CA) validation: maximum 30
-* Examination score validation: maximum 70
-* Total score calculation
-* Grade calculation
-* Remarks
-* Result finalization
+### Completed Results foundation
+
+* Migration 029 — assessment and grading settings
+* Migration 030 — results and result documents
+* Migration 031 — removed hard-coded Continuous Assessment (CA) and examination score limits from the results table
+* School-level assessment configuration with Continuous Assessment (CA) and examination maxima totaling 100
+* School-level grading scales with default A1–F9 configuration during school registration
+* Results Create, Read, Update, Delete (CRUD) API with school scoping and permission protection
+* Subject assignment validation against the student's academic level
+* Stream and subject-combination applicability validation
+* Configurable Continuous Assessment (CA) and examination score validation
+* Backend total-score calculation
+* Backend grade and remark calculation from school grading scales
+* Duplicate result protection per enrollment, term, and subject
+* Result document creation with historical school, student, academic, and official snapshots
+* One result document per student enrollment per term
+* Result document retrieval with result rows and subject names
+* Result document finalization
+* Finalization protection preventing edits and deletions of associated results
+* Finalization protection preventing empty result documents from being finalized
+* Finalization protection preventing an already-finalized document from being finalized again
+
+### Results requirements still to implement
+
+The backend must continue to remain authoritative for:
+
+* Complete subject applicability behavior, including non-offered subjects
 * Class ranking
 * Academic-level ranking
 * Third-term/session-level academic-level ranking where applicable
+* Session averages and final session result calculations
 * Result authorization by the Principal and Examination Officer
-* Historical result integrity
+* Result document download/printing support
+* Historical result integrity across finalized documents
 
-The existing frontend Results implementation should be inspected before creating the Results schema so that the backend supports the established product requirements without introducing conflicting architecture.
+The Results module should continue incrementally:
 
-Before creating the next migration, inspect the existing Results frontend and backend structure, identify the exact data relationships required, and continue incrementally with schema design → controller/API → testing → Git checkpoint.
+schema/migration → controller/API → focused testing → documentation checkpoint → Git commit/push.
+
+Do not mark any remaining Results requirement as complete until it has been implemented and tested successfully.

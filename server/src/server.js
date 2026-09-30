@@ -25,7 +25,7 @@ import attendanceRoutes from "./routes/attendanceRoutes.js";
 import subjectRoutes from "./routes/subjectRoutes.js";
 import streamRoutes from "./routes/streamRoutes.js";
 import subjectCombinationRoutes from "./routes/subjectCombinationRoutes.js";
-
+import resultRoutes from "./routes/resultRoutes.js";
 
 
 const app = express();
@@ -45,6 +45,7 @@ app.use("/api/terms", termRoutes);
 app.use("/api/subject-combinations", subjectCombinationRoutes);
 app.use("/api/streams", streamRoutes);
 app.use("/api/subjects", subjectRoutes);
+app.use("/api/results", resultRoutes);
 app.use("/api/teachers", teacherRoutes);
 app.use("/api/fee-structures", feeStructureRoutes);
 app.use(

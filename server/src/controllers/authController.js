@@ -187,6 +187,40 @@ export const registerSchool = async (req, res) => {
             [user.id, adminRoleId]
         );
 
+            await client.query(
+                `
+                INSERT INTO assessment_settings (
+                    school_id
+                )
+                VALUES ($1);
+            `,
+            [school.id]
+        );
+
+        await client.query(
+            `
+            INSERT INTO grading_scales (
+                school_id,
+                min_score,
+                max_score,
+                grade,
+                remark
+            )
+            VALUES
+                ($1, 90, 100, 'A1', 'Excellent'),
+                ($1, 80, 89, 'B2', 'Very Good'),
+                ($1, 70, 79, 'B3', 'Good'),
+                ($1, 60, 69, 'C4', 'Credit'),
+                ($1, 50, 59, 'C5', 'Credit'),
+                ($1, 45, 49, 'D7', 'Pass'),
+                ($1, 40, 44, 'E8', 'Pass'),
+                ($1, 0, 39, 'F9', 'Fail');
+            `,
+            [school.id]
+        );
+
+
+
         await client.query("COMMIT");
 
         return res.status(201).json({
