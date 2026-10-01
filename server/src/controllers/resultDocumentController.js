@@ -422,24 +422,60 @@ export const getResultDocumentById = async (req, res) => {
         const resultsResult = await pool.query(
             `
             SELECT
-                r.id,
-                r.subject_id,
+                s.id AS subject_id,
                 s.name AS subject_name,
                 s.code AS subject_code,
+
+                CASE
+                    WHEN se.subject_combination_id IS NULL
+                        THEN TRUE
+                    WHEN scs.subject_id IS NOT NULL
+                        THEN TRUE
+                    ELSE FALSE
+                END AS is_applicable,
+
+                CASE
+                    WHEN r.id IS NOT NULL
+                        THEN TRUE
+                    ELSE FALSE
+                END AS has_result,
+
+                r.id AS result_id,
                 r.ca,
                 r.exam,
                 r.total,
                 r.grade,
                 r.remark
 
-            FROM results r
+            FROM subjects s
 
-            INNER JOIN subjects s
-                ON s.id = r.subject_id
+            INNER JOIN subject_academic_levels sal
+                ON sal.subject_id = s.id
+               AND sal.academic_level_id = (
+                   SELECT c.academic_level_id
+                   FROM student_enrollments se_inner
+                   INNER JOIN classes c
+                       ON c.id = se_inner.class_id
+                   WHERE se_inner.id = $2
+                     AND se_inner.school_id = $1
+               )
 
-            WHERE r.school_id = $1
-              AND r.student_enrollment_id = $2
-              AND r.term_id = $3
+            INNER JOIN student_enrollments se
+                ON se.id = $2
+               AND se.school_id = $1
+
+            LEFT JOIN subject_combination_subjects scs
+                ON scs.subject_id = s.id
+               AND scs.subject_combination_id =
+                   se.subject_combination_id
+
+            LEFT JOIN results r
+                ON r.subject_id = s.id
+               AND r.school_id = $1
+               AND r.student_enrollment_id = se.id
+               AND r.term_id = $3
+
+            WHERE s.school_id = $1
 
             ORDER BY
                 s.name;

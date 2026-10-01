@@ -1644,6 +1644,7 @@ Enrollment Academic Assignment        🟢 Complete
 
 The Results backend foundation is now implemented and tested incrementally.
 
+
 ### Completed Results foundation
 
 * Migration 029 — assessment and grading settings
@@ -1653,6 +1654,7 @@ The Results backend foundation is now implemented and tested incrementally.
 * School-level grading scales with default A1–F9 configuration during school registration
 * Results Create, Read, Update, Delete (CRUD) API with school scoping and permission protection
 * Subject assignment validation against the student's academic level
+* Result document retrieval includes applicable academic-level subjects, distinguishes optional subject-combination applicability, and identifies subjects with and without entered results
 * Stream and subject-combination applicability validation
 * Configurable Continuous Assessment (CA) and examination score validation
 * Backend total-score calculation
