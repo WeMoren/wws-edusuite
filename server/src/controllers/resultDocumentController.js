@@ -398,6 +398,10 @@ export const getResultDocumentById = async (req, res) => {
                 rd.exam_officer_signature_url,
                 rd.exam_officer_stamp_url,
 
+                rd.session_average,
+                rd.session_academic_level_position,
+
+
                 rd.finalized_at,
                 rd.created_at,
                 rd.updated_at
@@ -588,12 +592,287 @@ export const finalizeResultDocument = async (req, res) => {
         }
 
         /*
+         * Determine whether this document belongs to
+         * Third Term.
+         */
+        const termContextResult = await client.query(
+            `
+            SELECT
+                t.id AS term_id,
+                t.display_order,
+                t.academic_session_id,
+
+                se.class_id,
+                c.academic_level_id
+
+            FROM terms t
+
+            INNER JOIN student_enrollments se
+                ON se.id = $2
+               AND se.school_id = $1
+
+            INNER JOIN classes c
+                ON c.id = se.class_id
+               AND c.school_id = $1
+
+            WHERE t.id = $3
+              AND t.school_id = $1;
+            `,
+            [
+                schoolId,
+                document.student_enrollment_id,
+                document.term_id,
+            ]
+        );
+
+        if (termContextResult.rows.length === 0) {
+            await client.query("ROLLBACK");
+
+            return res.status(404).json({
+                message:
+                    "The result document academic context could not be found.",
+            });
+        }
+
+        const termContext = termContextResult.rows[0];
+
+        let sessionAverage = null;
+        let sessionAcademicLevelPosition = null;
+
+        /*
+         * Third-Term result documents must contain a
+         * frozen session average and academic-level
+         * position.
+         *
+         * The calculation intentionally mirrors the
+         * authoritative session-ranking logic used by
+         * the session rankings endpoint.
+         */
+        if (termContext.display_order === 3) {
+            const sessionRankingResult = await client.query(
+                `
+                WITH session_terms AS (
+                    SELECT
+                        id,
+                        display_order
+                    FROM terms
+                    WHERE school_id = $1
+                      AND academic_session_id = $2
+                      AND display_order IN (1, 2, 3)
+                ),
+
+                applicable_subjects AS (
+                    SELECT
+                        se.id AS student_enrollment_id,
+                        s.id AS subject_id
+
+                    FROM student_enrollments se
+
+                    INNER JOIN classes c
+                        ON c.id = se.class_id
+
+                    INNER JOIN subjects s
+                        ON s.school_id = se.school_id
+
+                    INNER JOIN subject_academic_levels sal
+                        ON sal.subject_id = s.id
+                       AND sal.academic_level_id =
+                           c.academic_level_id
+
+                    LEFT JOIN subject_combination_subjects scs
+                        ON scs.subject_id = s.id
+                       AND scs.subject_combination_id =
+                           se.subject_combination_id
+
+                    WHERE se.school_id = $1
+                      AND se.academic_session_id = $2
+                      AND c.academic_level_id = $3
+
+                      AND (
+                          se.subject_combination_id IS NULL
+                          OR scs.subject_id IS NOT NULL
+                      )
+                ),
+
+                student_term_summary AS (
+                    SELECT
+                        se.id AS student_enrollment_id,
+                        se.student_id,
+                        se.class_id,
+                        c.academic_level_id,
+
+                        st.display_order,
+
+                        COUNT(DISTINCT aps.subject_id)
+                            AS applicable_subject_count,
+
+                        COUNT(DISTINCT r.subject_id)
+                            AS entered_result_count,
+
+                        SUM(r.total) AS total_score
+
+                    FROM student_enrollments se
+
+                    INNER JOIN classes c
+                        ON c.id = se.class_id
+
+                    CROSS JOIN session_terms st
+
+                    INNER JOIN applicable_subjects aps
+                        ON aps.student_enrollment_id = se.id
+
+                    LEFT JOIN results r
+                        ON r.student_enrollment_id = se.id
+                       AND r.term_id = st.id
+                       AND r.subject_id = aps.subject_id
+                       AND r.school_id = $1
+
+                    WHERE se.school_id = $1
+                      AND se.academic_session_id = $2
+                      AND c.academic_level_id = $3
+
+                    GROUP BY
+                        se.id,
+                        se.student_id,
+                        se.class_id,
+                        c.academic_level_id,
+                        st.display_order
+                ),
+
+                rankable_term_results AS (
+                    SELECT
+                        student_enrollment_id,
+                        student_id,
+                        class_id,
+                        academic_level_id,
+                        display_order,
+
+                        applicable_subject_count,
+                        entered_result_count,
+
+                        total_score
+                            / NULLIF(
+                                applicable_subject_count,
+                                0
+                            ) AS term_average
+
+                    FROM student_term_summary
+
+                    WHERE applicable_subject_count > 0
+                      AND entered_result_count =
+                          applicable_subject_count
+                ),
+
+                complete_session_results AS (
+                    SELECT
+                        student_enrollment_id,
+                        student_id,
+                        class_id,
+                        academic_level_id,
+
+                        MAX(
+                            CASE
+                                WHEN display_order = 1
+                                THEN term_average
+                            END
+                        ) AS first_term_average,
+
+                        MAX(
+                            CASE
+                                WHEN display_order = 2
+                                THEN term_average
+                            END
+                        ) AS second_term_average,
+
+                        MAX(
+                            CASE
+                                WHEN display_order = 3
+                                THEN term_average
+                            END
+                        ) AS third_term_average
+
+                    FROM rankable_term_results
+
+                    GROUP BY
+                        student_enrollment_id,
+                        student_id,
+                        class_id,
+                        academic_level_id
+
+                    HAVING COUNT(DISTINCT display_order) = 3
+                ),
+
+                session_rankable_students AS (
+                    SELECT
+                        csr.*,
+
+                        (
+                            csr.first_term_average
+                            + csr.second_term_average
+                            + csr.third_term_average
+                        ) / 3 AS session_average
+
+                    FROM complete_session_results csr
+                ),
+
+                ranked_students AS (
+                    SELECT
+                        srs.*,
+
+                        RANK() OVER (
+                            PARTITION BY
+                                srs.academic_level_id
+                            ORDER BY
+                                srs.session_average DESC
+                        ) AS session_academic_level_position
+
+                    FROM session_rankable_students srs
+                )
+
+                SELECT
+                    ROUND(
+                        rs.session_average,
+                        2
+                    ) AS session_average,
+
+                    rs.session_academic_level_position
+
+                FROM ranked_students rs
+
+                WHERE rs.student_enrollment_id = $4;
+                `,
+                [
+                    schoolId,
+                    termContext.academic_session_id,
+                    termContext.academic_level_id,
+                    document.student_enrollment_id,
+                ]
+            );
+
+            if (sessionRankingResult.rows.length === 0) {
+                await client.query("ROLLBACK");
+
+                return res.status(409).json({
+                    message:
+                        "Third-term result document cannot be finalized because the student does not have complete applicable results for all three terms.",
+                });
+            }
+
+            sessionAverage =
+                sessionRankingResult.rows[0].session_average;
+
+            sessionAcademicLevelPosition =
+                sessionRankingResult.rows[0].session_academic_level_position;
+        }
+
+        /*
          * Finalization permanently changes the document
          * from draft to finalized.
          *
-         * The existing result update/delete handlers
-         * already prevent changes to results belonging
-         * to a finalized result document.
+         * For Third Term, the session average and
+         * academic-level position are stored as snapshots
+         * so later changes cannot alter the finalized
+         * document.
          */
         const finalizedResult = await client.query(
             `
@@ -601,6 +880,8 @@ export const finalizeResultDocument = async (req, res) => {
 
             SET
                 status = 'finalized',
+                session_average = $3,
+                session_academic_level_position = $4,
                 finalized_at = NOW(),
                 updated_at = NOW()
 
@@ -613,10 +894,17 @@ export const finalizeResultDocument = async (req, res) => {
                 student_enrollment_id,
                 term_id,
                 status,
+                session_average,
+                session_academic_level_position,
                 finalized_at,
                 updated_at;
             `,
-            [id, schoolId]
+            [
+                id,
+                schoolId,
+                sessionAverage,
+                sessionAcademicLevelPosition,
+            ]
         );
 
         await client.query("COMMIT");
@@ -630,8 +918,8 @@ export const finalizeResultDocument = async (req, res) => {
         await client.query("ROLLBACK");
 
         console.error(
-            "Failed to finalize result document:",
-            error.message
+            "Error finalizing result document:",
+            error
         );
 
         return res.status(500).json({

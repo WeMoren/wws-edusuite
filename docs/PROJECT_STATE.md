@@ -1650,6 +1650,7 @@ The Results backend foundation is now implemented and tested incrementally.
 * Migration 029 — assessment and grading settings
 * Migration 030 — results and result documents
 * Migration 031 — removed hard-coded Continuous Assessment (CA) and examination score limits from the results table
+* Migration 032 — * Migration 032 — added Third-Term session average and session academic-level position snapshots to result documents
 * School-level assessment configuration with Continuous Assessment (CA) and examination maxima totaling 100
 * School-level grading scales with default A1–F9 configuration during school registration
 * Results Create, Read, Update, Delete (CRUD) API with school scoping and permission protection
@@ -1664,30 +1665,32 @@ The Results backend foundation is now implemented and tested incrementally.
 * One result document per student enrollment per term
 * Result document retrieval with result rows and subject names
 * Result document finalization
+* Third-Term finalization calculates and snapshots the session average
+* Third-Term finalization calculates and snapshots the session academic-level position
+* Session-level academic ranking requires complete applicable results for all three terms
+* Session-level academic ranking uses the three-term average and competition ranking
+* Class ranking across sections
+* Academic-level ranking across classes, sections, streams, and subject combinations where applicable
+* Students with incomplete applicable results are excluded from ranking until all applicable results are entered
+* Unoffered or combination-excluded subjects are excluded from ranking calculations and do not count as zero
 * Finalization protection preventing edits and deletions of associated results
 * Finalization protection preventing empty result documents from being finalized
 * Finalization protection preventing an already-finalized document from being finalized again
+* Finalized result documents preserve historical session ranking snapshots
+* First- and Second-Term result documents remain compatible with nullable session snapshot fields
+* Focused API and database testing completed for Third-Term session snapshots and finalized-result historical integrity
+
 
 ### Results requirements still to implement
 
 The backend must continue to remain authoritative for:
 
 * Complete subject applicability behavior, including non-offered subjects
-* Class ranking
-* Academic-level ranking
-* Third-term/session-level academic-level ranking where applicable
-* Session averages and final session result calculations
 * Result authorization by the Principal and Examination Officer
 * Result document download/printing support
-* Historical result integrity across finalized documents
 
 The Results module should continue incrementally:
 
 schema/migration → controller/API → focused testing → documentation checkpoint → Git commit/push.
 
 Do not mark any remaining Results requirement as complete until it has been implemented and tested successfully.
-
-- A student must have results entered for all applicable subjects for the term before receiving a class or academic-level ranking position.
-- Missing results for applicable subjects make the student's ranking incomplete; those subjects must not be treated as zero.
-- Unoffered subjects are excluded from the applicable-subject count and denominator.
-- Students with incomplete applicable results are excluded from ranking until all applicable subject results are entered.
