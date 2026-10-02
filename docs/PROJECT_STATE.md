@@ -1686,3 +1686,8 @@ The Results module should continue incrementally:
 schema/migration → controller/API → focused testing → documentation checkpoint → Git commit/push.
 
 Do not mark any remaining Results requirement as complete until it has been implemented and tested successfully.
+
+- A student must have results entered for all applicable subjects for the term before receiving a class or academic-level ranking position.
+- Missing results for applicable subjects make the student's ranking incomplete; those subjects must not be treated as zero.
+- Unoffered subjects are excluded from the applicable-subject count and denominator.
+- Students with incomplete applicable results are excluded from ranking until all applicable subject results are entered.

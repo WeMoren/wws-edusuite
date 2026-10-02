@@ -211,6 +211,37 @@ export const createResult = async (req, res) => {
             });
         }
 
+
+
+                /*
+         * A finalized result document protects
+         * all result records for that student and term.
+         */
+        const finalizedDocument = await client.query(
+            `
+            SELECT id
+            FROM result_documents
+            WHERE student_enrollment_id = $1
+              AND term_id = $2
+              AND school_id = $3
+              AND status = 'finalized';
+            `,
+            [
+                studentEnrollmentId,
+                termId,
+                schoolId,
+            ]
+        );
+
+        if (finalizedDocument.rows.length > 0) {
+            await client.query("ROLLBACK");
+
+            return res.status(409).json({
+                message:
+                    "This result cannot be created because the student's result document has been finalized.",
+            });
+        }
+
         /*
          * Check whether the result already exists.
          */
@@ -946,5 +977,650 @@ export const deleteResult = async (req, res) => {
         });
     } finally {
         client.release();
+    }
+};
+
+
+export const getResultRankings = async (req, res) => {
+    try {
+        const { schoolId } = req;
+        const { termId, classId } = req.query;
+
+        if (!termId || !classId) {
+            return res.status(400).json({
+                message:
+                    "Term and class are required.",
+            });
+        }
+
+        /*
+         * First, make sure the selected term and class
+         * belong to the same school.
+         */
+        const contextResult = await pool.query(
+            `
+            SELECT
+                t.id AS term_id,
+                t.name AS term_name,
+                t.academic_session_id,
+
+                c.id AS class_id,
+                c.name AS class_name,
+                c.academic_level_id,
+
+                al.name AS academic_level_name
+
+            FROM terms t
+
+            INNER JOIN classes c
+                ON c.academic_session_id = t.academic_session_id
+
+            INNER JOIN academic_levels al
+                ON al.id = c.academic_level_id
+
+            WHERE t.id = $1
+              AND t.school_id = $2
+              AND c.id = $3
+              AND c.school_id = $2;
+            `,
+            [
+                termId,
+                schoolId,
+                classId,
+            ]
+        );
+
+        if (contextResult.rows.length === 0) {
+            return res.status(404).json({
+                message:
+                    "The selected term and class could not be found for this school.",
+            });
+        }
+
+        const context = contextResult.rows[0];
+
+        /*
+         * Build applicability and entered-result counts
+         * for every student enrolled in the selected
+         * academic level.
+         *
+         * A student is rankable only when every applicable
+         * subject has a result for the selected term.
+         */
+        const rankingResult = await pool.query(
+            `
+            WITH applicable_subjects AS (
+                SELECT
+                    se.id AS student_enrollment_id,
+                    s.id AS subject_id
+
+                FROM student_enrollments se
+
+                INNER JOIN classes c
+                    ON c.id = se.class_id
+
+                INNER JOIN subjects s
+                    ON s.school_id = se.school_id
+
+                INNER JOIN subject_academic_levels sal
+                    ON sal.subject_id = s.id
+                   AND sal.academic_level_id = c.academic_level_id
+
+                LEFT JOIN subject_combination_subjects scs
+                    ON scs.subject_id = s.id
+                   AND scs.subject_combination_id =
+                       se.subject_combination_id
+
+                WHERE se.school_id = $1
+                  AND se.academic_session_id = $2
+                  AND c.academic_level_id = $3
+
+                  AND (
+                      se.subject_combination_id IS NULL
+                      OR scs.subject_id IS NOT NULL
+                  )
+            ),
+
+            student_subject_summary AS (
+                SELECT
+                    se.id AS student_enrollment_id,
+                    se.student_id,
+                    se.class_id,
+                    c.academic_level_id,
+
+                    COUNT(DISTINCT aps.subject_id)
+                        AS applicable_subject_count,
+
+                    COUNT(DISTINCT r.subject_id)
+                        AS entered_result_count,
+
+                    SUM(r.total) AS total_score
+
+                FROM student_enrollments se
+
+                INNER JOIN classes c
+                    ON c.id = se.class_id
+
+                INNER JOIN applicable_subjects aps
+                    ON aps.student_enrollment_id = se.id
+
+                LEFT JOIN results r
+                    ON r.student_enrollment_id = se.id
+                   AND r.term_id = $4
+                   AND r.subject_id = aps.subject_id
+                   AND r.school_id = $1
+
+                WHERE se.school_id = $1
+                  AND se.academic_session_id = $2
+                  AND c.academic_level_id = $3
+
+                GROUP BY
+                    se.id,
+                    se.student_id,
+                    se.class_id,
+                    c.academic_level_id
+            ),
+
+            rankable_students AS (
+                SELECT
+                    student_enrollment_id,
+                    student_id,
+                    class_id,
+                    academic_level_id,
+                    applicable_subject_count,
+                    entered_result_count,
+                    total_score,
+
+                    total_score
+                        / NULLIF(
+                            applicable_subject_count,
+                            0
+                        ) AS average_score
+
+                FROM student_subject_summary
+
+                WHERE applicable_subject_count > 0
+                  AND entered_result_count =
+                      applicable_subject_count
+            ),
+
+            ranked_students AS (
+                SELECT
+                    rs.*,
+
+                    RANK() OVER (
+                        PARTITION BY rs.class_id
+                        ORDER BY rs.average_score DESC
+                    ) AS class_position,
+
+                    RANK() OVER (
+                        PARTITION BY rs.academic_level_id
+                        ORDER BY rs.average_score DESC
+                    ) AS academic_level_position
+
+                FROM rankable_students rs
+            )
+
+            SELECT
+                rs.student_enrollment_id,
+                rs.student_id,
+
+                st.first_name,
+                st.middle_name,
+                st.last_name,
+                st.admission_no AS admission_number,
+
+                rs.class_id,
+                c.name AS class_name,
+
+                sec.id AS section_id,
+                sec.name AS section_name,
+
+                al.id AS academic_level_id,
+                al.name AS academic_level_name,
+
+                str.id AS stream_id,
+                str.name AS stream_name,
+
+                sc.id AS subject_combination_id,
+                sc.name AS subject_combination_name,
+
+                rs.applicable_subject_count,
+                rs.entered_result_count,
+                rs.total_score,
+                ROUND(
+                    rs.average_score,
+                    2
+                ) AS average_score,
+
+                rs.class_position,
+                rs.academic_level_position
+
+            FROM ranked_students rs
+
+            INNER JOIN students st
+                ON st.id = rs.student_id
+
+            INNER JOIN classes c
+                ON c.id = rs.class_id
+
+            INNER JOIN sections sec
+                ON sec.id = (
+                    SELECT se_inner.section_id
+                    FROM student_enrollments se_inner
+                    WHERE se_inner.id =
+                        rs.student_enrollment_id
+                )
+
+            INNER JOIN academic_levels al
+                ON al.id = rs.academic_level_id
+
+            LEFT JOIN student_enrollments se
+                ON se.id = rs.student_enrollment_id
+
+            LEFT JOIN streams str
+                ON str.id = se.stream_id
+
+            LEFT JOIN subject_combinations sc
+                ON sc.id = se.subject_combination_id
+
+            WHERE rs.class_id = $5
+
+            ORDER BY
+                rs.class_position,
+                st.last_name,
+                st.first_name;
+            `,
+            [
+                schoolId,
+                context.academic_session_id,
+                context.academic_level_id,
+                termId,
+                classId,
+            ]
+        );
+
+        return res.status(200).json({
+            rankings: rankingResult.rows,
+            context: {
+                termId: context.term_id,
+                termName: context.term_name,
+                classId: context.class_id,
+                className: context.class_name,
+                academicLevelId:
+                    context.academic_level_id,
+                academicLevelName:
+                    context.academic_level_name,
+            },
+        });
+    } catch (error) {
+        console.error(
+            "Failed to calculate result rankings:",
+            error.message
+        );
+
+        return res.status(500).json({
+            message:
+                "Failed to calculate result rankings.",
+        });
+    }
+};
+
+
+
+export const getSessionResultRankings = async (req, res) => {
+    try {
+        const { schoolId } = req;
+        const { termId, classId } = req.query;
+
+        if (!termId || !classId) {
+            return res.status(400).json({
+                message:
+                    "Third-term and class are required.",
+            });
+        }
+
+        const contextResult = await pool.query(
+            `
+            SELECT
+                selected_term.id AS third_term_id,
+                selected_term.name AS third_term_name,
+                selected_term.academic_session_id,
+
+                c.id AS class_id,
+                c.name AS class_name,
+                c.academic_level_id,
+
+                al.name AS academic_level_name
+
+            FROM terms selected_term
+
+            INNER JOIN classes c
+                ON c.id = $3
+               AND c.academic_session_id =
+                   selected_term.academic_session_id
+               AND c.school_id = selected_term.school_id
+
+            INNER JOIN academic_levels al
+                ON al.id = c.academic_level_id
+
+            WHERE selected_term.id = $1
+              AND selected_term.school_id = $2
+              AND selected_term.display_order = 3
+              AND c.id = $3;
+            `,
+            [
+                termId,
+                schoolId,
+                classId,
+            ]
+        );
+
+        if (contextResult.rows.length === 0) {
+            return res.status(404).json({
+                message:
+                    "The selected third term and class could not be found for this school.",
+            });
+        }
+
+        const context = contextResult.rows[0];
+
+        const rankingResult = await pool.query(
+            `
+            WITH session_terms AS (
+                SELECT
+                    id,
+                    display_order
+                FROM terms
+                WHERE school_id = $1
+                  AND academic_session_id = $2
+                  AND display_order IN (1, 2, 3)
+            ),
+
+            applicable_subjects AS (
+                SELECT
+                    se.id AS student_enrollment_id,
+                    s.id AS subject_id
+
+                FROM student_enrollments se
+
+                INNER JOIN classes c
+                    ON c.id = se.class_id
+
+                INNER JOIN subjects s
+                    ON s.school_id = se.school_id
+
+                INNER JOIN subject_academic_levels sal
+                    ON sal.subject_id = s.id
+                   AND sal.academic_level_id =
+                       c.academic_level_id
+
+                LEFT JOIN subject_combination_subjects scs
+                    ON scs.subject_id = s.id
+                   AND scs.subject_combination_id =
+                       se.subject_combination_id
+
+                WHERE se.school_id = $1
+                  AND se.academic_session_id = $2
+                  AND c.academic_level_id =
+                      $3
+
+                  AND (
+                      se.subject_combination_id IS NULL
+                      OR scs.subject_id IS NOT NULL
+                  )
+            ),
+
+            student_term_summary AS (
+                SELECT
+                    se.id AS student_enrollment_id,
+                    se.student_id,
+                    se.class_id,
+                    c.academic_level_id,
+
+                    st.display_order,
+
+                    COUNT(DISTINCT aps.subject_id)
+                        AS applicable_subject_count,
+
+                    COUNT(DISTINCT r.subject_id)
+                        AS entered_result_count,
+
+                    SUM(r.total) AS total_score
+
+                FROM student_enrollments se
+
+                INNER JOIN classes c
+                    ON c.id = se.class_id
+
+                CROSS JOIN session_terms st
+
+                INNER JOIN applicable_subjects aps
+                    ON aps.student_enrollment_id = se.id
+
+                LEFT JOIN results r
+                    ON r.student_enrollment_id = se.id
+                   AND r.term_id = st.id
+                   AND r.subject_id = aps.subject_id
+                   AND r.school_id = $1
+
+                WHERE se.school_id = $1
+                  AND se.academic_session_id = $2
+                  AND c.academic_level_id = $3
+
+                GROUP BY
+                    se.id,
+                    se.student_id,
+                    se.class_id,
+                    c.academic_level_id,
+                    st.display_order
+            ),
+
+            rankable_term_results AS (
+                SELECT
+                    student_enrollment_id,
+                    student_id,
+                    class_id,
+                    academic_level_id,
+                    display_order,
+
+                    applicable_subject_count,
+                    entered_result_count,
+
+                    total_score
+                        / NULLIF(
+                            applicable_subject_count,
+                            0
+                        ) AS term_average
+
+                FROM student_term_summary
+
+                WHERE applicable_subject_count > 0
+                  AND entered_result_count =
+                      applicable_subject_count
+            ),
+
+            complete_session_results AS (
+                SELECT
+                    student_enrollment_id,
+                    student_id,
+                    class_id,
+                    academic_level_id,
+
+                    MAX(
+                        CASE
+                            WHEN display_order = 1
+                            THEN term_average
+                        END
+                    ) AS first_term_average,
+
+                    MAX(
+                        CASE
+                            WHEN display_order = 2
+                            THEN term_average
+                        END
+                    ) AS second_term_average,
+
+                    MAX(
+                        CASE
+                            WHEN display_order = 3
+                            THEN term_average
+                        END
+                    ) AS third_term_average
+
+                FROM rankable_term_results
+
+                GROUP BY
+                    student_enrollment_id,
+                    student_id,
+                    class_id,
+                    academic_level_id
+
+                HAVING COUNT(DISTINCT display_order) = 3
+            ),
+
+            session_rankable_students AS (
+                SELECT
+                    csr.*,
+
+                    (
+                        csr.first_term_average
+                        + csr.second_term_average
+                        + csr.third_term_average
+                    ) / 3 AS session_average
+
+                FROM complete_session_results csr
+            ),
+
+            ranked_students AS (
+                SELECT
+                    srs.*,
+
+                    RANK() OVER (
+                        PARTITION BY
+                            srs.academic_level_id
+                        ORDER BY
+                            srs.session_average DESC
+                    ) AS session_academic_level_position
+
+                FROM session_rankable_students srs
+            )
+
+            SELECT
+                rs.student_enrollment_id,
+                rs.student_id,
+
+                st.first_name,
+                st.middle_name,
+                st.last_name,
+                st.admission_no AS admission_number,
+
+                rs.class_id,
+                c.name AS class_name,
+
+                sec.id AS section_id,
+                sec.name AS section_name,
+
+                al.id AS academic_level_id,
+                al.name AS academic_level_name,
+
+                str.id AS stream_id,
+                str.name AS stream_name,
+
+                sc.id AS subject_combination_id,
+                sc.name AS subject_combination_name,
+
+                ROUND(
+                    rs.first_term_average,
+                    2
+                ) AS first_term_average,
+
+                ROUND(
+                    rs.second_term_average,
+                    2
+                ) AS second_term_average,
+
+                ROUND(
+                    rs.third_term_average,
+                    2
+                ) AS third_term_average,
+
+                ROUND(
+                    rs.session_average,
+                    2
+                ) AS session_average,
+
+                rs.session_academic_level_position
+
+            FROM ranked_students rs
+
+            INNER JOIN students st
+                ON st.id = rs.student_id
+
+            INNER JOIN classes c
+                ON c.id = rs.class_id
+
+            INNER JOIN sections sec
+                ON sec.id = (
+                    SELECT se_inner.section_id
+                    FROM student_enrollments se_inner
+                    WHERE se_inner.id =
+                        rs.student_enrollment_id
+                )
+
+            INNER JOIN academic_levels al
+                ON al.id = rs.academic_level_id
+
+            LEFT JOIN student_enrollments se
+                ON se.id = rs.student_enrollment_id
+
+            LEFT JOIN streams str
+                ON str.id = se.stream_id
+
+            LEFT JOIN subject_combinations sc
+                ON sc.id = se.subject_combination_id
+
+            WHERE rs.class_id = $4
+
+            ORDER BY
+                rs.session_academic_level_position,
+                st.last_name,
+                st.first_name;
+            `,
+            [
+                schoolId,
+                context.academic_session_id,
+                context.academic_level_id,
+                classId,
+            ]
+        );
+
+        return res.status(200).json({
+            rankings: rankingResult.rows,
+            context: {
+                thirdTermId:
+                    context.third_term_id,
+                thirdTermName:
+                    context.third_term_name,
+                classId:
+                    context.class_id,
+                className:
+                    context.class_name,
+                academicLevelId:
+                    context.academic_level_id,
+                academicLevelName:
+                    context.academic_level_name,
+            },
+        });
+    } catch (error) {
+        console.error(
+            "Failed to calculate session result rankings:",
+            error.message
+        );
+
+        return res.status(500).json({
+            message:
+                "Failed to calculate session result rankings.",
+        });
     }
 };

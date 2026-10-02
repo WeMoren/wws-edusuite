@@ -3,6 +3,8 @@ import express from "express";
 import {
     getResults,
     getResultById,
+    getResultRankings,
+    getSessionResultRankings,
     createResult,
     updateResult,
     deleteResult,
@@ -50,6 +52,22 @@ router.post(
     requireSchoolContext,
     requirePermission("results", "edit"),
     finalizeResultDocument
+);
+
+router.get(
+    "/rankings",
+    authenticateToken,
+    requireSchoolContext,
+    requirePermission("results", "view"),
+    getResultRankings
+);
+
+router.get(
+    "/session-rankings",
+    authenticateToken,
+    requireSchoolContext,
+    requirePermission("results", "view"),
+    getSessionResultRankings
 );
 
 router.get(
