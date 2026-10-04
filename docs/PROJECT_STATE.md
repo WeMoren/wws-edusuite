@@ -1650,7 +1650,7 @@ The Results backend foundation is now implemented and tested incrementally.
 * Migration 029 — assessment and grading settings
 * Migration 030 — results and result documents
 * Migration 031 — removed hard-coded Continuous Assessment (CA) and examination score limits from the results table
-* Migration 032 — * Migration 032 — added Third-Term session average and session academic-level position snapshots to result documents
+* Migration 032 — added Third-Term session average and session academic-level position snapshots to result documents
 * School-level assessment configuration with Continuous Assessment (CA) and examination maxima totaling 100
 * School-level grading scales with default A1–F9 configuration during school registration
 * Results Create, Read, Update, Delete (CRUD) API with school scoping and permission protection
@@ -1681,12 +1681,22 @@ The Results backend foundation is now implemented and tested incrementally.
 * Focused API and database testing completed for Third-Term session snapshots and finalized-result historical integrity
 
 
+* Migration 033 — added result document authorization permission and authorization snapshots
+* Principal authorization is performed by the Admin application role
+* Exam Officer authorization is performed independently by the Exam Officer role
+* Both Principal and Exam Officer authorizations are required before result document finalization
+* Result documents preserve authorization timestamps and the authenticated users who performed each authorization
+* Duplicate Principal or Exam Officer authorization is prevented
+* Finalized result documents cannot be authorized
+* Finalization responses include the authorization snapshots alongside finalization data
+* Result authorization endpoints are school-scoped and protected by the results:authorize permission
+* Authorization workflow tested successfully with Admin and Exam Officer users
+
 ### Results requirements still to implement
 
 The backend must continue to remain authoritative for:
 
 * Complete subject applicability behavior, including non-offered subjects
-* Result authorization by the Principal and Examination Officer
 * Result document download/printing support
 
 The Results module should continue incrementally:

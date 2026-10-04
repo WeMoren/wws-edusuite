@@ -13,7 +13,9 @@ import {
 import {
     createResultDocument,
     getResultDocumentById,
-    finalizeResultDocument
+    finalizeResultDocument,
+    authorizeResultDocumentAsPrincipal,
+    authorizeResultDocumentAsExamOfficer
 } from "../controllers/resultDocumentController.js";
 
 import { authenticateToken } from "../middleware/authMiddleware.js";
@@ -44,6 +46,22 @@ router.get(
     requireSchoolContext,
     requirePermission("results", "view"),
     getResultDocumentById
+);
+
+router.post(
+    "/documents/:id/authorize/principal",
+    authenticateToken,
+    requireSchoolContext,
+    requirePermission("results", "authorize"),
+    authorizeResultDocumentAsPrincipal
+);
+
+router.post(
+    "/documents/:id/authorize/exam-officer",
+    authenticateToken,
+    requireSchoolContext,
+    requirePermission("results", "authorize"),
+    authorizeResultDocumentAsExamOfficer
 );
 
 router.post(

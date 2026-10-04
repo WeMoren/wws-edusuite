@@ -402,6 +402,11 @@ export const getResultDocumentById = async (req, res) => {
                 rd.session_academic_level_position,
 
 
+                rd.principal_authorized_at,
+                rd.principal_authorized_by,
+                rd.exam_officer_authorized_at,
+                rd.exam_officer_authorized_by,
+
                 rd.finalized_at,
                 rd.created_at,
                 rd.updated_at
@@ -529,7 +534,12 @@ export const finalizeResultDocument = async (req, res) => {
                 id,
                 student_enrollment_id,
                 term_id,
-                status
+                status,
+
+                principal_authorized_at,
+                principal_authorized_by,
+                exam_officer_authorized_at,
+                exam_officer_authorized_by
 
             FROM result_documents
 
@@ -551,6 +561,35 @@ export const finalizeResultDocument = async (req, res) => {
         }
 
         const document = documentResult.rows[0];
+
+
+                /*
+        * A result document must receive both required
+        * authorizations before it can be finalized.
+        */
+        if (
+            !document.principal_authorized_at ||
+            !document.principal_authorized_by
+        ) {
+            await client.query("ROLLBACK");
+
+            return res.status(409).json({
+                message:
+                    "Result document cannot be finalized because Principal authorization is still required.",
+            });
+        }
+
+        if (
+            !document.exam_officer_authorized_at ||
+            !document.exam_officer_authorized_by
+        ) {
+            await client.query("ROLLBACK");
+
+            return res.status(409).json({
+                message:
+                    "Result document cannot be finalized because Exam Officer authorization is still required.",
+            });
+        }
 
         if (document.status === "finalized") {
             await client.query("ROLLBACK");
@@ -896,6 +935,11 @@ export const finalizeResultDocument = async (req, res) => {
                 status,
                 session_average,
                 session_academic_level_position,
+                principal_authorized_at,
+                principal_authorized_by,
+                exam_officer_authorized_at,
+                exam_officer_authorized_by,
+
                 finalized_at,
                 updated_at;
             `,
@@ -925,6 +969,236 @@ export const finalizeResultDocument = async (req, res) => {
         return res.status(500).json({
             message:
                 "Failed to finalize result document.",
+        });
+    } finally {
+        client.release();
+    }
+};
+
+
+export const authorizeResultDocumentAsPrincipal = async (req, res) => {
+    const { id } = req.params;
+    const { schoolId } = req;
+
+    if (req.user.role !== "Admin") {
+        return res.status(403).json({
+            message:
+                "Only the Admin (Principal) can authorize result documents as Principal.",
+        });
+    }
+
+    const client = await pool.connect();
+
+    try {
+        await client.query("BEGIN");
+
+        const documentResult = await client.query(
+            `
+            SELECT
+                id,
+                status,
+                principal_authorized_at
+
+            FROM result_documents
+
+            WHERE id = $1
+              AND school_id = $2
+
+            FOR UPDATE;
+            `,
+            [id, schoolId]
+        );
+
+        if (documentResult.rows.length === 0) {
+            await client.query("ROLLBACK");
+
+            return res.status(404).json({
+                message:
+                    "Result document not found.",
+            });
+        }
+
+        const document = documentResult.rows[0];
+
+        if (document.status === "finalized") {
+            await client.query("ROLLBACK");
+
+            return res.status(409).json({
+                message:
+                    "A finalized result document cannot be authorized.",
+            });
+        }
+
+        if (document.principal_authorized_at) {
+            await client.query("ROLLBACK");
+
+            return res.status(409).json({
+                message:
+                    "Result document has already been authorized by the Principal.",
+            });
+        }
+
+        const authorizationResult = await client.query(
+            `
+            UPDATE result_documents
+
+            SET
+                principal_authorized_at = NOW(),
+                principal_authorized_by = $3,
+                updated_at = NOW()
+
+            WHERE id = $1
+              AND school_id = $2
+
+            RETURNING
+                id,
+                status,
+                principal_authorized_at,
+                principal_authorized_by,
+                exam_officer_authorized_at,
+                exam_officer_authorized_by,
+                updated_at;
+            `,
+            [
+                id,
+                schoolId,
+                req.user.userId,
+            ]
+        );
+
+        await client.query("COMMIT");
+
+        return res.status(200).json({
+            message:
+                "Result document authorized by the Principal successfully.",
+            document: authorizationResult.rows[0],
+        });
+    } catch (error) {
+        await client.query("ROLLBACK");
+
+        console.error(
+            "Error authorizing result document as Principal:",
+            error
+        );
+
+        return res.status(500).json({
+            message:
+                "Failed to authorize result document as Principal.",
+        });
+    } finally {
+        client.release();
+    }
+};
+
+
+export const authorizeResultDocumentAsExamOfficer = async (req, res) => {
+    const { id } = req.params;
+    const { schoolId } = req;
+
+    if (req.user.role !== "Exam Officer") {
+        return res.status(403).json({
+            message:
+                "Only the Exam Officer can authorize result documents as Exam Officer.",
+        });
+    }
+
+    const client = await pool.connect();
+
+    try {
+        await client.query("BEGIN");
+
+        const documentResult = await client.query(
+            `
+            SELECT
+                id,
+                status,
+                exam_officer_authorized_at
+
+            FROM result_documents
+
+            WHERE id = $1
+              AND school_id = $2
+
+            FOR UPDATE;
+            `,
+            [id, schoolId]
+        );
+
+        if (documentResult.rows.length === 0) {
+            await client.query("ROLLBACK");
+
+            return res.status(404).json({
+                message:
+                    "Result document not found.",
+            });
+        }
+
+        const document = documentResult.rows[0];
+
+        if (document.status === "finalized") {
+            await client.query("ROLLBACK");
+
+            return res.status(409).json({
+                message:
+                    "A finalized result document cannot be authorized.",
+            });
+        }
+
+        if (document.exam_officer_authorized_at) {
+            await client.query("ROLLBACK");
+
+            return res.status(409).json({
+                message:
+                    "Result document has already been authorized by the Exam Officer.",
+            });
+        }
+
+        const authorizationResult = await client.query(
+            `
+            UPDATE result_documents
+
+            SET
+                exam_officer_authorized_at = NOW(),
+                exam_officer_authorized_by = $3,
+                updated_at = NOW()
+
+            WHERE id = $1
+              AND school_id = $2
+
+            RETURNING
+                id,
+                status,
+                principal_authorized_at,
+                principal_authorized_by,
+                exam_officer_authorized_at,
+                exam_officer_authorized_by,
+                updated_at;
+            `,
+            [
+                id,
+                schoolId,
+                req.user.userId,
+            ]
+        );
+
+        await client.query("COMMIT");
+
+        return res.status(200).json({
+            message:
+                "Result document authorized by the Exam Officer successfully.",
+            document: authorizationResult.rows[0],
+        });
+    } catch (error) {
+        await client.query("ROLLBACK");
+
+        console.error(
+            "Error authorizing result document as Exam Officer:",
+            error
+        );
+
+        return res.status(500).json({
+            message:
+                "Failed to authorize result document as Exam Officer.",
         });
     } finally {
         client.release();
