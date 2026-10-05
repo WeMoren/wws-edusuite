@@ -401,6 +401,17 @@ export const getResultDocumentById = async (req, res) => {
                 rd.session_average,
                 rd.session_academic_level_position,
 
+                rd.term_total_score,
+                rd.term_average,
+                rd.term_grade,
+                rd.term_remark,
+                rd.class_position,
+                rd.academic_level_position,
+
+                rd.attendance_present,
+                rd.attendance_absent,
+                rd.attendance_total_marked,
+                rd.attendance_percentage,
 
                 rd.principal_authorized_at,
                 rd.principal_authorized_by,
@@ -514,7 +525,6 @@ export const getResultDocumentById = async (req, res) => {
 };
 
 
-
 export const finalizeResultDocument = async (req, res) => {
     const { id } = req.params;
     const { schoolId } = req;
@@ -562,11 +572,10 @@ export const finalizeResultDocument = async (req, res) => {
 
         const document = documentResult.rows[0];
 
-
-                /*
-        * A result document must receive both required
-        * authorizations before it can be finalized.
-        */
+        /*
+         * A result document must receive both required
+         * authorizations before it can be finalized.
+         */
         if (
             !document.principal_authorized_at ||
             !document.principal_authorized_by
@@ -601,38 +610,8 @@ export const finalizeResultDocument = async (req, res) => {
         }
 
         /*
-         * A result document cannot be finalized without
-         * at least one result record.
-         */
-        const resultsCount = await client.query(
-            `
-            SELECT COUNT(*)::INTEGER AS count
-
-            FROM results
-
-            WHERE school_id = $1
-              AND student_enrollment_id = $2
-              AND term_id = $3;
-            `,
-            [
-                schoolId,
-                document.student_enrollment_id,
-                document.term_id,
-            ]
-        );
-
-        if (resultsCount.rows[0].count === 0) {
-            await client.query("ROLLBACK");
-
-            return res.status(409).json({
-                message:
-                    "Result document cannot be finalized because no results have been entered.",
-            });
-        }
-
-        /*
-         * Determine whether this document belongs to
-         * Third Term.
+         * Determine the student's academic context
+         * for the selected term.
          */
         const termContextResult = await client.query(
             `
@@ -675,18 +654,295 @@ export const finalizeResultDocument = async (req, res) => {
 
         const termContext = termContextResult.rows[0];
 
-        let sessionAverage = null;
-        let sessionAcademicLevelPosition = null;
+        /*
+         * Calculate the student's authoritative term
+         * result and competition rankings.
+         *
+         * A student is rankable only when every applicable
+         * subject for the term has an entered result.
+         *
+         * Subjects excluded by a student's combination are
+         * not applicable and therefore do not enter the
+         * denominator.
+         */
+        const termRankingResult = await client.query(
+            `
+            WITH applicable_subjects AS (
+                SELECT
+                    se.id AS student_enrollment_id,
+                    s.id AS subject_id
+
+                FROM student_enrollments se
+
+                INNER JOIN classes c
+                    ON c.id = se.class_id
+
+                INNER JOIN subjects s
+                    ON s.school_id = se.school_id
+
+                INNER JOIN subject_academic_levels sal
+                    ON sal.subject_id = s.id
+                   AND sal.academic_level_id =
+                       c.academic_level_id
+
+                LEFT JOIN subject_combination_subjects scs
+                    ON scs.subject_id = s.id
+                   AND scs.subject_combination_id =
+                       se.subject_combination_id
+
+                WHERE se.school_id = $1
+                  AND se.academic_session_id =
+                      $2
+                  AND c.academic_level_id =
+                      $3
+
+                  AND (
+                      se.subject_combination_id IS NULL
+                      OR scs.subject_id IS NOT NULL
+                  )
+            ),
+
+            student_subject_summary AS (
+                SELECT
+                    se.id AS student_enrollment_id,
+                    se.student_id,
+                    se.class_id,
+                    c.academic_level_id,
+
+                    COUNT(DISTINCT aps.subject_id)
+                        AS applicable_subject_count,
+
+                    COUNT(DISTINCT r.subject_id)
+                        AS entered_result_count,
+
+                    SUM(r.total) AS total_score
+
+                FROM student_enrollments se
+
+                INNER JOIN classes c
+                    ON c.id = se.class_id
+
+                INNER JOIN applicable_subjects aps
+                    ON aps.student_enrollment_id = se.id
+
+                LEFT JOIN results r
+                    ON r.student_enrollment_id = se.id
+                   AND r.term_id = $4
+                   AND r.subject_id = aps.subject_id
+                   AND r.school_id = $1
+
+                WHERE se.school_id = $1
+                  AND se.academic_session_id =
+                      $2
+                  AND c.academic_level_id =
+                      $3
+
+                GROUP BY
+                    se.id,
+                    se.student_id,
+                    se.class_id,
+                    c.academic_level_id
+            ),
+
+            rankable_students AS (
+                SELECT
+                    student_enrollment_id,
+                    student_id,
+                    class_id,
+                    academic_level_id,
+
+                    applicable_subject_count,
+                    entered_result_count,
+                    total_score,
+
+                    total_score
+                        / NULLIF(
+                            applicable_subject_count,
+                            0
+                        ) AS average_score
+
+                FROM student_subject_summary
+
+                WHERE applicable_subject_count > 0
+                  AND entered_result_count =
+                      applicable_subject_count
+            ),
+
+            ranked_students AS (
+                SELECT
+                    rs.*,
+
+                    RANK() OVER (
+                        PARTITION BY rs.class_id
+                        ORDER BY rs.average_score DESC
+                    ) AS class_position,
+
+                    RANK() OVER (
+                        PARTITION BY rs.academic_level_id
+                        ORDER BY rs.average_score DESC
+                    ) AS academic_level_position
+
+                FROM rankable_students rs
+            )
+
+            SELECT
+                applicable_subject_count,
+                entered_result_count,
+
+                ROUND(
+                    total_score,
+                    2
+                ) AS total_score,
+
+                ROUND(
+                    average_score,
+                    2
+                ) AS average_score,
+
+                class_position,
+                academic_level_position
+
+            FROM ranked_students
+
+            WHERE student_enrollment_id = $5;
+            `,
+            [
+                schoolId,
+                termContext.academic_session_id,
+                termContext.academic_level_id,
+                document.term_id,
+                document.student_enrollment_id,
+            ]
+        );
+
+        if (termRankingResult.rows.length === 0) {
+            /*
+             * The student is not rankable because at least
+             * one applicable subject does not yet have a
+             * result.
+             */
+            await client.query("ROLLBACK");
+
+            return res.status(409).json({
+                message:
+                    "Result document cannot be finalized because the student does not have complete applicable results for this term.",
+            });
+        }
+
+        const termSummary = termRankingResult.rows[0];
 
         /*
-         * Third-Term result documents must contain a
-         * frozen session average and academic-level
-         * position.
+         * Resolve the authoritative overall grade and
+         * remark using the school's configured grading scale.
+         */
+        const gradingScaleResult = await client.query(
+            `
+            SELECT
+                grade,
+                remark
+
+            FROM grading_scales
+
+            WHERE school_id = $1
+              AND min_score <= $2
+              AND max_score >= $2
+
+            ORDER BY min_score DESC;
+            `,
+            [
+                schoolId,
+                termSummary.average_score,
+            ]
+        );
+
+        if (gradingScaleResult.rows.length === 0) {
+            await client.query("ROLLBACK");
+
+            return res.status(409).json({
+                message:
+                    "Result document cannot be finalized because no grading scale matches the student's term average.",
+            });
+        }
+
+        if (gradingScaleResult.rows.length > 1) {
+            await client.query("ROLLBACK");
+
+            return res.status(409).json({
+                message:
+                    "Result document cannot be finalized because multiple grading scales match the student's term average.",
+            });
+        }
+
+        const termGrade = gradingScaleResult.rows[0].grade;
+        const termRemark = gradingScaleResult.rows[0].remark;
+
+        /*
+         * Calculate and freeze attendance for this student
+         * and term.
+         *
+         * If no attendance has been recorded, all attendance
+         * snapshot values remain NULL rather than presenting
+         * an artificial 0% attendance.
+         */
+        const attendanceResult = await client.query(
+            `
+            SELECT
+                COUNT(*) FILTER (
+                    WHERE status = 'present'
+                )::INTEGER AS present,
+
+                COUNT(*) FILTER (
+                    WHERE status = 'absent'
+                )::INTEGER AS absent,
+
+                COUNT(*)::INTEGER AS total_marked
+
+            FROM attendance_records
+
+            WHERE school_id = $1
+              AND enrollment_id = $2
+              AND academic_term_id = $3;
+            `,
+            [
+                schoolId,
+                document.student_enrollment_id,
+                document.term_id,
+            ]
+        );
+
+        const attendance = attendanceResult.rows[0];
+
+        let attendancePresent = null;
+        let attendanceAbsent = null;
+        let attendanceTotalMarked = null;
+        let attendancePercentage = null;
+
+        if (attendance.total_marked > 0) {
+            attendancePresent = attendance.present;
+            attendanceAbsent = attendance.absent;
+            attendanceTotalMarked = attendance.total_marked;
+
+            attendancePercentage =
+                Number(
+                    (
+                        (attendancePresent /
+                            attendanceTotalMarked) *
+                        100
+                    ).toFixed(2)
+                );
+        }
+
+        /*
+         * Third-Term result documents must also contain
+         * frozen session average and academic-level position.
          *
          * The calculation intentionally mirrors the
          * authoritative session-ranking logic used by
          * the session rankings endpoint.
          */
+        let sessionAverage = null;
+        let sessionAcademicLevelPosition = null;
+
         if (termContext.display_order === 3) {
             const sessionRankingResult = await client.query(
                 `
@@ -694,7 +950,9 @@ export const finalizeResultDocument = async (req, res) => {
                     SELECT
                         id,
                         display_order
+
                     FROM terms
+
                     WHERE school_id = $1
                       AND academic_session_id = $2
                       AND display_order IN (1, 2, 3)
@@ -908,10 +1166,9 @@ export const finalizeResultDocument = async (req, res) => {
          * Finalization permanently changes the document
          * from draft to finalized.
          *
-         * For Third Term, the session average and
-         * academic-level position are stored as snapshots
-         * so later changes cannot alter the finalized
-         * document.
+         * All calculated term and attendance values are
+         * stored as snapshots so later changes cannot alter
+         * the finalized document.
          */
         const finalizedResult = await client.query(
             `
@@ -919,8 +1176,22 @@ export const finalizeResultDocument = async (req, res) => {
 
             SET
                 status = 'finalized',
-                session_average = $3,
-                session_academic_level_position = $4,
+
+                term_total_score = $3,
+                term_average = $4,
+                term_grade = $5,
+                term_remark = $6,
+                class_position = $7,
+                academic_level_position = $8,
+
+                attendance_present = $9,
+                attendance_absent = $10,
+                attendance_total_marked = $11,
+                attendance_percentage = $12,
+
+                session_average = $13,
+                session_academic_level_position = $14,
+
                 finalized_at = NOW(),
                 updated_at = NOW()
 
@@ -933,8 +1204,22 @@ export const finalizeResultDocument = async (req, res) => {
                 student_enrollment_id,
                 term_id,
                 status,
+
+                term_total_score,
+                term_average,
+                term_grade,
+                term_remark,
+                class_position,
+                academic_level_position,
+
+                attendance_present,
+                attendance_absent,
+                attendance_total_marked,
+                attendance_percentage,
+
                 session_average,
                 session_academic_level_position,
+
                 principal_authorized_at,
                 principal_authorized_by,
                 exam_officer_authorized_at,
@@ -946,6 +1231,19 @@ export const finalizeResultDocument = async (req, res) => {
             [
                 id,
                 schoolId,
+
+                termSummary.total_score,
+                termSummary.average_score,
+                termGrade,
+                termRemark,
+                termSummary.class_position,
+                termSummary.academic_level_position,
+
+                attendancePresent,
+                attendanceAbsent,
+                attendanceTotalMarked,
+                attendancePercentage,
+
                 sessionAverage,
                 sessionAcademicLevelPosition,
             ]
@@ -974,7 +1272,6 @@ export const finalizeResultDocument = async (req, res) => {
         client.release();
     }
 };
-
 
 export const authorizeResultDocumentAsPrincipal = async (req, res) => {
     const { id } = req.params;

@@ -1692,6 +1692,17 @@ The Results backend foundation is now implemented and tested incrementally.
 * Result authorization endpoints are school-scoped and protected by the results:authorize permission
 * Authorization workflow tested successfully with Admin and Exam Officer users
 
+* Migration 034 — enforced one result document per student enrollment per term at the database level
+* Migration 035 — added term result and attendance snapshot fields to result documents
+* Result document finalization snapshots the term total score, term average, term grade, and term remark
+* Result document finalization snapshots class position and academic-level position
+* Result document finalization snapshots attendance present, absent, total marked, and attendance percentage when attendance records exist
+* Attendance snapshot fields remain nullable when no attendance records are marked for the term
+* Result document finalization requires complete applicable subject results before calculating and storing term ranking data
+* Existing finalized documents created before Migration 035 remain valid, with the new nullable snapshot fields left unchanged
+* Result document retrieval now includes the complete term, ranking, and attendance snapshot fields
+* Focused API verification completed for retrieval of the new Migration 035 snapshot fields
+
 ### Results requirements still to implement
 
 The backend must continue to remain authoritative for:
