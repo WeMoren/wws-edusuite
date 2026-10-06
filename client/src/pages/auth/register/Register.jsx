@@ -1,9 +1,12 @@
-
 import React, { useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import "./Register.css";
 
+const API_BASE_URL = "http://localhost:5000/api";
+
 const Register = () => {
+  const navigate = useNavigate();
+
   const [formData, setFormData] = useState({
     schoolName: "",
     schoolEmail: "",
@@ -17,6 +20,7 @@ const Register = () => {
   });
 
   const [error, setError] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -25,9 +29,13 @@ const Register = () => {
       ...prev,
       [name]: value,
     }));
+
+    if (error) {
+      setError("");
+    }
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
 
     setError("");
@@ -37,7 +45,49 @@ const Register = () => {
       return;
     }
 
-    console.log("Registration data:", formData);
+    setIsSubmitting(true);
+
+    try {
+      const response = await fetch(
+        `${API_BASE_URL}/auth/register-school`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            schoolName: formData.schoolName,
+            schoolEmail: formData.schoolEmail,
+            schoolPhone: formData.schoolPhone,
+            schoolAddress: formData.schoolAddress,
+            firstName: formData.firstName,
+            lastName: formData.lastName,
+            email: formData.email,
+            password: formData.password,
+          }),
+        }
+      );
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        setError(data.message || "School registration failed.");
+        return;
+      }
+
+      navigate("/login", {
+        state: {
+          registrationSuccess:
+            "School registered successfully. You can now log in.",
+        },
+      });
+    } catch (error) {
+      console.error("School registration request failed:", error);
+
+      setError("Unable to connect to the server.");
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -108,7 +158,7 @@ const Register = () => {
           </div>
 
           <div className="register-section">
-            <h2>Administrator Account</h2>
+            <h2>Principal / Administrator Account</h2>
 
             <div className="register-form__row">
               <div className="register-form__group">
@@ -166,7 +216,9 @@ const Register = () => {
               </div>
 
               <div className="register-form__group">
-                <label htmlFor="confirmPassword">Confirm Password</label>
+                <label htmlFor="confirmPassword">
+                  Confirm Password
+                </label>
                 <input
                   id="confirmPassword"
                   name="confirmPassword"
@@ -189,8 +241,11 @@ const Register = () => {
           <button
             type="submit"
             className="register-form__button"
+            disabled={isSubmitting}
           >
-            Create School Account
+            {isSubmitting
+              ? "Creating School Account..."
+              : "Create School Account"}
           </button>
 
           <p className="register-login">
@@ -204,4 +259,3 @@ const Register = () => {
 };
 
 export default Register;
-

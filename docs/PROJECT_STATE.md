@@ -1715,3 +1715,60 @@ The Results module should continue incrementally:
 schema/migration → controller/API → focused testing → documentation checkpoint → Git commit/push.
 
 Do not mark any remaining Results requirement as complete until it has been implemented and tested successfully.
+
+
+# 🔥 LATEST BACKEND CHECKPOINT — OCTOBER 6, 2026
+
+## School Registration & Login Flow — COMPLETE
+
+The school registration and authentication entry flow has now been implemented and verified end-to-end.
+
+### School Registration Backend
+
+The `POST /api/auth/register-school` endpoint now creates the initial school and Principal/Admin account together within a single database transaction.
+
+The registration flow:
+
+```text
+School Registration Form
+        ↓
+School record created
+        ↓
+Principal/Admin user created
+        ↓
+Admin application role assigned
+        ↓
+Assessment settings created
+        ↓
+Default A1–F9 grading scale created
+        ↓
+Transaction committed
+        ↓
+User redirected to Login
+
+```text
+
+### School Registration Rules
+
+- School registration creates the School and initial Principal/Admin account together.
+- The Principal is represented by the existing Admin application role.
+- No separate Principal role is created.
+- The Principal/Admin account is the first login account for the school.
+- The school slug is generated automatically from the school name.
+- The Principal does not manually enter a school slug.
+- School email is stored on the school record.
+- Principal/Admin email is stored on the user record.
+- The school registration transaction creates:
+  - School
+  - Principal/Admin user
+  - Admin role assignment
+  - Assessment settings
+  - Default A1–F9 grading scale
+- Registration rolls back completely if any part of the transaction fails.
+- Existing unique database constraints are respected.
+- Duplicate school email returns a conflict response.
+- Duplicate generated school slug returns a conflict response.
+- Duplicate Principal/Admin email within the school returns a conflict response.
+- Passwords are hashed using the existing Argon2id password utility.
+- Passwords are never stored in plain text.
+- No school-specific values are hardcoded.

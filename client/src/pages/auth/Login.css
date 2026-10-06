@@ -77,6 +77,11 @@
   font-size: 14px;
 }
 
+.login-form__success {
+    color: #16a34a;
+    margin-bottom: 1rem;
+}
+
 .login-form__button {
   width: 100%;
   padding: 13px 16px;

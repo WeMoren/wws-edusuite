@@ -1,10 +1,19 @@
+
 import pool from "../config/db.js";
-import { hashPassword } from "../utils/password.js";
+import jwt from "jsonwebtoken";
+import { hashPassword, verifyPassword } from "../utils/password.js";
+
+const generateSchoolSlug = (schoolName) => {
+    return schoolName
+        .toLowerCase()
+        .trim()
+        .replace(/[^a-z0-9]+/g, "-")
+        .replace(/^-+|-+$/g, "");
+};
 
 export const registerUser = async (req, res) => {
     try {
         const {
-            
             firstName,
             lastName,
             email,
@@ -12,7 +21,7 @@ export const registerUser = async (req, res) => {
             roleId,
         } = req.body;
 
-          const { schoolId } = req;
+        const { schoolId } = req;
 
         if (
             !schoolId ||
@@ -89,36 +98,44 @@ export const registerUser = async (req, res) => {
     }
 };
 
-
 export const registerSchool = async (req, res) => {
+    const {
+        schoolName,
+        schoolEmail,
+        schoolPhone,
+        schoolAddress,
+        firstName,
+        lastName,
+        email,
+        password,
+    } = req.body;
+
+    if (
+        !schoolName ||
+        !schoolEmail ||
+        !schoolPhone ||
+        !schoolAddress ||
+        !firstName ||
+        !lastName ||
+        !email ||
+        !password
+    ) {
+        return res.status(400).json({
+            message: "All required fields must be provided.",
+        });
+    }
+
+    const slug = generateSchoolSlug(schoolName);
+
+    if (!slug) {
+        return res.status(400).json({
+            message: "A valid school name is required.",
+        });
+    }
+
     const client = await pool.connect();
 
     try {
-        const {
-            schoolName,
-            slug,
-            schoolEmail,
-            schoolPhone,
-            firstName,
-            lastName,
-            email,
-            password,
-        } = req.body;
-
-        if (
-            !schoolName ||
-            !slug ||
-            !schoolEmail ||
-            !firstName ||
-            !lastName ||
-            !email ||
-            !password
-        ) {
-            return res.status(400).json({
-                message: "All required fields must be provided.",
-            });
-        }
-
         const passwordHash = await hashPassword(password);
 
         await client.query("BEGIN");
@@ -129,12 +146,27 @@ export const registerSchool = async (req, res) => {
                 name,
                 slug,
                 email,
-                phone
+                phone,
+                address
             )
-            VALUES ($1, $2, $3, $4)
-            RETURNING id, name, slug, email, phone, status, created_at;
+            VALUES ($1, $2, $3, $4, $5)
+            RETURNING
+                id,
+                name,
+                slug,
+                email,
+                phone,
+                address,
+                status,
+                created_at;
             `,
-            [schoolName, slug, schoolEmail, schoolPhone || null]
+            [
+                schoolName,
+                slug,
+                schoolEmail,
+                schoolPhone,
+                schoolAddress,
+            ]
         );
 
         const school = schoolResult.rows[0];
@@ -149,7 +181,14 @@ export const registerSchool = async (req, res) => {
                 password_hash
             )
             VALUES ($1, $2, $3, $4, $5)
-            RETURNING id, school_id, first_name, last_name, email, status, created_at;
+            RETURNING
+                id,
+                school_id,
+                first_name,
+                last_name,
+                email,
+                status,
+                created_at;
             `,
             [
                 school.id,
@@ -187,12 +226,12 @@ export const registerSchool = async (req, res) => {
             [user.id, adminRoleId]
         );
 
-            await client.query(
-                `
-                INSERT INTO assessment_settings (
-                    school_id
-                )
-                VALUES ($1);
+        await client.query(
+            `
+            INSERT INTO assessment_settings (
+                school_id
+            )
+            VALUES ($1);
             `,
             [school.id]
         );
@@ -219,8 +258,6 @@ export const registerSchool = async (req, res) => {
             [school.id]
         );
 
-
-
         await client.query("COMMIT");
 
         return res.status(201).json({
@@ -231,6 +268,27 @@ export const registerSchool = async (req, res) => {
     } catch (error) {
         await client.query("ROLLBACK");
 
+        if (error.code === "23505") {
+            if (error.constraint === "schools_email_key") {
+                return res.status(409).json({
+                    message: "A school with this email already exists.",
+                });
+            }
+
+            if (error.constraint === "schools_slug_key") {
+                return res.status(409).json({
+                    message: "A school with this name already exists.",
+                });
+            }
+
+            if (error.constraint === "unique_user_email_per_school") {
+                return res.status(409).json({
+                    message:
+                        "An account with this administrator email already exists for this school.",
+                });
+            }
+        }
+
         console.error("School registration failed:", error.message);
 
         return res.status(500).json({
@@ -240,11 +298,6 @@ export const registerSchool = async (req, res) => {
         client.release();
     }
 };
-
-
-
-import jwt from "jsonwebtoken";
-import { verifyPassword } from "../utils/password.js";
 
 export const loginUser = async (req, res) => {
     try {
@@ -335,3 +388,4 @@ export const loginUser = async (req, res) => {
         });
     }
 };
+

@@ -1,92 +1,110 @@
-
 import React, { useState } from "react";
-import { Link, Navigate, useNavigate } from "react-router-dom";
+import { Link, Navigate, useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "../../auth/AuthContext";
 import "./Login.css";
 
 const Login = () => {
-  const { currentUser, login } = useAuth();
-  const navigate = useNavigate();
+const { currentUser, login } = useAuth();
+const navigate = useNavigate();
 
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [error, setError] = useState("");
+const location = useLocation();
 
-  if (currentUser) {
-    return <Navigate to="/dashboard" replace />;
-  }
+const registrationSuccess =
+  location.state?.registrationSuccess || "";
 
-  const handleSubmit = (e) => {
-    e.preventDefault();
+const [email, setEmail] = useState("");
+const [password, setPassword] = useState("");
+const [error, setError] = useState("");
+const [isSubmitting, setIsSubmitting] = useState(false);
 
-    setError("");
+if (currentUser) {
+return <Navigate to="/dashboard" replace />;
+}
 
-    const success = login(email, password);
+const handleSubmit = async (e) => {
+e.preventDefault();
 
-    if (!success) {
-      setError("Invalid email or password.");
-      return;
-    }
 
-    navigate("/dashboard");
-  };
+setError("");
+setIsSubmitting(true);
 
-  return (
-    <div className="login-page">
-      <div className="login-card">
-        <div className="login-card__header">
-          <h1>WWS-EduSuite</h1>
-          <p>Welcome back</p>
-        </div>
+const result = await login(email, password);
 
-        <form className="login-form" onSubmit={handleSubmit}>
-          <div className="login-form__group">
-            <label htmlFor="email">Email</label>
+if (!result.success) {
+  setError(result.message);
+  setIsSubmitting(false);
+  return;
+}
 
-            <input
-              id="email"
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              placeholder="Enter your email"
-              required
-            />
-          </div>
+navigate("/dashboard");
 
-          <div className="login-form__group">
-            <label htmlFor="password">Password</label>
 
-            <input
-              id="password"
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              placeholder="Enter your password"
-              required
-            />
-          </div>
+};
 
-          {error && (
-            <p className="login-form__error">
-              {error}
-            </p>
-          )}
+return ( <div className="login-page"> <div className="login-card"> <div className="login-card__header"> <h1>WWS-EduSuite</h1> <p>Welcome back</p> </div>
 
-          <button
-            type="submit"
-            className="login-form__button"
-          >
-            Login
-          </button>
 
-          <p className="login-register">
-            Don't have a school account?{" "}
-            <Link className="register" to="/register">Register your school</Link>
-          </p>
-        </form>
+    <form className="login-form" onSubmit={handleSubmit}>
+      <div className="login-form__group">
+        <label htmlFor="email">Email</label>
+
+        <input
+          id="email"
+          type="email"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          placeholder="Enter your email"
+          required
+          disabled={isSubmitting}
+        />
       </div>
-    </div>
-  );
+
+      <div className="login-form__group">
+        <label htmlFor="password">Password</label>
+
+        <input
+          id="password"
+          type="password"
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+          placeholder="Enter your password"
+          required
+          disabled={isSubmitting}
+        />
+      </div>
+
+      {registrationSuccess && (
+        <p className="login-form__success">
+          {registrationSuccess}
+        </p>
+      )}
+
+      {error && (
+        <p className="login-form__error">
+          {error}
+        </p>
+      )}
+
+      <button
+        type="submit"
+        className="login-form__button"
+        disabled={isSubmitting}
+      >
+        {isSubmitting ? "Logging in..." : "Login"}
+      </button>
+
+      <p className="login-register">
+        Don't have a school account?{" "}
+        <Link className="register" to="/register">
+          Register your school
+        </Link>
+      </p>
+    </form>
+  </div>
+</div>
+
+
+);
 };
 
 export default Login;

@@ -1,6 +1,7 @@
 import dotenv from "dotenv";
 dotenv.config();
 
+import cors from "cors";
 import express from "express";
 import pool from "./config/db.js";
 import authRoutes from "./routes/authRoutes.js";
@@ -30,7 +31,14 @@ import resultRoutes from "./routes/resultRoutes.js";
 
 const app = express();
 
+app.use( cors({
+        origin: "http://localhost:5173",
+        methods: ["GET", "POST", "PATCH", "PUT", "DELETE", "OPTIONS"],
+        allowedHeaders: ["Content-Type", "Authorization"],
+    }));
+
 app.use(express.json());
+
 app.use("/api/school-officials", schoolOfficialRoutes);
 app.use("/api/auth", authRoutes);
 app.use("/api/subscription", subscriptionRoutes);
