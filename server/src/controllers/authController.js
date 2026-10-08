@@ -2,6 +2,8 @@
 import pool from "../config/db.js";
 import jwt from "jsonwebtoken";
 import { hashPassword, verifyPassword } from "../utils/password.js";
+import { randomUUID } from "crypto";
+
 
 const generateSchoolSlug = (schoolName) => {
     return schoolName
@@ -138,6 +140,10 @@ export const registerSchool = async (req, res) => {
     try {
         const passwordHash = await hashPassword(password);
 
+        const userId = randomUUID();
+        const schoolStaffId = randomUUID();
+        const staffId = `STF-${userId.replace(/-/g, "").slice(0, 12)}`;
+
         await client.query("BEGIN");
 
         const schoolResult = await client.query(
@@ -171,16 +177,49 @@ export const registerSchool = async (req, res) => {
 
         const school = schoolResult.rows[0];
 
+        const staffResult = await client.query(
+            `
+            INSERT INTO school_staff (
+                id,
+                school_id,
+                staff_id,
+                first_name,
+                last_name
+            )
+            VALUES ($1, $2, $3, $4, $5)
+            RETURNING
+                id,
+                school_id,
+                staff_id,
+                first_name,
+                last_name,
+                gender,
+                status,
+                created_at;
+            `,
+            [
+                schoolStaffId,
+                school.id,
+                staffId,
+                firstName,
+                lastName,
+            ]
+        );
+
+        const staff = staffResult.rows[0];
+
         const userResult = await client.query(
             `
             INSERT INTO users (
+                id,
                 school_id,
                 first_name,
                 last_name,
                 email,
-                password_hash
+                password_hash,
+                school_staff_id
             )
-            VALUES ($1, $2, $3, $4, $5)
+            VALUES ($1, $2, $3, $4, $5, $6, $7)
             RETURNING
                 id,
                 school_id,
@@ -188,14 +227,17 @@ export const registerSchool = async (req, res) => {
                 last_name,
                 email,
                 status,
+                school_staff_id,
                 created_at;
             `,
             [
+                userId,
                 school.id,
                 firstName,
                 lastName,
                 email,
                 passwordHash,
+                schoolStaffId,
             ]
         );
 
@@ -203,28 +245,37 @@ export const registerSchool = async (req, res) => {
 
         const roleResult = await client.query(
             `
-            SELECT id
+            SELECT
+                id,
+                name
             FROM roles
-            WHERE name = 'Admin';
+            WHERE name IN ('Principal', 'School Admin')
+            ORDER BY
+                CASE name
+                    WHEN 'Principal' THEN 1
+                    WHEN 'School Admin' THEN 2
+                END;
             `
         );
 
-        if (roleResult.rows.length === 0) {
-            throw new Error("Admin role not found.");
+        if (roleResult.rows.length !== 2) {
+            throw new Error(
+                "Required school registration roles were not found."
+            );
         }
 
-        const adminRoleId = roleResult.rows[0].id;
-
-        await client.query(
-            `
-            INSERT INTO user_roles (
-                user_id,
-                role_id
-            )
-            VALUES ($1, $2);
-            `,
-            [user.id, adminRoleId]
-        );
+        for (const role of roleResult.rows) {
+            await client.query(
+                `
+                INSERT INTO user_roles (
+                    user_id,
+                    role_id
+                )
+                VALUES ($1, $2);
+                `,
+                [user.id, role.id]
+            );
+        }
 
         await client.query(
             `
@@ -263,7 +314,17 @@ export const registerSchool = async (req, res) => {
         return res.status(201).json({
             message: "School registered successfully.",
             school,
-            user,
+            user: {
+                id: user.id,
+                schoolId: user.school_id,
+                firstName: user.first_name,
+                lastName: user.last_name,
+                email: user.email,
+                status: user.status,
+                schoolStaffId: user.school_staff_id,
+            },
+            staff,
+            roles: roleResult.rows,
         });
     } catch (error) {
         await client.query("ROLLBACK");
@@ -281,10 +342,17 @@ export const registerSchool = async (req, res) => {
                 });
             }
 
-            if (error.constraint === "unique_user_email_per_school") {
+            if (error.constraint === "unique_user_email") {
                 return res.status(409).json({
                     message:
-                        "An account with this administrator email already exists for this school.",
+                        "An account with this email already exists.",
+                });
+            }
+
+            if (error.constraint === "unique_staff_id_per_school") {
+                return res.status(409).json({
+                    message:
+                        "A staff account with this identifier already exists.",
                 });
             }
         }
@@ -298,6 +366,8 @@ export const registerSchool = async (req, res) => {
         client.release();
     }
 };
+
+
 
 export const loginUser = async (req, res) => {
     try {
@@ -322,9 +392,12 @@ export const loginUser = async (req, res) => {
                 r.id AS role_id,
                 r.name AS role
             FROM users u
-            JOIN user_roles ur ON ur.user_id = u.id
-            JOIN roles r ON r.id = ur.role_id
-            WHERE u.email = $1;
+            JOIN user_roles ur
+                ON ur.user_id = u.id
+            JOIN roles r
+                ON r.id = ur.role_id
+            WHERE u.email = $1
+            ORDER BY r.name;
             `,
             [email]
         );
@@ -354,10 +427,23 @@ export const loginUser = async (req, res) => {
             });
         }
 
+        const roleIds = userResult.rows.map(
+            (row) => row.role_id
+        );
+
+        const roles = userResult.rows.map(
+            (row) => row.role
+        );
+
         const token = jwt.sign(
             {
                 userId: user.id,
                 schoolId: user.school_id,
+                roleIds,
+                roles,
+
+                // Backward compatibility for existing middleware
+                // and code that still expects one role.
                 roleId: user.role_id,
                 role: user.role,
             },
@@ -376,6 +462,12 @@ export const loginUser = async (req, res) => {
                 firstName: user.first_name,
                 lastName: user.last_name,
                 email: user.email,
+
+                // Multi-role data
+                roleIds,
+                roles,
+
+                // Backward compatibility
                 roleId: user.role_id,
                 role: user.role,
             },
@@ -388,4 +480,3 @@ export const loginUser = async (req, res) => {
         });
     }
 };
-

@@ -14,6 +14,7 @@ import academicLevelRoutes from "./routes/academicLevelRoutes.js";
 import classRoutes from "./routes/classRoutes.js";
 import sectionRoutes from "./routes/sectionRoutes.js";
 import teacherRoutes from "./routes/teacherRoutes.js";
+import staffRoutes from "./routes/staffRoutes.js";
 import feeStructureRoutes from "./routes/feeStructureRoutes.js";
 import termRoutes from "./routes/termRoutes.js";
 import studentFinancialAccountRoutes from "./routes/studentFinancialAccountRoutes.js";
@@ -55,6 +56,7 @@ app.use("/api/streams", streamRoutes);
 app.use("/api/subjects", subjectRoutes);
 app.use("/api/results", resultRoutes);
 app.use("/api/teachers", teacherRoutes);
+app.use("/api/staff", staffRoutes);
 app.use("/api/fee-structures", feeStructureRoutes);
 app.use(
     "/api/student-financial-accounts",
