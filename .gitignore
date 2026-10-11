@@ -1,2 +1,11 @@
 .vscode/
 .env
+.env.*
+!.env.example
+node_modules/
+
+# Local authentication and API test artifacts
+server/cookies.txt
+server/*login-response*.json
+server/admin-login-response.tmp
+server/test-token.tmp

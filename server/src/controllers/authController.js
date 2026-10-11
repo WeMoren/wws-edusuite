@@ -5,6 +5,8 @@ import { hashPassword, verifyPassword } from "../utils/password.js";
 import { randomUUID } from "crypto";
 
 
+const normalizeEmail = (email) => typeof email === 'string' ? email.trim().toLowerCase() : '';
+
 const generateSchoolSlug = (schoolName) => {
     return schoolName
         .toLowerCase()
@@ -18,10 +20,11 @@ export const registerUser = async (req, res) => {
         const {
             firstName,
             lastName,
-            email,
             password,
             roleId,
         } = req.body;
+
+        const email = normalizeEmail(req.body.email ?? "");
 
         const { schoolId } = req;
 
@@ -103,14 +106,15 @@ export const registerUser = async (req, res) => {
 export const registerSchool = async (req, res) => {
     const {
         schoolName,
-        schoolEmail,
         schoolPhone,
         schoolAddress,
         firstName,
         lastName,
-        email,
         password,
     } = req.body;
+
+    const schoolEmail = normalizeEmail(req.body.schoolEmail ?? "");
+    const email = normalizeEmail(req.body.email ?? "");
 
     if (
         !schoolName ||
@@ -371,7 +375,8 @@ export const registerSchool = async (req, res) => {
 
 export const loginUser = async (req, res) => {
     try {
-        const { email, password } = req.body;
+        const { password } = req.body;
+        const email = normalizeEmail(req.body.email ?? "");
 
         if (!email || !password) {
             return res.status(400).json({

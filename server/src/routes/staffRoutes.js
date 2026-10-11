@@ -9,6 +9,11 @@ import {
     reactivateStaff,
 } from "../controllers/staffController.js";
 
+import {
+    createStaffInvitation,
+    acceptStaffInvitation,
+} from "../controllers/staffInvitationController.js";
+
 import { authenticateToken } from "../middleware/authMiddleware.js";
 import { requireSchoolContext } from "../middleware/schoolMiddleware.js";
 import { requirePermission } from "../middleware/permissionMiddleware.js";
@@ -31,6 +36,20 @@ router.get(
     getStaffById
 );
 
+
+router.post(
+    "/:id/invitation",
+    authenticateToken,
+    requireSchoolContext,
+    requirePermission("staff", "invite"),
+    createStaffInvitation
+);
+
+router.post(
+    "/invitations/accept",
+    acceptStaffInvitation
+);
+
 router.post(
     "/",
     authenticateToken,
@@ -38,6 +57,8 @@ router.post(
     requirePermission("staff", "create"),
     createStaff
 );
+
+
 
 router.patch(
     "/:id",

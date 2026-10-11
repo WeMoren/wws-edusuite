@@ -1,5 +1,47 @@
 import pool from "../config/db.js";
 
+
+// Normalize and validate the official staff email.
+const normalizeStaffEmail = (email) => {
+    if (email === undefined) {
+        return undefined;
+    }
+
+    if (email === null) {
+        return null;
+    }
+
+    if (typeof email !== "string") {
+        return false;
+    }
+
+    if (email.trim() === "") {
+         return null;
+    }
+
+
+    const normalizedEmail = email.trim().toLowerCase();
+
+    if (
+        normalizedEmail.length > 255 ||
+        !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalizedEmail)
+    ) {
+        return false;
+    }
+
+    return normalizedEmail;
+};
+
+// Positions eligible for staff invitations.
+const invitationEligiblePositions = [
+    "principal",
+    "head_teacher",
+    "exam_officer",
+    "accountant",
+];
+
+
+
 export const getStaff = async (req, res) => {
     try {
         const { schoolId } = req;
@@ -13,6 +55,7 @@ export const getStaff = async (req, res) => {
                 ss.first_name,
                 ss.last_name,
                 ss.gender,
+                ss.email,
                 ss.status,
                 ss.created_at,
                 ss.updated_at,
@@ -73,6 +116,7 @@ export const getStaffById = async (req, res) => {
                 ss.first_name,
                 ss.last_name,
                 ss.gender,
+                ss.email,
                 ss.status,
                 ss.created_at,
                 ss.updated_at,
@@ -138,7 +182,17 @@ export const createStaff = async (req, res) => {
             gender,
             positionCode,
             subject,
+            email,
         } = req.body;
+
+
+    const normalizedEmail = normalizeStaffEmail(email);
+
+    if (normalizedEmail === false) {
+        return res.status(400).json({
+            message: "Enter a valid staff email address.",
+        });
+    }
 
         if (
             !staffId ||
@@ -228,14 +282,16 @@ export const createStaff = async (req, res) => {
                 staff_id,
                 first_name,
                 last_name,
-                gender
+                gender,
+                email
             )
             VALUES (
                 $1,
                 $2,
                 $3,
                 $4,
-                $5
+                $5,
+                $6
             )
             RETURNING
                 id,
@@ -244,6 +300,7 @@ export const createStaff = async (req, res) => {
                 first_name,
                 last_name,
                 gender,
+                email,
                 status,
                 created_at,
                 updated_at;
@@ -254,6 +311,7 @@ export const createStaff = async (req, res) => {
                 firstName,
                 lastName,
                 gender ?? null,
+                normalizedEmail ?? null,
             ]
         );
 
@@ -387,7 +445,17 @@ export const updateStaff = async (req, res) => {
             gender,
             positionCode,
             subject,
+            email,
         } = req.body;
+
+
+        const normalizedEmail = normalizeStaffEmail(email);
+
+        if (normalizedEmail === false) {
+            return res.status(400).json({
+                message: "Enter a valid staff email address.",
+            });
+        }
 
         await client.query("BEGIN");
 
@@ -404,6 +472,7 @@ export const updateStaff = async (req, res) => {
                 first_name,
                 last_name,
                 gender,
+                email,
                 status
             FROM school_staff
             WHERE id = $1
@@ -571,6 +640,7 @@ export const updateStaff = async (req, res) => {
          */
         const updatedStaffResult = await client.query(
             `
+
             UPDATE school_staff
             SET
                 first_name = COALESCE($1, first_name),
@@ -579,9 +649,13 @@ export const updateStaff = async (req, res) => {
                     WHEN $3::text IS NULL THEN gender
                     ELSE $3
                 END,
+                email = CASE
+                    WHEN $4::boolean THEN $5::text
+                    ELSE email
+                END,
                 updated_at = NOW()
-            WHERE id = $4
-              AND school_id = $5
+            WHERE id = $6
+            AND school_id = $7
             RETURNING
                 id,
                 school_id,
@@ -589,9 +663,12 @@ export const updateStaff = async (req, res) => {
                 first_name,
                 last_name,
                 gender,
+                email,
                 status,
                 created_at,
                 updated_at;
+
+
             `,
             [
                 firstName ?? null,
@@ -599,6 +676,8 @@ export const updateStaff = async (req, res) => {
                 gender === undefined
                     ? null
                     : gender,
+                    email !== undefined,
+                normalizedEmail,
                 id,
                 schoolId,
             ]
@@ -703,6 +782,45 @@ export const updateStaff = async (req, res) => {
                 );
             }
         }
+
+
+
+        /*
+         * Invalidate pending invitations when the staff
+         * member's official email or position changes,
+         * or when their new position is not eligible
+         * for a staff login invitation.
+         */
+        const officialEmailChanged =
+            normalizedEmail !== undefined &&
+            normalizedEmail !== existingStaff.email;
+
+
+        const nextPositionEligible =
+            invitationEligiblePositions.includes(
+                nextPosition.code
+            );
+
+        if (
+            officialEmailChanged ||
+            positionChanged ||
+            !nextPositionEligible
+        ) {
+            await client.query(
+                `
+                UPDATE staff_invitations
+                SET invalidated_at = NOW()
+                WHERE school_id = $1
+                  AND school_staff_id = $2
+                  AND accepted_at IS NULL
+                  AND invalidated_at IS NULL;
+                `,
+                [schoolId, id]
+            );
+        }
+
+
+
 
         await client.query("COMMIT");
 
@@ -813,6 +931,26 @@ export const deleteStaff = async (req, res) => {
             `,
             [id, schoolId]
         );
+
+
+
+        /*
+         * Invalidate all pending invitations when
+         * the staff member is deactivated.
+         */
+        await client.query(
+            `
+            UPDATE staff_invitations
+            SET invalidated_at = NOW()
+            WHERE school_id = $1
+              AND school_staff_id = $2
+              AND accepted_at IS NULL
+              AND invalidated_at IS NULL;
+            `,
+            [schoolId, id]
+        );
+
+
 
         /*
          * End every active organizational position
