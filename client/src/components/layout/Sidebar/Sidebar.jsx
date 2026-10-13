@@ -1,10 +1,11 @@
+
 import React from "react";
 import "./Sidebar.css";
 import sidebarMenu from "../../../data/sidebarMenu";
 import { NavLink } from "react-router-dom";
 import { useAuth } from "../../../auth/AuthContext";
 
-const Sidebar = () => {
+const Sidebar = ({ isOpen, onNavigate }) => {
   const { currentUser } = useAuth();
 
   const visibleMenuItems = sidebarMenu.filter((item) =>
@@ -12,7 +13,11 @@ const Sidebar = () => {
   );
 
   return (
-    <aside className="sidebar">
+    <aside
+      id="dashboard-sidebar"
+      className={`sidebar${isOpen ? " sidebar--open" : ""}`}
+      aria-label="Main navigation"
+    >
       <ul className="sidebar__menu">
         {visibleMenuItems.map((item) => (
           <li key={item.id} className="sidebar__item">
@@ -24,6 +29,7 @@ const Sidebar = () => {
                   : "sidebar__link"
               }
               end={item.path === "/dashboard"}
+              onClick={onNavigate}
             >
               <span>{item.icon}</span>
               <span>{item.label}</span>

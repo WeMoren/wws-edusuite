@@ -1,9 +1,47 @@
-.dashboard-layout{
-    display: flex;
-    min-height: calc(100vh - 70px);
+
+.dashboard-layout {
+  display: flex;
+  min-height: calc(100vh - 70px);
+  width: 100%;
+  min-width: 0;
 }
-.dashboard-content{
-     flex:1;
-    padding: 2rem;
-    background-color: #f8fafc;
+
+.dashboard-content {
+  flex: 1 1 0;
+  min-width: 0;
+  padding: 2rem;
+  background-color: #f8fafc;
+}
+
+.sidebar-backdrop {
+  display: none;
+}
+
+@media (max-width: 768px) {
+  .dashboard-layout {
+    min-height: calc(100vh - 60px);
+  }
+
+  .dashboard-content {
+    width: 100%;
+    padding: 1rem;
+  }
+
+  .sidebar-backdrop {
+    display: block;
+    position: fixed;
+    inset: 60px 0 0;
+    z-index: 200;
+    width: 100%;
+    height: auto;
+    border: none;
+    background: rgb(15 23 42 / 45%);
+    cursor: pointer;
+  }
+}
+
+@media (max-width: 420px) {
+  .dashboard-content {
+    padding: 0.75rem;
+  }
 }

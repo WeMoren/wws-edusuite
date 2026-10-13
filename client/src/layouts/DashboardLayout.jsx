@@ -315,62 +315,94 @@ useEffect(() => {
 }, [upcomingEvents]);
 
 
-  return (
+
+/* Sidebar drawer for mobile viewports */
+const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+useEffect(() => {
+    const handleKeyDown = (event) => {
+        if (event.key === "Escape") {
+            setIsSidebarOpen(false);
+        }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+
+    return () => {
+        window.removeEventListener("keydown", handleKeyDown);
+    };
+}, []);
+
+
+
+return (
     <>
-        <Header/>
-           
+        <Header
+            onMenuToggle={() => setIsSidebarOpen((isOpen) => !isOpen)}
+        />
+
+        {isSidebarOpen && (
+            <button
+                type="button"
+                className="sidebar-backdrop"
+                aria-label="Close navigation menu"
+                onClick={() => setIsSidebarOpen(false)}
+            />
+        )}
+
         <div className="dashboard-layout">
+            <Sidebar
+                isOpen={isSidebarOpen}
+                onNavigate={() => setIsSidebarOpen(false)}
+            />
 
-            <Sidebar/>
-
-            <main className='dashboard-content'>
-                 <Outlet context={{
-                      payments, 
-                      setPayments, 
-                      enrollments,
-                      setEnrollments,
-                      students, 
-                      setStudents,
-                      teachers,
-                      setTeachers,
-                      parents,
-                      setParents,
-                      classes,
-                      setClasses,
-                      sections,
-                      setSections,
-                      activeAcademicLevels,
-                      setActiveAcademicLevels,
-                       academicSessions,
-                      setAcademicSessions,
-                      academicTerms,
-                      setAcademicTerms,
-                      academicLevels,
-                      setAcademicLevels,
-                      streams,
+            <main className="dashboard-content">
+                <Outlet
+                    context={{
+                        payments,
+                        setPayments,
+                        enrollments,
+                        setEnrollments,
+                        students,
+                        setStudents,
+                        teachers,
+                        setTeachers,
+                        parents,
+                        setParents,
+                        classes,
+                        setClasses,
+                        sections,
+                        setSections,
+                        activeAcademicLevels,
+                        setActiveAcademicLevels,
+                        academicSessions,
+                        setAcademicSessions,
+                        academicTerms,
+                        setAcademicTerms,
+                        academicLevels,
+                        setAcademicLevels,
+                        streams,
                         setStreams,
                         streamLevels,
                         setStreamLevels,
                         subjectCombinations,
                         setSubjectCombinations,
-                      attendance,
-                      setAttendance,
-                      recentActivities,
-                      setRecentActivities,
-                      upcomingEvents,
-                      setUpcomingEvents,
-                      subjects,
-                      setSubjects,
-                      results,
-                      setResults,
-                   }}
-                   
-                   />
+                        attendance,
+                        setAttendance,
+                        recentActivities,
+                        setRecentActivities,
+                        upcomingEvents,
+                        setUpcomingEvents,
+                        subjects,
+                        setSubjects,
+                        results,
+                        setResults,
+                    }}
+                />
             </main>
         </div>
-        
     </>
-  )
+);
+
 }
 
 export default DashboardLayout
