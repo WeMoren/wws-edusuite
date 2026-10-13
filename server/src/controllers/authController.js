@@ -313,6 +313,81 @@ export const registerSchool = async (req, res) => {
             [school.id]
         );
 
+                // Create the school's initial subscription trial.
+        // Trial duration and plan pricing are read from the database.
+        const billingSettingsResult = await client.query(
+            `
+            SELECT
+                trial_duration_days
+            FROM platform_billing_settings
+            WHERE singleton = TRUE;
+            `
+        );
+
+        if (billingSettingsResult.rows.length !== 1) {
+            throw new Error(
+                "Platform billing settings are missing."
+            );
+        }
+
+        const activePlansResult = await client.query(
+            `
+            SELECT
+                id,
+                billing_period,
+                price_per_student,
+                currency
+            FROM subscription_plans
+            WHERE is_active = TRUE;
+            `
+        );
+
+        if (activePlansResult.rows.length !== 1) {
+            throw new Error(
+                "Exactly one active subscription plan is required."
+            );
+        }
+
+        const billingSettings = billingSettingsResult.rows[0];
+        const activePlan = activePlansResult.rows[0];
+
+        await client.query(
+            `
+            INSERT INTO subscriptions (
+                school_id,
+                plan_id,
+                status,
+                billing_period,
+                price_per_student,
+                active_student_count,
+                amount,
+                currency,
+                trial_start,
+                trial_end
+            )
+            VALUES (
+                $1,
+                $2,
+                'trial',
+                $3,
+                $4,
+                0,
+                0,
+                $5,
+                NOW(),
+                NOW() + ($6 * INTERVAL '1 day')
+            );
+            `,
+            [
+                school.id,
+                activePlan.id,
+                activePlan.billing_period,
+                activePlan.price_per_student,
+                activePlan.currency,
+                billingSettings.trial_duration_days,
+            ]
+        );
+
         await client.query("COMMIT");
 
         return res.status(201).json({

@@ -1,48 +1,41 @@
 import express from "express";
 
 import {
-    getSchoolSubscription,
-    createSchoolSubscription,
-    getSubscriptionPayments,
-    activateOrRenewSchoolSubscription
+getSchoolSubscription,
+getSubscriptionPayments,
+getSchoolSubscriptionQuote,
+initializeSchoolSubscriptionPayment,
+verifySchoolSubscriptionPayment,
 } from "../controllers/subscriptionController.js";
 
 import { authenticateToken } from "../middleware/authMiddleware.js";
-
 import { requireSchoolContext } from "../middleware/schoolMiddleware.js";
-
 import { requireRole } from "../middleware/roleMiddleware.js";
 
 const router = express.Router();
 
-router.get(
-    "/",
-    authenticateToken,
-    requireSchoolContext,
-    getSchoolSubscription
+const billingRoles = ["Principal", "School Admin"];
+
+router.use(
+authenticateToken,
+requireSchoolContext,
+requireRole(billingRoles)
 );
 
-router.get(
-    "/payments",
-    authenticateToken,
-    requireSchoolContext,
-    getSubscriptionPayments
+router.get("/", getSchoolSubscription);
+
+router.get("/quote", getSchoolSubscriptionQuote);
+
+router.get("/payments", getSubscriptionPayments);
+
+router.post(
+"/initialize-payment",
+initializeSchoolSubscriptionPayment
 );
 
 router.post(
-    "/",
-    authenticateToken,
-    requireSchoolContext,
-    requireRole("Admin"),
-    createSchoolSubscription
-);
-
-router.post(
-    "/activate-renew",
-    authenticateToken,
-    requireSchoolContext,
-    requireRole("Admin"),
-    activateOrRenewSchoolSubscription
+"/verify-payment",
+verifySchoolSubscriptionPayment
 );
 
 export default router;

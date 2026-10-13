@@ -1,6 +1,7 @@
 import { Routes, Route } from "react-router-dom";
 import LandingPage from "./pages/Landing/LandingPage";
 import Login from "./pages/auth/Login";
+import AcceptInvitation from "./pages/auth/AcceptInvitation";
 import Dashboard from "./pages/dashboard/Dashboard";
 import DashboardLayout from "./layouts/DashboardLayout";
 import Students from "./pages/dashboard/Students";
@@ -14,6 +15,7 @@ import Classes from "./pages/dashboard/Classes";
 import Attendance from "./pages/dashboard/attendance/Attendance";
 import Sections from "./pages/dashboard/Sections";
 import AcademicSetup from "./pages/dashboard/AcademicSetup";
+import Subscription from "./pages/dashboard/subscription/Subscription";
 import Events from "./pages/dashboard/Events";
 import Results from "./pages/dashboard/Results";
 import ProtectedRoute from "./auth/ProtectedRoute";
@@ -44,6 +46,7 @@ const App = () => {
       <Route path="/" element={<LandingPage />} />
       <Route path="/register" element={<Register />} />
       <Route path="/login" element={<Login />} />
+      <Route path="/accept-invitation" element={<AcceptInvitation />} />
       <Route path="/platform/login" element={<DeveloperLogin />} />
       <Route element={<PlatformProtectedRoute />}>
         <Route path="/platform" element={<DeveloperLayout />}>
@@ -110,51 +113,126 @@ const App = () => {
 
           <Route index element={<Dashboard />} />
 
-          <Route path="students" element={<Students />} />
+          <Route path="students" element={
+              <RoleRoute allowedRoles={["Principal", "Exam Officer", "Head Teacher"]}>
+                <Students />
+              </RoleRoute>
+            }
+          />
 
-          <Route path="teachers" element={<Teachers />} />
+          <Route path="teachers" element={
+             <RoleRoute
+                allowedRoles={["Principal", "Exam Officer", "Head Teacher"]}
+              >
+              <Teachers />
+           </RoleRoute>
+          }
+        />
 
-          <Route path="classes" element={<Classes />} />
+          <Route path="classes" element={
+            <RoleRoute
+                allowedRoles={["Principal", "Exam Officer", "Head Teacher"]}
+              >
+              <Classes />
+           </RoleRoute>
+           }
+         />
 
-          <Route path="sections" element={<Sections />} />
+          <Route path="sections" element={ <RoleRoute
+              allowedRoles={["Principal", "Exam Officer", "Head Teacher"]}
+            >
+            <Sections />
+         </RoleRoute>
+      }
+      />
 
             <Route
               path="academic-setup"
               element={
-                <RoleRoute allowedRoles={["admin"]}>
+                <RoleRoute allowedRoles={["Principal", "School Admin"]}>
                   <AcademicSetup />
                 </RoleRoute>
               }
             />
-          
-          <Route path="attendance" element={<Attendance />} />
 
-          <Route path="results" element={<Results />} />
+          <Route path="attendance" element={
+             <RoleRoute
+              allowedRoles={["Principal", "Head Teacher", "Exam Officer"]}
+            >
+              <Attendance />
+            </RoleRoute>
+           }
+        />
 
-          <Route path="events" element={<Events />} />
+          <Route path="results" element={
+            <RoleRoute allowedRoles={["Principal", "Exam Officer"]}>
+              <Results />
+            </RoleRoute>
+          }
+         />
+
+          <Route path="events" element={
+            <RoleRoute allowedRoles={["Principal", "Head Teacher"]}>
+              <Events />
+          </RoleRoute>
+           }
+          />
 
           {/* Admin only */}
             <Route
               path="parents"
               element={
-                <RoleRoute allowedRoles={["admin"]}>
+                <RoleRoute allowedRoles={["Principal"]}>
                   <Parents />
                 </RoleRoute>
               }
             />
 
-          <Route path="accountant" element={<Accountant />} />
+          <Route path="accountant" element={
+             <RoleRoute allowedRoles={["Accountant"]}>
+                <Accountant />
+             </RoleRoute>
+            }
+           />
 
-          <Route path="library" element={<Library />} />
+          <Route path="library" element={
+            <RoleRoute allowedRoles={["Principal", "Head Teacher"]}>
+               <Library />
+            </RoleRoute>
+            }
+          />
 
-          <Route path="reception" element={<Reception />} />
+          <Route path="reception" element={
+              <RoleRoute allowedRoles={["Principal"]}>
+                <Reception />
+              </RoleRoute>
+            }
+           />
 
           {/* Admin only */}
           <Route
             path="settings"
             element={
-              <RoleRoute allowedRoles={["admin"]}>
+              <RoleRoute allowedRoles={["Principal", "School Admin"]}>
                 <Settings />
+              </RoleRoute>
+            }
+          />
+
+                   <Route
+            path="subscription/callback"
+            element={
+              <RoleRoute allowedRoles={["Principal", "School Admin"]}>
+                <Subscription />
+              </RoleRoute>
+            }
+          />
+
+          <Route
+            path="subscription"
+            element={
+              <RoleRoute allowedRoles={["Principal", "School Admin"]}>
+                <Subscription />
               </RoleRoute>
             }
           />
