@@ -1,14 +1,35 @@
+const FULL_ACCESS = ["view", "create", "edit", "delete"];
+
 const permissions = {
-  admin: {
-    students: ["view", "create", "edit", "delete"],
-    teachers: ["view", "create", "edit", "delete"],
-    classes: ["view", "create", "edit", "delete"],
-    sections: ["view", "create", "edit", "delete"],
-    academicSetup: ["view", "create", "edit", "delete"],
-    attendance: ["view", "create", "edit", "delete"],
-    results: ["view", "create", "edit", "delete", "download"],
-    accountant: ["view", "create", "edit", "delete"],
-    settings: ["view"],
+  principal: {
+    students: FULL_ACCESS,
+    teachers: FULL_ACCESS,
+    classes: FULL_ACCESS,
+    sections: FULL_ACCESS,
+    parents: FULL_ACCESS,
+    academicSetup: FULL_ACCESS,
+    attendance: FULL_ACCESS,
+    results: [
+      "view",
+      "create",
+      "edit",
+      "delete",
+      "download",
+      "authorize",
+    ],
+    accountant: FULL_ACCESS,
+    staff: FULL_ACCESS,
+    settings: FULL_ACCESS,
+    subscription: ["view", "create", "edit"],
+    events: FULL_ACCESS,
+    library: FULL_ACCESS,
+    reception: FULL_ACCESS,
+  },
+
+  schoolAdmin: {
+    academicSetup: FULL_ACCESS,
+    settings: FULL_ACCESS,
+    subscription: ["view", "create", "edit"],
   },
 
   examOfficer: {
@@ -18,7 +39,7 @@ const permissions = {
     sections: ["view"],
     academicSetup: ["view"],
     attendance: ["view"],
-    results: ["view", "create", "edit", "download"],
+    results: ["view", "create", "edit", "download", "authorize"],
   },
 
   teacher: {
@@ -31,12 +52,30 @@ const permissions = {
   },
 
   accountant: {
-    accountant: ["view", "create", "edit", "delete"],
+    accountant: FULL_ACCESS,
   },
 };
 
+// Convert display-role names to internal permission keys.
+const normalizeRole = (role) => {
+  const roleMap = {
+    principal: "principal",
+    "school admin": "schoolAdmin",
+    admin: "schoolAdmin",
+    "exam officer": "examOfficer",
+    examofficer: "examOfficer",
+    "head teacher": "teacher",
+    teacher: "teacher",
+    accountant: "accountant",
+  };
+
+  return roleMap[String(role ?? "").trim().toLowerCase()];
+};
+
 export const hasPermission = (role, module, action) => {
-  return permissions[role]?.[module]?.includes(action) || false;
+  const normalizedRole = normalizeRole(role);
+
+  return permissions[normalizedRole]?.[module]?.includes(action) ?? false;
 };
 
 export default permissions;

@@ -1,4 +1,3 @@
-
 import React from "react";
 import "./Sidebar.css";
 import sidebarMenu from "../../../data/sidebarMenu";
@@ -8,8 +7,15 @@ import { useAuth } from "../../../auth/AuthContext";
 const Sidebar = ({ isOpen, onNavigate }) => {
   const { currentUser } = useAuth();
 
+  const userRoles =
+    Array.isArray(currentUser?.roles) && currentUser.roles.length > 0
+      ? currentUser.roles
+      : currentUser?.role
+        ? [currentUser.role]
+        : [];
+
   const visibleMenuItems = sidebarMenu.filter((item) =>
-    item.roles.includes(currentUser?.role)
+    item.roles.some((role) => userRoles.includes(role))
   );
 
   return (
@@ -24,9 +30,7 @@ const Sidebar = ({ isOpen, onNavigate }) => {
             <NavLink
               to={item.path}
               className={({ isActive }) =>
-                isActive
-                  ? "sidebar__link active"
-                  : "sidebar__link"
+                isActive ? "sidebar__link active" : "sidebar__link"
               }
               end={item.path === "/dashboard"}
               onClick={onNavigate}

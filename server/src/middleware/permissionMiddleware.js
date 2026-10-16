@@ -1,9 +1,22 @@
+
 import pool from "../config/db.js";
 
 export const requirePermission = (resource, action) => {
     return async (req, res, next) => {
         try {
             const user = req.user || {};
+
+            const userRoles = Array.isArray(user.roles)
+                ? user.roles
+                : user.role
+                    ? [user.role]
+                    : [];
+
+            // The Principal has full operational access within
+            // their own school, regardless of other staff roles.
+            if (userRoles.includes("Principal")) {
+                return next();
+            }
 
             const roleIds = Array.isArray(user.roleIds)
                 ? user.roleIds
@@ -37,7 +50,7 @@ export const requirePermission = (resource, action) => {
                 });
             }
 
-            next();
+            return next();
         } catch (error) {
             console.error("Permission check failed:", error.message);
 

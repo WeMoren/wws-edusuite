@@ -35,6 +35,7 @@ const normalizeStaffEmail = (email) => {
 // Positions eligible for staff invitations.
 const invitationEligiblePositions = [
     "principal",
+     "school_admin",
     "head_teacher",
     "exam_officer",
     "accountant",
@@ -1145,5 +1146,91 @@ export const reactivateStaff = async (req, res) => {
         });
     } finally {
         client.release();
+    }
+};
+
+
+
+export const getStaffPositions = async (req, res) => {
+    try {
+        const result = await pool.query(`
+            SELECT
+                id,
+                code,
+                name,
+                description
+            FROM staff_positions
+            ORDER BY name ASC;
+        `);
+
+        return res.status(200).json({
+            positions: result.rows,
+        });
+    } catch (error) {
+        console.error(
+            "Failed to fetch staff positions:",
+            error.message
+        );
+
+        return res.status(500).json({
+            message: "Failed to fetch staff positions.",
+        });
+    }
+};
+
+export const getStaffInvitationStatuses = async (req, res) => {
+    try {
+        const { schoolId } = req;
+
+        const result = await pool.query(
+            `
+            SELECT DISTINCT ON (ss.id)
+                ss.id AS staff_id,
+                latest_invitation.id AS invitation_id,
+                latest_invitation.created_at AS invitation_created_at,
+                latest_invitation.expires_at AS invitation_expires_at,
+                CASE
+                    WHEN latest_invitation.id IS NULL
+                        THEN 'not_invited'
+                    WHEN latest_invitation.accepted_at IS NOT NULL
+                        THEN 'accepted'
+                    WHEN latest_invitation.invalidated_at IS NOT NULL
+                        THEN 'invalidated'
+                    WHEN latest_invitation.expires_at <= NOW()
+                        THEN 'expired'
+                    ELSE 'pending'
+                END AS invitation_status
+            FROM school_staff ss
+            LEFT JOIN LATERAL (
+                SELECT
+                    si.id,
+                    si.created_at,
+                    si.expires_at,
+                    si.accepted_at,
+                    si.invalidated_at
+                FROM staff_invitations si
+                WHERE si.school_id = ss.school_id
+                  AND si.school_staff_id = ss.id
+                ORDER BY si.created_at DESC, si.id DESC
+                LIMIT 1
+            ) latest_invitation ON TRUE
+            WHERE ss.school_id = $1
+            ORDER BY ss.id, latest_invitation.created_at DESC NULLS LAST;
+            `,
+            [schoolId]
+        );
+
+        return res.status(200).json({
+            invitationStatuses: result.rows,
+        });
+    } catch (error) {
+        console.error(
+            "Failed to fetch staff invitation statuses:",
+            error.message
+        );
+
+        return res.status(500).json({
+            message: "Failed to fetch staff invitation statuses.",
+        });
     }
 };

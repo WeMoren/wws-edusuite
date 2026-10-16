@@ -21,3 +21,8 @@ select,
 textarea {
   font: inherit;
 }
+
+.app-loading{
+  color: blue;
+  font-size: 20px;
+}

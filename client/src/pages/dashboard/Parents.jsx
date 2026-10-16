@@ -21,18 +21,33 @@ const Parents = () => {
     const parentsPerPage = 5;
     
 
-     if (currentUser?.role !== "admin") {
-      return (
-        <div className="parents-page">
-          <h1>🔒Access Denied</h1>
-          <p>You do not have permission to access the Parents module.</p>
-        </div>
-      );
-    }
-
         useEffect(() => {
             setCurrentPage(1);
     }, [searchTerm]);
+
+    const userRoles =
+      Array.isArray(currentUser?.roles) && currentUser.roles.length > 0
+        ? currentUser.roles
+        : currentUser?.role
+          ? [currentUser.role]
+          : [];
+
+const canAccessParents = userRoles.some(
+  (role) =>
+    ["principal", "admin"].includes(
+      String(role).trim().toLowerCase()
+    )
+);
+
+
+if (!canAccessParents) {
+  return (
+    <div className="parents-page">
+      <h1>🔒 Access Denied</h1>
+      <p>You do not have permission to access the Parents module.</p>
+    </div>
+  );
+}
 
 
     const filteredParents = parents.filter((parent) => {

@@ -18,7 +18,7 @@ router.get(
     "/",
     authenticateToken,
     requireSchoolContext,
-    requirePermission("academicSetup", "view"),
+    requirePermission("classes", "view"),
     getClasses
 );
 
@@ -26,7 +26,7 @@ router.get(
     "/:id",
     authenticateToken,
     requireSchoolContext,
-    requirePermission("academicSetup", "view"),
+    requirePermission("classes", "view"),
     getClassById
 );
 
@@ -34,7 +34,7 @@ router.post(
     "/",
     authenticateToken,
     requireSchoolContext,
-    requirePermission("academicSetup", "create"),
+    requirePermission("classes", "create"),
     createClass
 );
 
@@ -42,7 +42,7 @@ router.patch(
     "/:id",
     authenticateToken,
     requireSchoolContext,
-    requirePermission("academicSetup", "edit"),
+    requirePermission("classes", "edit"),
     updateClass
 );
 
@@ -50,7 +50,7 @@ router.delete(
     "/:id",
     authenticateToken,
     requireSchoolContext,
-    requirePermission("academicSetup", "delete"),
+    requirePermission("classes", "delete"),
     deleteClass
 );
 

@@ -1277,10 +1277,16 @@ export const authorizeResultDocumentAsPrincipal = async (req, res) => {
     const { id } = req.params;
     const { schoolId } = req;
 
-    if (req.user.role !== "Admin") {
+        const userRoles = Array.isArray(req.user.roles)
+        ? req.user.roles
+        : req.user.role
+        ? [req.user.role]
+        : [];
+
+    if (!userRoles.includes("Principal")) {
         return res.status(403).json({
             message:
-                "Only the Admin (Principal) can authorize result documents as Principal.",
+                "Only the Principal can authorize result documents as Principal.",
         });
     }
 
@@ -1392,7 +1398,15 @@ export const authorizeResultDocumentAsExamOfficer = async (req, res) => {
     const { id } = req.params;
     const { schoolId } = req;
 
-    if (req.user.role !== "Exam Officer") {
+    const userRoles = Array.isArray(req.user.roles)
+        ? req.user.roles
+        : req.user.role
+        ? [req.user.role]
+        : [];
+
+    if (
+        !userRoles.includes("Exam Officer") &&
+        !userRoles.includes("Principal")) {
         return res.status(403).json({
             message:
                 "Only the Exam Officer can authorize result documents as Exam Officer.",

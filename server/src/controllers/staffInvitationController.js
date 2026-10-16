@@ -6,6 +6,7 @@ import { sendStaffInvitationEmail } from "../services/emailService.js";
 // Staff positions permitted to receive login invitations.
 const invitationEligiblePositions = [
 "principal",
+"school_admin",
 "head_teacher",
 "exam_officer",
 "accountant",
@@ -14,6 +15,7 @@ const invitationEligiblePositions = [
 // Resolve the application role from the staff member's current position.
 const positionRoleNames = {
 principal: "Principal",
+school_admin: "School Admin",
 head_teacher: "Teacher",
 exam_officer: "Exam Officer",
 accountant: "Accountant",

@@ -253,18 +253,13 @@ export const registerSchool = async (req, res) => {
                 id,
                 name
             FROM roles
-            WHERE name IN ('Principal', 'School Admin')
-            ORDER BY
-                CASE name
-                    WHEN 'Principal' THEN 1
-                    WHEN 'School Admin' THEN 2
-                END;
+            WHERE name = 'Principal';
             `
         );
 
-        if (roleResult.rows.length !== 2) {
+        if (roleResult.rows.length !== 1) {
             throw new Error(
-                "Required school registration roles were not found."
+                "Required school Principal role was not found."
             );
         }
 

@@ -81,7 +81,7 @@ const sidebarMenu = [
     label: "Accountant",
     path: "/dashboard/accountant",
     icon: "💰",
-    roles: ["Accountant"],
+    roles: ["Principal", "Accountant"],
   },
   {
     id: 11,
@@ -104,6 +104,13 @@ const sidebarMenu = [
     icon: "📅",
     roles: ["Principal", "Head Teacher"],
   },
+  {
+    id: 16,
+    label: "Staff Management",
+    path: "/dashboard/staff",
+    icon: "👥",
+    roles: ["Principal"],
+},
   {
     id: 14,
     label: "Settings",
