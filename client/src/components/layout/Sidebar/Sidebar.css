@@ -1,10 +1,15 @@
-
 .sidebar {
+  position: sticky;
+  top: 70px;
+  align-self: flex-start;
   width: 250px;
+  height: calc(100vh - 70px);
+  box-sizing: border-box;
   flex: 0 0 250px;
   background-color: #ffffff;
   border-right: 1px solid #e5e7eb;
   padding: 1rem 0;
+  overflow-y: auto;
 }
 
 .sidebar__menu {
@@ -41,6 +46,7 @@
     left: 0;
     z-index: 300;
     width: min(280px, 85vw);
+    height: auto;
     padding: 1rem 0;
     overflow-y: auto;
     transform: translateX(-100%);
