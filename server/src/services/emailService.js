@@ -149,3 +149,111 @@ export const sendStaffInvitationEmail = async ({
         messageId: data.id,
     };
 };
+
+
+
+export const sendPasswordResetEmail = async ({
+    to,
+    recipientName,
+    resetUrl,
+    expiresInMinutes,
+}) => {
+    const apiKey = process.env.RESEND_API_KEY;
+    const from = process.env.RESEND_FROM_EMAIL;
+
+    if (!apiKey || !from) {
+        throw new Error(
+            "Password-reset email is not configured."
+        );
+    }
+
+    if (
+        typeof to !== "string" ||
+        !to.trim() ||
+        typeof resetUrl !== "string" ||
+        !Number.isInteger(expiresInMinutes) ||
+        expiresInMinutes < 1
+    ) {
+        throw new Error("Valid password-reset email details are required.");
+    }
+
+    const parsedResetUrl = new URL(resetUrl);
+
+    if (
+        !["http:", "https:"].includes(parsedResetUrl.protocol) ||
+        parsedResetUrl.username ||
+        parsedResetUrl.password
+    ) {
+        throw new Error("A valid password-reset URL is required.");
+    }
+
+    const safeRecipientName = escapeHtml(recipientName || "there");
+    const safeResetUrl = escapeHtml(parsedResetUrl.href);
+
+    const resend = new Resend(apiKey);
+
+    const { data, error } = await resend.emails.send({
+        from,
+        to: to.trim(),
+        subject: "Reset your WWS-EduSuite password",
+        text: [
+            `Hello ${recipientName || "there"},`,
+            "",
+            "We received a request to reset your WWS-EduSuite password.",
+            "",
+            `Use this link to choose a new password: ${parsedResetUrl.href}`,
+            "",
+            `This link expires in ${expiresInMinutes} minutes and can only be used once.`,
+            "",
+            "If you did not request a password reset, you can ignore this email.",
+            "",
+            "WWS-EduSuite",
+        ].join("\n"),
+        html: `
+            <!DOCTYPE html>
+            <html lang="en">
+                <head>
+                    <meta charset="UTF-8" />
+                    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+                    <title>Reset your password</title>
+                </head>
+                <body style="margin:0;padding:24px;background:#f3f4f6;font-family:Arial,Helvetica,sans-serif;color:#1f2937;">
+                    <main style="max-width:560px;margin:0 auto;padding:32px;background:#ffffff;border:1px solid #e5e7eb;border-radius:12px;">
+                        <h1 style="color:#1d4ed8;">WWS-EduSuite</h1>
+                        <h2>Reset your password</h2>
+                        <p>Hello ${safeRecipientName},</p>
+                        <p>We received a request to reset your WWS-EduSuite password.</p>
+                        <p style="margin:28px 0;text-align:center;">
+                            <a
+                                href="${safeResetUrl}"
+                                style="display:inline-block;padding:13px 22px;background:#2563eb;color:#ffffff;text-decoration:none;border-radius:6px;font-weight:bold;"
+                            >
+                                Reset Password
+                            </a>
+                        </p>
+                        <p>If the button does not work, copy this link into your browser:</p>
+                        <p style="overflow-wrap:anywhere;">
+                            <a href="${safeResetUrl}">${safeResetUrl}</a>
+                        </p>
+                        <p>This link expires in <strong>${expiresInMinutes} minutes</strong> and can only be used once.</p>
+                        <p>If you did not request a password reset, you can ignore this email.</p>
+                    </main>
+                </body>
+            </html>
+        `,
+    });
+
+    if (error) {
+        throw new Error(
+            `Resend could not send the password-reset email: ${error.message}`
+        );
+    }
+
+    if (!data?.id) {
+        throw new Error(
+            "Resend did not confirm acceptance of the password-reset email."
+        );
+    }
+
+    return { messageId: data.id };
+};

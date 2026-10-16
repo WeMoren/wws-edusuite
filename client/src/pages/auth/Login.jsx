@@ -73,6 +73,12 @@ return ( <div className="login-page"> <div className="login-card"> <div classNam
         />
       </div>
 
+      <p className="login-register login-forgot-password">
+        <Link to="/forgot-password">
+            Forgot your password?
+        </Link>
+    </p>
+
       {registrationSuccess && (
         <p className="login-form__success">
           {registrationSuccess}

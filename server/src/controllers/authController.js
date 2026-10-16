@@ -469,6 +469,7 @@ export const loginUser = async (req, res) => {
                 u.email,
                 u.password_hash,
                 u.status,
+                u.token_version,
                 r.id AS role_id,
                 r.name AS role
             FROM users u
@@ -519,6 +520,7 @@ export const loginUser = async (req, res) => {
             {
                 userId: user.id,
                 schoolId: user.school_id,
+                tokenVersion: user.token_version,
                 roleIds,
                 roles,
 
