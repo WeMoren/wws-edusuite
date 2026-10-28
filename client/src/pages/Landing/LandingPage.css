@@ -400,6 +400,11 @@ html{
   display: flex;
 }
 
+
+  .landing-navbar__logo {
+    display: none;
+  }
+
 .landing-navbar__nav {
   position: absolute;
   top: 100%;
@@ -460,6 +465,16 @@ html{
     min-height: 350px;
   }
 }
+
+
+@media (max-width: 800px) {
+ 
+
+  .landing-navbar__logo {
+    display: none;
+  }
+}
+
 
 @media (max-width: 500px) {
   .landing-navbar {

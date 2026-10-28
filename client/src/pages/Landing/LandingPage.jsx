@@ -11,6 +11,19 @@ const LandingPage = () => {
   return (
     <div className="landing-page">
       <header className="landing-navbar">
+
+        <button
+            type="button"
+            className={`landing-navbar__menu ${isMenuOpen ? "is-open" : ""}`}
+            onClick={() => setIsMenuOpen((prev) => !prev)}
+            aria-label="Toggle navigation menu"
+            aria-expanded={isMenuOpen}
+          >
+            <span></span>
+            <span></span>
+            <span></span>
+        </button>
+
         <div className="landing-navbar__logo">
           <img src={logo} alt="WWS-EduSuite Logo" />
         </div>
@@ -35,17 +48,7 @@ const LandingPage = () => {
 
 
         <div className="nav-menu__login">
-        <button
-            type="button"
-            className={`landing-navbar__menu ${isMenuOpen ? "is-open" : ""}`}
-            onClick={() => setIsMenuOpen((prev) => !prev)}
-            aria-label="Toggle navigation menu"
-            aria-expanded={isMenuOpen}
-          >
-            <span></span>
-            <span></span>
-            <span></span>
-        </button>
+        
 
         <Link to="/login" className="landing-navbar__login">
              Register / Login
