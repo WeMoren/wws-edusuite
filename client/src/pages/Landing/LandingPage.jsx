@@ -403,6 +403,7 @@ const LandingPage = () => {
                 <li>✓ Staff management</li>
                 <li>✓ Academic management</li>
                 <li>✓ Attendance tracking</li>
+                <li>✓ Financial management</li>
                 <li>✓ Results management</li>
                 <li>✓ Role-based access</li>
                 <li>✓ 30-day free trial</li>
@@ -521,7 +522,7 @@ const LandingPage = () => {
                 </div>
 
                 <p>
-                    Smart school management made simple.
+                    School management made simple.
                 </p>
                 </div>
 
