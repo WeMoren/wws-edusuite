@@ -118,8 +118,15 @@ const sidebarMenu = [
     icon: "⚙️",
     roles: ["Principal", "School Admin"],
   },
-  {
+   {
     id: 15,
+    label: "School Fees",
+    path: "/dashboard/school-fees",
+    icon: "💵",
+    roles: ["Principal", "School Admin"],
+  },
+  {
+    id: 17,
     label: "WWS Subscription",
     path: "/dashboard/subscription",
     icon: "💳",

@@ -18,7 +18,7 @@ router.get(
     "/",
     authenticateToken,
     requireSchoolContext,
-    requirePermission("academicSetup", "view"),
+    requirePermission("feeStructures", "view"),
     getFeeStructures
 );
 
@@ -26,7 +26,7 @@ router.get(
     "/:id",
     authenticateToken,
     requireSchoolContext,
-    requirePermission("academicSetup", "view"),
+    requirePermission("feeStructures", "view"),
     getFeeStructureById
 );
 
@@ -34,7 +34,7 @@ router.post(
     "/",
     authenticateToken,
     requireSchoolContext,
-    requirePermission("academicSetup", "create"),
+    requirePermission("feeStructures", "create"),
     createFeeStructure
 );
 
@@ -42,7 +42,7 @@ router.patch(
     "/:id",
     authenticateToken,
     requireSchoolContext,
-    requirePermission("academicSetup", "edit"),
+    requirePermission("feeStructures", "edit"),
     updateFeeStructure
 );
 
@@ -50,7 +50,7 @@ router.delete(
     "/:id",
     authenticateToken,
     requireSchoolContext,
-    requirePermission("academicSetup", "delete"),
+    requirePermission("feeStructures", "delete"),
     deleteFeeStructure
 );
 

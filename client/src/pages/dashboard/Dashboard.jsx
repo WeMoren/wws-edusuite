@@ -102,7 +102,7 @@ const { currentUser } = useAuth();
             <h1>
                  {getGreeting()}, {currentUser?.firstName} {currentUser?.lastName} 👋
             </h1>            
-            <p>Welcome back to WWS Edusuite.</p>
+            <p>Welcome back to WWS-Edusuite.</p>
          </div>
 
          <div className="dashboard__stats">

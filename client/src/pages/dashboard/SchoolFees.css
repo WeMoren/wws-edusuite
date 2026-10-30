@@ -1,0 +1,661 @@
+.school-fees {
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+    width: 100%;
+    min-width: 0;
+    color: #172033;
+}
+
+.school-fees *,
+.school-fees *::before,
+.school-fees *::after {
+    box-sizing: border-box;
+}
+
+.school-fees button,
+.school-fees input,
+.school-fees select {
+    font: inherit;
+}
+
+.school-fees button {
+    cursor: pointer;
+}
+
+.school-fees button:disabled {
+    cursor: not-allowed;
+    opacity: 0.58;
+}
+
+.school-fees__header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 20px;
+}
+
+.school-fees__eyebrow {
+    margin: 0 0 8px;
+    color: #2563eb;
+    font-size: 0.72rem;
+    font-weight: 800;
+    letter-spacing: 0.11em;
+}
+
+.school-fees__header h1 {
+    margin: 0;
+    color: #111827;
+    font-size: clamp(1.65rem, 3vw, 2rem);
+    letter-spacing: -0.035em;
+}
+
+.school-fees__subtitle {
+    max-width: 650px;
+    margin: 9px 0 0;
+    color: #64748b;
+    font-size: 0.94rem;
+    line-height: 1.6;
+}
+
+.school-fees__summary {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 16px;
+}
+
+.school-fees__summary-card {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    min-width: 0;
+    padding: 20px;
+    border: 1px solid #e5eaf2;
+    border-radius: 14px;
+    background: #fff;
+    box-shadow: 0 3px 12px rgb(15 23 42 / 3%);
+}
+
+.school-fees__summary-icon {
+    display: grid;
+    flex: 0 0 44px;
+    width: 44px;
+    height: 44px;
+    place-items: center;
+    border-radius: 12px;
+    background: #eff6ff;
+    color: #2563eb;
+    font-size: 1.35rem;
+    font-weight: 800;
+}
+
+.school-fees__summary-card p {
+    margin: 0 0 5px;
+    color: #64748b;
+    font-size: 0.84rem;
+}
+
+.school-fees__summary-card strong {
+    color: #111827;
+    font-size: 1.55rem;
+    font-weight: 750;
+}
+
+.school-fees__panel {
+    min-width: 0;
+    padding: 24px;
+    border: 1px solid #e5eaf2;
+    border-radius: 16px;
+    background: #fff;
+    box-shadow: 0 3px 12px rgb(15 23 42 / 3%);
+}
+
+.school-fees__panel-heading {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 16px;
+    margin-bottom: 24px;
+}
+
+.school-fees__panel-heading h2 {
+    margin: 0;
+    color: #172033;
+    font-size: 1.1rem;
+    font-weight: 750;
+}
+
+.school-fees__panel-heading p {
+    margin: 7px 0 0;
+    color: #718096;
+    font-size: 0.85rem;
+    line-height: 1.5;
+}
+
+.school-fees__form-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 18px;
+}
+
+.school-fees__form-grid label,
+.school-fees__item-row label {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    min-width: 0;
+    color: #344054;
+    font-size: 0.84rem;
+    font-weight: 650;
+}
+
+.school-fees__form-grid input,
+.school-fees__form-grid select,
+.school-fees__item-row input,
+.school-fees__search {
+    width: 100%;
+    min-width: 0;
+    min-height: 44px;
+    padding: 10px 12px;
+    border: 1px solid #d8e0eb;
+    border-radius: 9px;
+    outline: none;
+    background: #fff;
+    color: #172033;
+    font-size: 0.9rem;
+    font-weight: 400;
+    transition: border-color 150ms ease, box-shadow 150ms ease;
+}
+
+.school-fees__form-grid input:focus,
+.school-fees__form-grid select:focus,
+.school-fees__item-row input:focus,
+.school-fees__search:focus {
+    border-color: #2563eb;
+    box-shadow: 0 0 0 3px rgb(37 99 235 / 12%);
+}
+
+.school-fees__form-grid input:disabled,
+.school-fees__form-grid select:disabled,
+.school-fees__item-row input:disabled {
+    background: #f8fafc;
+    color: #64748b;
+}
+
+.school-fees__items-heading {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    margin: 30px 0 14px;
+}
+
+.school-fees__items-heading h3 {
+    margin: 0;
+    font-size: 0.96rem;
+    font-weight: 750;
+}
+
+.school-fees__items-heading p {
+    margin: 5px 0 0;
+    color: #718096;
+    font-size: 0.82rem;
+}
+
+.school-fees__items {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.school-fees__item-row {
+    display: grid;
+    grid-template-columns: minmax(0, 1.5fr) minmax(140px, 0.8fr) 38px;
+    align-items: end;
+    gap: 12px;
+    padding: 14px;
+    border: 1px solid #e7ecf3;
+    border-radius: 11px;
+    background: #fbfcfe;
+}
+
+.school-fees__item-row label span {
+    color: #64748b;
+    font-size: 0.77rem;
+    font-weight: 650;
+}
+
+.school-fees__remove-button {
+    display: grid;
+    width: 38px;
+    height: 44px;
+    place-items: center;
+    border: 1px solid #fecaca;
+    border-radius: 9px;
+    background: #fff;
+    color: #b91c1c;
+    font-size: 1.4rem;
+}
+
+.school-fees__remove-button:hover:not(:disabled) {
+    background: #fef2f2;
+}
+
+.school-fees__total {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    margin-top: 20px;
+    padding: 18px;
+    border: 1px solid #dbeafe;
+    border-radius: 11px;
+    background: #f5f9ff;
+}
+
+.school-fees__total span {
+    color: #344054;
+    font-size: 0.9rem;
+    font-weight: 650;
+}
+
+.school-fees__total strong {
+    color: #1d4ed8;
+    font-size: clamp(1.15rem, 3vw, 1.5rem);
+    font-weight: 800;
+    text-align: right;
+}
+
+.school-fees__current-toggle {
+    display: flex;
+    align-items: flex-start;
+    gap: 11px;
+    margin-top: 20px;
+    cursor: pointer;
+}
+
+.school-fees__current-toggle input {
+    width: 17px;
+    height: 17px;
+    margin: 2px 0 0;
+    accent-color: #2563eb;
+}
+
+.school-fees__current-toggle span {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.school-fees__current-toggle strong {
+    color: #344054;
+    font-size: 0.87rem;
+}
+
+.school-fees__current-toggle small {
+    color: #718096;
+    font-size: 0.8rem;
+    line-height: 1.5;
+}
+
+.school-fees__form-actions {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    gap: 10px;
+    margin-top: 24px;
+}
+
+.school-fees__primary-button,
+.school-fees__secondary-button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 42px;
+    padding: 10px 16px;
+    border: 1px solid transparent;
+    border-radius: 9px;
+    font-size: 0.86rem;
+    font-weight: 700;
+    transition: background 150ms ease, border-color 150ms ease;
+}
+
+.school-fees__primary-button {
+    background: #2563eb;
+    color: #fff;
+}
+
+.school-fees__primary-button:hover:not(:disabled) {
+    background: #1d4ed8;
+}
+
+.school-fees__secondary-button {
+    border-color: #d8e0eb;
+    background: #fff;
+    color: #344054;
+}
+
+.school-fees__secondary-button:hover:not(:disabled) {
+    border-color: #b8c5d6;
+    background: #f8fafc;
+}
+
+.school-fees__text-button,
+.school-fees__danger-text {
+    padding: 5px 0;
+    border: 0;
+    background: transparent;
+    font-size: 0.83rem;
+    font-weight: 700;
+}
+
+.school-fees__text-button {
+    color: #2563eb;
+}
+
+.school-fees__danger-text {
+    color: #b91c1c;
+}
+
+.school-fees__text-button:hover:not(:disabled),
+.school-fees__danger-text:hover:not(:disabled) {
+    text-decoration: underline;
+}
+
+.school-fees__list-heading {
+    align-items: center;
+}
+
+.school-fees__search {
+    max-width: 300px;
+}
+
+.school-fees__table-wrap {
+    width: 100%;
+    overflow-x: auto;
+}
+
+.school-fees__table {
+    width: 100%;
+    border-collapse: collapse;
+    text-align: left;
+    white-space: nowrap;
+}
+
+.school-fees__table th {
+    padding: 13px 14px;
+    border-bottom: 1px solid #e5eaf2;
+    background: #f8fafc;
+    color: #64748b;
+    font-size: 0.73rem;
+    font-weight: 750;
+    letter-spacing: 0.025em;
+    text-transform: uppercase;
+}
+
+.school-fees__table th:first-child {
+    border-radius: 8px 0 0 8px;
+}
+
+.school-fees__table th:last-child {
+    border-radius: 0 8px 8px 0;
+}
+
+.school-fees__table td {
+    padding: 17px 14px;
+    border-bottom: 1px solid #edf1f6;
+    color: #475467;
+    font-size: 0.84rem;
+    vertical-align: middle;
+}
+
+.school-fees__table tbody tr:last-child td {
+    border-bottom: 0;
+}
+
+.school-fees__table tbody tr:hover {
+    background: #fbfdff;
+}
+
+.school-fees__table td:first-child strong,
+.school-fees__table td:first-child small,
+.school-fees__table td:nth-child(2) span,
+.school-fees__table td:nth-child(2) small {
+    display: block;
+}
+
+.school-fees__table td:first-child strong {
+    max-width: 220px;
+    overflow: hidden;
+    color: #172033;
+    font-weight: 700;
+    text-overflow: ellipsis;
+}
+
+.school-fees__table td small {
+    margin-top: 5px;
+    color: #8793a5;
+    font-size: 0.75rem;
+}
+
+.school-fees__table td:nth-child(2) span {
+    color: #344054;
+    font-weight: 600;
+}
+
+.school-fees__amount {
+    color: #172033 !important;
+    font-weight: 750;
+}
+
+.school-fees__status {
+    display: inline-flex;
+    align-items: center;
+    padding: 5px 9px;
+    border-radius: 999px;
+    font-size: 0.73rem;
+    font-weight: 750;
+}
+
+.school-fees__status--current {
+    background: #ecfdf3;
+    color: #027a48;
+}
+
+.school-fees__status--inactive {
+    background: #f2f4f7;
+    color: #667085;
+}
+
+.school-fees__row-actions {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+}
+
+.school-fees__state {
+    display: flex;
+    min-height: 200px;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 30px 16px;
+    text-align: center;
+}
+
+.school-fees__state h3 {
+    margin: 12px 0 0;
+    color: #344054;
+    font-size: 1rem;
+}
+
+.school-fees__state p {
+    max-width: 440px;
+    margin: 8px 0 0;
+    color: #718096;
+    font-size: 0.87rem;
+    line-height: 1.6;
+}
+
+.school-fees__state .school-fees__primary-button {
+    margin-top: 16px;
+}
+
+.school-fees__spinner {
+    width: 30px;
+    height: 30px;
+    border: 3px solid #dbeafe;
+    border-top-color: #2563eb;
+    border-radius: 50%;
+    animation: school-fees-spin 0.8s linear infinite;
+}
+
+.school-fees__empty-icon {
+    display: grid;
+    width: 48px;
+    height: 48px;
+    place-items: center;
+    border-radius: 14px;
+    background: #eff6ff;
+    color: #2563eb;
+    font-size: 1.5rem;
+    font-weight: 800;
+}
+
+.school-fees__error {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 14px;
+    padding: 13px 15px;
+    border: 1px solid #fecaca;
+    border-radius: 10px;
+    background: #fef2f2;
+    color: #991b1b;
+    font-size: 0.87rem;
+    line-height: 1.5;
+}
+
+.school-fees__error button {
+    flex: 0 0 auto;
+    padding: 0 3px;
+    border: 0;
+    background: transparent;
+    color: inherit;
+    font-size: 1.25rem;
+}
+
+.school-fees__footnote {
+    margin: -8px 0 0;
+    color: #718096;
+    font-size: 0.8rem;
+    line-height: 1.6;
+}
+
+@keyframes school-fees-spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+@media (max-width: 900px) {
+    .school-fees__panel {
+        padding: 20px;
+    }
+
+    .school-fees__list-heading {
+        align-items: flex-start;
+        flex-direction: column;
+    }
+
+    .school-fees__search {
+        max-width: none;
+    }
+}
+
+@media (max-width: 600px) {
+    .school-fees {
+        gap: 17px;
+    }
+
+    .school-fees__header {
+        align-items: flex-start;
+        flex-direction: column;
+    }
+
+    .school-fees__summary {
+        grid-template-columns: 1fr;
+        gap: 10px;
+    }
+
+    .school-fees__summary-card {
+        padding: 15px;
+    }
+
+    .school-fees__panel {
+        padding: 16px;
+        border-radius: 12px;
+    }
+
+    .school-fees__panel-heading {
+        align-items: flex-start;
+        flex-direction: column;
+        margin-bottom: 19px;
+    }
+
+    .school-fees__form-grid {
+        grid-template-columns: 1fr;
+        gap: 15px;
+    }
+
+    .school-fees__item-row {
+        grid-template-columns: minmax(0, 1fr) 38px;
+        gap: 12px;
+    }
+
+    .school-fees__item-row label:first-child {
+        grid-column: 1 / -1;
+    }
+
+    .school-fees__item-row label:nth-child(2) {
+        grid-column: 1;
+    }
+
+    .school-fees__remove-button {
+        grid-column: 2;
+        grid-row: 2;
+    }
+
+    .school-fees__items-heading {
+        align-items: flex-start;
+    }
+
+    .school-fees__total {
+        align-items: flex-start;
+        flex-direction: column;
+        gap: 8px;
+    }
+
+    .school-fees__total strong {
+        text-align: left;
+    }
+
+    .school-fees__form-actions {
+        flex-direction: column-reverse;
+    }
+
+    .school-fees__form-actions button {
+        width: 100%;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .school-fees *,
+    .school-fees *::before,
+    .school-fees *::after {
+        scroll-behavior: auto !important;
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+    }
+}

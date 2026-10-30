@@ -8,6 +8,7 @@ const permissions = {
     sections: FULL_ACCESS,
     parents: FULL_ACCESS,
     academicSetup: FULL_ACCESS,
+    feeStructures: FULL_ACCESS,
     attendance: FULL_ACCESS,
     results: [
       "view",
@@ -28,6 +29,7 @@ const permissions = {
 
   schoolAdmin: {
     academicSetup: FULL_ACCESS,
+    feeStructures: FULL_ACCESS,
     settings: FULL_ACCESS,
     subscription: ["view", "create", "edit"],
   },

@@ -2,31 +2,33 @@
     display: flex;
     flex-direction: column;
     gap: 2rem;
-    
+
 }
+
+
 .dashboard__stats{
     display: grid;
    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
     gap: 1.5rem;
-    
+
 }
 
 .dashboard__welcome{
     margin-bottom: 0.5rem;
-    
+
 }
 
 .dashboard__welcome h1{
     margin: 0;
     font-size: 2rem;
     color: #111827;
-    
+
 }
 
 .dashboard__welcome p{
     margin-top: 0.5rem;
     color: #6b7280;
-    
+
 }
 
 .dashboard__activities{
@@ -35,14 +37,14 @@
     padding: 1.5rem;
     border-radius: 12px;
     border: 1px solid #e5e7eb;
-    
+
 }
 
 .dashboard__welcome h2{
     margin-top: 0;
     margin-bottom: 1rem;
     color: #111827;
-    
+
 }
 .dashboard__events{
     margin-top: 2rem;
@@ -56,14 +58,14 @@
     margin-top: 0;
     margin-bottom: 1rem;
     color: #111827;
-    
+
 }
 .dashboard__info{
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
     gap: 12px;
     color: #111827;
-    
+
 }
 
 .quick-actions{
@@ -86,15 +88,16 @@
    gap: 1rem;
 }
 
-.students-page { 
+
+.students-page {
     display: flex;
     flex-direction: column;
     gap: 1.5rem;
-} 
+}
 
-.students-page h1{ 
+.students-page h1{
     margin: 0;
-} 
+}
 
 
 .dashboard__section-header {
@@ -124,4 +127,19 @@
 .dashboard__section-header button:hover {
   opacity: 0.9;
   transform: translateY(-1px);
+}
+
+@media(max-width:768px){
+    .dashboard h1{
+        font-size: 1.8rem;
+    }
+
+    .dashboard__welcome h1 {
+        font-size: 1.4rem;
+    }
+
+    .dashboard__section-header h2 {
+        font-size: 1.2rem;
+    }
+
 }

@@ -1772,3 +1772,195 @@ User redirected to Login
 - Passwords are hashed using the existing Argon2id password utility.
 - Passwords are never stored in plain text.
 - No school-specific values are hardcoded.
+---
+
+# 26. Current Development Checkpoint — October 30, 2026
+
+This section records development progress and decisions established after the October 6, 2026 checkpoint. It supersedes older status statements wherever they conflict with the current decisions documented here. Earlier checkpoints remain as historical records.
+
+## 26.1 Database Migration Progress
+
+The backend migration sequence now contains migrations 001–049, with no numbering gaps.
+
+The following migrations were added after the October 6 checkpoint:
+
+| Migration | Description |
+|---|---|
+| 036 | Created school staff and refactored teacher identity |
+| 037 | Introduced Principal and School Admin roles |
+| 038 | Enforced globally unique user email addresses |
+| 039 | Added staff permissions |
+| 040 | Created staff invitations |
+| 041 | Enforced school consistency for staff invitations |
+| 042 | Created platform billing settings |
+| 043 | Added subscription payment snapshots |
+| 044 | Completed Principal permissions |
+| 045 | Added the School Admin staff position |
+| 046 | Added password-reset tokens |
+| 047 | Added fee-structure permissions |
+| 048 | Created the Parents module |
+| 049 | Added website information to schools |
+
+These migrations extend the existing school-management, staff, subscription, and financial foundations. Their presence in the migration directory does not, by itself, establish that every associated frontend workflow or production integration is complete.
+
+## 26.2 Current Role and Permission Decisions
+
+The intended school-facing access structure is:
+
+### Principal
+- Has full access to all school-facing modules and operations.
+- Oversees academic and operational activities.
+- Can manage school staff and invite additional staff members.
+- Does not receive global Developer Control Panel permissions merely by being a Principal.
+
+Migration 044 grants Principal permissions across the defined school resources, including students, teachers, classes, sections, academic setup, attendance, results, accountant, settings, and staff.
+
+### School Admin
+- Access is intended to be limited to Settings, Academic Setup, and subscription plan/management.
+- Must not have general access to other school modules such as Students, Teachers, Parents, Attendance, Results, or Accountant.
+
+### Permission reconciliation note
+
+Migration 047 introduced a separate `feeStructures` permission resource and granted its view, create, edit, and delete permissions to both Principal and School Admin.
+
+This must be reconciled with the intended School Admin access boundary. Fee-structure permissions are separate from the `academicSetup` resource and must not be assumed to be equivalent without reviewing the relevant route and frontend access rules.
+
+The final role implementation must be consistent across:
+- Database role permissions.
+- Backend route and middleware authorization.
+- Frontend navigation and protected pages.
+- Subscription-management access.
+
+The Principal's full-access requirement remains the governing business decision.
+
+## 26.3 Additional Backend Modules and Infrastructure
+
+The subsequent backend development introduced or extended the following areas:
+
+- School staff management and staff invitation infrastructure.
+- Parent management.
+- School profile and school website information.
+- Financial summary functionality.
+- Results document functionality.
+- Platform billing settings.
+- Subscription payment snapshots.
+- Password-reset token infrastructure.
+- Fee-structure-specific permissions.
+
+Implementation status for each associated workflow must be assessed against its controller, service, route, frontend integration, and tests before it is described as fully production-ready.
+
+## 26.4 Automatic Student Financial-Account Generation
+
+A shared financial-account creation service has been introduced:
+
+`server/src/services/studentFinancialAccountService.js`
+
+The service is intended to provide a consistent account-generation process for enrolment and manual account creation.
+
+### Required business behaviour
+
+1. When a student is enrolled, the backend checks the school's current academic session and current term.
+2. It identifies an active fee structure matching the student's academic level, session, and term.
+3. If a matching active fee structure exists and contains fee items, the backend creates the student's financial account.
+4. If no matching active fee structure exists, enrolment must still succeed. The absence of a fee structure must not prevent student enrolment.
+5. An account must not be duplicated for the same student, enrolment, and term.
+6. Existing financial accounts and payment records must be preserved.
+7. Activating a fee structure later must not automatically generate accounts for students who were already enrolled.
+8. Manual and bulk financial-account generation remain Accountant-controlled workflows.
+
+### Implementation progress
+
+- A shared service handles enrolment details, active fee-structure lookup, fee total calculation, and account creation.
+- The service checks for multiple active matching fee structures rather than silently choosing one.
+- Duplicate creation is handled using the existing database uniqueness constraint and conflict-safe insertion.
+- The existing manual account-creation controller has been refactored to use the shared service.
+- The enrolment controller has been integrated with the shared service inside the enrolment transaction.
+- Missing current terms or matching fee structures are treated as skipped account generation rather than enrolment failures.
+- JavaScript syntax checks passed for the financial-account service, financial-account controller, and enrolment controller during development.
+
+### Outstanding verification
+
+The implementation still requires database-backed integration testing. In particular, verify:
+- Enrolment with a matching active fee structure.
+- Enrolment without a matching fee structure.
+- Enrolment when no current term exists.
+- Duplicate account prevention.
+- Multiple active matching fee structures.
+- Fee structures with no fee items.
+- Transaction rollback when account creation fails.
+- Preservation of existing payment and financial-account records.
+- School tenancy isolation.
+
+No database test data should be mutated without explicit approval.
+
+Bulk generation remains a planned Accountant workflow. Its design should include eligibility preview, already-accounted student detection, selected session and term, duplicate protection, and transaction-safe processing.
+
+## 26.5 Recent Frontend Development
+
+The current working tree includes changes across several school-facing areas:
+
+- Student management.
+- Teacher management.
+- Parent management.
+- Staff permissions and sidebar navigation.
+- School fees.
+- Accountant and payment workflows.
+- Payment receipts.
+- Academic Setup.
+- Results and PDF generation.
+- Attendance.
+- Dashboard and dashboard layout.
+- Login and school registration.
+- School settings and profile-related functionality.
+
+These files are part of the current development review. Their presence as modified or newly created files does not automatically mean each feature is complete or fully tested.
+
+The frontend and backend must be reviewed together where a workflow depends on both.
+
+## 26.6 Git and Release Checkpoint
+
+At the time of the October 30 review:
+
+- Local branch: `master`.
+- Remote tracking branch: `origin/master`.
+- Local `master` was four commits ahead of `origin/master`.
+- The four existing local commits awaiting push were:
+
+  - `ffa13bb` — modified landing page footer
+  - `27c0ac6` — modified landing page styles
+  - `0e12154` — modified landing page and styles
+  - `6bc4885` — updated platform developer login form
+
+- Additional tracked modifications and untracked files were present in the working tree.
+- No files were staged at the time of the recorded status check.
+- Backup files, temporary files, and the modified `server/node_modules/.package-lock.json` require separate review and must not be included in a release commit without justification.
+- The untracked `code` file was observed as an empty temporary file during the review.
+- No new commit or push was made during this checkpoint.
+
+### Release preparation requirements
+
+Before committing and pushing:
+
+1. Review all tracked modifications.
+2. Review all new backend and frontend files.
+3. Confirm all intended migrations are included.
+4. Exclude temporary backups, generated files, and unrelated local artifacts.
+5. Check that dependencies and lockfiles are consistent.
+6. Run relevant syntax checks and project tests.
+7. Run `git diff --check`.
+8. Review the final staged diff.
+9. Obtain explicit approval before committing and pushing.
+
+## 26.7 Immediate Development Priorities
+
+The next work should proceed in this order:
+
+1. Complete the `PROJECT_STATE.md` update and reconcile any remaining documentation contradictions.
+2. Review the current uncommitted implementation and identify the necessary files for the next commit.
+3. Verify Principal and School Admin authorization consistently across the backend and frontend.
+4. Complete database-backed testing of automatic financial-account generation.
+5. Review the new Parents, School Fees, Financial Summary, School Profile, Staff, and Results Document workflows for integration completeness.
+6. Run relevant project checks and prepare a clean, reviewed Git staging set.
+7. Commit and push only after explicit approval.
+
+This checkpoint is the current development handoff. Update it as work progresses rather than allowing historical checkpoints to be mistaken for the current project state.

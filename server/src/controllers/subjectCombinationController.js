@@ -172,12 +172,11 @@ export const createSubjectCombination = async (req, res) => {
             !streamId ||
             !name ||
             !code ||
-            !Array.isArray(subjectIds) ||
-            subjectIds.length === 0
+            !Array.isArray(subjectIds)
         ) {
             return res.status(400).json({
                 message:
-                    "Academic level, stream, name, code, and at least one subject are required.",
+                    "Academic level, stream, name, code, and a subjectIds array are required.",
             });
         }
 
@@ -487,15 +486,12 @@ export const updateSubjectCombination = async (req, res) => {
         let nextSubjectIds;
 
         if (subjectIds !== undefined) {
-            if (
-                !Array.isArray(subjectIds) ||
-                subjectIds.length === 0
-            ) {
+            if (!Array.isArray(subjectIds)) {
                 await client.query("ROLLBACK");
 
                 return res.status(400).json({
                     message:
-                        "At least one subject is required.",
+                        "subjectIds must be an array.",
                 });
             }
 

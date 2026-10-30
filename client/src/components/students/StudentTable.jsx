@@ -23,6 +23,7 @@ const StudentTable = ({
           <tr>
             <th>Admission No.</th>
             <th>First Name</th>
+            <th>Middle Name</th>
             <th>Last Name</th>
             <th>Academic Level</th>
             <th>Class</th>
@@ -100,6 +101,8 @@ const StudentTable = ({
     {student.firstName}
   </button>
 </td>
+
+<td data-label="Middle Name">{student.middleName || "-"}</td>
 
 <td data-label="Last Name">{student.lastName}</td>
 

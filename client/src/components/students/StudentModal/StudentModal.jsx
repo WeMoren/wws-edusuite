@@ -17,6 +17,7 @@ const StudentModal = ({
   const [student, setStudent] = useState({
     admissionNo: "",
     firstName: "",
+    middleName: "",
     lastName: "",
     gender: "Male",
   });
@@ -30,6 +31,8 @@ const StudentModal = ({
   combinationId: "",
   });
 
+  const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState("");
       /* UseEffect */
 
         useEffect(() => {
@@ -69,12 +72,12 @@ const StudentModal = ({
     name === "combinationId"
   ) {
     setEnrollment((prev) => {
-      const numericValue = Number(value);
+      const selectedValue = value;
 
       if (name === "academicLevelId") {
         return {
           ...prev,
-          academicLevelId: numericValue,
+          academicLevelId: selectedValue,
           streamId: "",
           combinationId: "",
           classId: "",
@@ -85,14 +88,14 @@ const StudentModal = ({
       if (name === "streamId") {
         return {
           ...prev,
-          streamId: numericValue,
+          streamId: selectedValue,
           combinationId: "",
         };
       }
 
       return {
         ...prev,
-        [name]: numericValue,
+        [name]: selectedValue,
       };
     });
 
@@ -108,18 +111,18 @@ const StudentModal = ({
 
 
   // Senior secondary stream options
-const isSeniorSecondary =
+  const isSeniorSecondary = ["SS 2", "SS 3"].includes(
   academicLevels.find(
-    (level) =>
-      level.id === Number(enrollment.academicLevelId)
-  )?.category === "Senior Secondary";
+    (level) => level.id === enrollment.academicLevelId
+  )?.name
+);
 
 const availableStreams = streams.filter((stream) =>
   streamLevels.some(
     (streamLevel) =>
       streamLevel.streamId === stream.id &&
       streamLevel.academicLevelId ===
-        Number(enrollment.academicLevelId) &&
+        enrollment.academicLevelId &&
       streamLevel.isActive
   )
 );
@@ -127,8 +130,8 @@ const availableStreams = streams.filter((stream) =>
 const availableCombinations = subjectCombinations.filter(
   (combination) =>
     combination.academicLevelId ===
-      Number(enrollment.academicLevelId) &&
-    combination.streamId === Number(enrollment.streamId) &&
+      enrollment.academicLevelId &&
+    combination.streamId === enrollment.streamId &&
     combination.isActive
 );
 
@@ -139,30 +142,40 @@ const availableCombinations = subjectCombinations.filter(
     const schoolClass = classes.find((c) => c.id === section.classId);
     return (
       schoolClass &&
-      schoolClass.academicLevelId === Number(enrollment.academicLevelId) &&
-      schoolClass.academicSessionId === Number(enrollment.academicSessionId)
+      schoolClass.academicLevelId === enrollment.academicLevelId &&
+      schoolClass.academicSessionId === enrollment.academicSessionId
     );
   });
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    onAddStudent(student, enrollment, studentToEdit);
 
-    setStudent({
-      admissionNo: "",
-      firstName: "",
-      lastName: "",
-      gender: "Male",
-    });
+    setSaving(true);
+    setSaveError("");
 
-    setEnrollment({
-      academicSessionId: "",
-      academicLevelId: "",
-      classId: "",
-      sectionId: "",
-      streamId: "",
-      combinationId: "",
-    });
+    try {
+      await onAddStudent(student, enrollment, studentToEdit);
+
+      setStudent({
+        admissionNo: "",
+        firstName: "",
+        lastName: "",
+        gender: "Male",
+      });
+
+      setEnrollment({
+        academicSessionId: "",
+        academicLevelId: "",
+        classId: "",
+        sectionId: "",
+        streamId: "",
+        combinationId: "",
+      });
+    } catch (error) {
+      setSaveError(error.message || "Unable to save the student.");
+    } finally {
+      setSaving(false);
+    }
   };
 
   return (
@@ -198,6 +211,19 @@ const availableCombinations = subjectCombinations.filter(
               onChange={handleChange}
               placeholder="Enter first name"
               required
+            />
+          </div>
+
+          {/* Middle name (optional) */}
+          <div className="student-form__group">
+            <label htmlFor="middleName">Middle Name (Optional)</label>
+            <input
+              type="text"
+              id="middleName"
+              name="middleName"
+              value={student.middleName ?? ""}
+              onChange={handleChange}
+              placeholder="Enter middle name (optional)"
             />
           </div>
 
@@ -260,7 +286,7 @@ const availableCombinations = subjectCombinations.filter(
               name="sectionId"
               value={enrollment.sectionId}
               onChange={(e) => {
-                const sectionId = Number(e.target.value);
+                const sectionId = e.target.value;
                 const selectedSection = sections.find(
                   (s) => s.id === sectionId
                 );
@@ -359,9 +385,19 @@ const availableCombinations = subjectCombinations.filter(
             </select>
           </div>
 
-          <button type="submit" className="student-form__button">
-            Save Student
-          </button>
+             {saveError && (
+              <p className="student-form__error" role="alert">
+                {saveError}
+              </p>
+            )}
+
+            <button
+              type="submit"
+              className="student-form__button"
+              disabled={saving}
+            >
+              {saving ? "Saving..." : "Save Student"}
+            </button>
         </form>
       </div>
     </div>

@@ -1,40 +1,91 @@
-import React, { useState } from "react";
+import React, {useEffect, useState } from "react";
+import { useAuth } from "../../../auth/AuthContext";
 import jsPDF from "jspdf";
 import "./PaymentReceipt.css";
 import { Download } from "lucide-react";
 
 const PaymentReceipt = ({ payment, student, onClose }) => {
-  const [schoolProfile] = useState(() => {
-    const savedProfile = localStorage.getItem("schoolProfile");
 
-    if (savedProfile) {
-      return JSON.parse(savedProfile);
-    }
+    const { authToken } = useAuth();
 
-    return {
-      name: "",
-      address: "",
-      phone: "",
-      email: "",
-      website: "",
-      logo: "",
-    };
-  });
+  const API_BASE_URL = "http://localhost:5000/api";
 
-  const receiptNumber = `REC-${String(payment.id).padStart(5, "0")}`;
+  const [schoolProfile, setSchoolProfile] = useState(null);
+  const [documentAuthorization, setDocumentAuthorization] = useState(null);
+  const [documentSettingsLoading, setDocumentSettingsLoading] = useState(true);
+  const [documentSettingsLoaded, setDocumentSettingsLoaded] = useState(false);
 
-  const handleDownloadReceipt = () => {
-    console.log("Receipt student:", student);
-    const doc = new jsPDF();
+    const getStudentFullName = (student) =>
+    [
+      student?.firstName,
+      student?.middleName,
+      student?.lastName,
+    ]
+      .filter(
+        (name) =>
+          typeof name === "string" && name.trim() !== ""
+      )
+      .map((name) => name.trim())
+      .join(" ");
 
 
-    const savedAuthorization =
-    localStorage.getItem("documentAuthorization");
+  useEffect(() => {
+    let cancelled = false;
 
-  const documentAuthorization =
-    savedAuthorization
-      ? JSON.parse(savedAuthorization)
-      : {
+    const loadDocumentSettings = async () => {
+      setDocumentSettingsLoading(true);
+      setDocumentSettingsLoaded(false);
+
+      try {
+        if (!authToken) {
+          throw new Error(
+            "Your session has expired. Please log in again."
+          );
+        }
+
+        const headers = {
+          Authorization: `Bearer ${authToken}`,
+        };
+
+        const [profileResponse, officialsResponse] =
+          await Promise.all([
+            fetch(`${API_BASE_URL}/school-profile`, { headers }),
+            fetch(`${API_BASE_URL}/school-officials`, { headers }),
+          ]);
+
+        const [profileData, officialsData] = await Promise.all([
+          profileResponse.json().catch(() => ({})),
+          officialsResponse.json().catch(() => ({})),
+        ]);
+
+        if (!profileResponse.ok) {
+          throw new Error(
+            profileData.message ||
+              "Failed to load the school profile."
+          );
+        }
+
+        if (!officialsResponse.ok) {
+          throw new Error(
+            officialsData.message ||
+              "Failed to load school officials."
+          );
+        }
+
+        if (cancelled) return;
+
+        const profile = profileData.profile || {};
+
+        setSchoolProfile({
+          name: profile.name || "",
+          address: profile.address || "",
+          phone: profile.phone || "",
+          email: profile.email || "",
+          website: profile.website || "",
+          logo: profile.logo_url || "",
+        });
+
+        const defaults = {
           principal: {
             name: "",
             title: "Principal",
@@ -48,6 +99,73 @@ const PaymentReceipt = ({ payment, student, onClose }) => {
             stamp: "",
           },
         };
+
+        const typeMap = {
+          principal: "principal",
+          accounting_officer: "accountingOfficer",
+        };
+
+        const authorization = { ...defaults };
+
+        for (const official of officialsData.officials || []) {
+          const key = typeMap[official.official_type];
+
+          if (!key) continue;
+
+          authorization[key] = {
+            name: official.name || "",
+            title: official.title || defaults[key].title,
+            signature: official.signature_url || "",
+            stamp: official.stamp_url || "",
+          };
+        }
+
+        setDocumentAuthorization(authorization);
+        setDocumentSettingsLoaded(true);
+      } catch (error) {
+        if (cancelled) return;
+
+        console.error(
+          "Unable to load receipt document settings:",
+          error
+        );
+      } finally {
+        if (!cancelled) {
+          setDocumentSettingsLoading(false);
+        }
+      }
+    };
+
+    loadDocumentSettings();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [authToken]);
+
+
+  const receiptNumber = `REC-${String(payment.id).padStart(5, "0")}`;
+
+  const handleDownloadReceipt = () => {
+
+
+    if (
+      documentSettingsLoading ||
+      !documentSettingsLoaded ||
+      !schoolProfile ||
+      !documentAuthorization
+    ) {
+      console.error(
+        "Receipt download blocked: current school document settings are unavailable."
+      );
+      return;
+    }
+
+
+    console.log("Receipt student:", student);
+    const doc = new jsPDF();
+
+
 
     let y = 20;
 
@@ -170,7 +288,7 @@ const PaymentReceipt = ({ payment, student, onClose }) => {
 
     addDetail(
       "Student:",
-      `${student.firstName} ${student.lastName}`
+      getStudentFullName(student)
     );
 
     addDetail(
@@ -373,8 +491,21 @@ const PaymentReceipt = ({ payment, student, onClose }) => {
     }
 
   return (
-    <div className="payment-receipt">
+  <div className="payment-receipt">
+    {documentSettingsLoading || !documentSettingsLoaded ? (
       <div className="payment-receipt__content">
+        <p>Loading the latest school details...</p>
+      </div>
+    ) : !schoolProfile || !documentAuthorization ? (
+      <div className="payment-receipt__content">
+        <p>
+          Unable to load the latest school document settings.
+          Please close this receipt and try again.
+        </p>
+      </div>
+    ) : (
+      <div className="payment-receipt__content">
+
 
         <div className="payment-receipt__header">
 
@@ -420,7 +551,7 @@ const PaymentReceipt = ({ payment, student, onClose }) => {
 
           <p>
             <strong>Student:</strong>{" "}
-            {student.firstName} {student.lastName}
+            {getStudentFullName(student)}
           </p>
 
           <p>
@@ -476,6 +607,7 @@ const PaymentReceipt = ({ payment, student, onClose }) => {
         </div>
 
       </div>
+    )}
     </div>
   );
 };

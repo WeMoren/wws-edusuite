@@ -1,4 +1,5 @@
 import React, {useEffect, useState } from "react";
+import { useAuth } from "../../auth/AuthContext";
 import { useOutletContext } from "react-router-dom";
 import "./Accountant.css";
 import FinanceCard from "../../components/accountant/FinanceCard/FinanceCard";
@@ -11,12 +12,21 @@ import ConfirmDialog from "../../components/common/ConfirmDialog/ConfirmDialog";
 import initialExpenses from "../../data/expenses";
 import ExpenseModal from "../../components/accountant/ExpenseModal/ExpenseModal";
 import ExpenseTable from "../../components/accountant/ExpenseTable/ExpenseTable";
-import { calculateFinancialSummary } from "../../data/financialSummary";
 import PaymentReceipt from "../../components/accountant/PaymentReceipt/PaymentReceipt";
 
 
 
 const Accountant = () => {
+  const { authToken } = useAuth();
+  const API_BASE_URL = "http://localhost:5000/api";
+  const [financialSummary, setFinancialSummary] = useState({
+    totalCollected: 0,
+    outstandingFees: 0,
+    totalExpenses: 0,
+    netBalance: 0,
+  });
+  const [summaryLoading, setSummaryLoading] = useState(true);
+  const [summaryError, setSummaryError] = useState("");
 
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [editingPayment, setEditingPayment] = useState(null);
@@ -50,16 +60,58 @@ const {
 
   useEffect(()  =>{
     localStorage.setItem("expenses", JSON.stringify(expenses))
-  })
+  });
 
 
-  const financialSummary = calculateFinancialSummary(payments, expenses);
+  useEffect(() => {
+    if (!authToken) {
+      setSummaryLoading(false);
+      setSummaryError("Please sign in to view financial data.");
+      return;
+    }
 
+    const controller = new AbortController();
 
-  useEffect(()  => { 
-    localStorage.setItem("payments", JSON.stringify(payments))
-  }, [payments])
+    const loadFinancialSummary = async () => {
+      setSummaryLoading(true);
+      setSummaryError("");
 
+      try {
+        const response = await fetch(`${API_BASE_URL}/financial-summary`, {
+          headers: {
+            Authorization: `Bearer ${authToken}`,
+          },
+          signal: controller.signal,
+        });
+
+        const data = await response.json().catch(() => ({}));
+
+        if (!response.ok) {
+          throw new Error(data.message || "Failed to load financial summary.");
+        }
+
+        setFinancialSummary({
+          totalCollected: Number(data.totalCollected) || 0,
+          outstandingFees: Number(data.outstandingFees) || 0,
+          totalExpenses: Number(data.totalExpenses) || 0,
+          netBalance: Number(data.netBalance) || 0,
+        });
+      } catch (error) {
+        if (error.name !== "AbortError") {
+          console.error("Failed to load financial summary:", error);
+          setSummaryError(error.message || "Failed to load financial summary.");
+        }
+      } finally {
+        if (!controller.signal.aborted) {
+          setSummaryLoading(false);
+        }
+      }
+    };
+
+    loadFinancialSummary();
+
+    return () => controller.abort();
+  }, [authToken]);
 
   const selectedStudent = selectedPayment
   ? students.find((student) => student.id === selectedPayment.studentId)
@@ -101,28 +153,34 @@ const filteredPayments = payments.filter((payment) => {
         </div>
       </div>
 
+        {summaryError && (
+          <p role="alert" className="accountant-page__summary-error">
+            {summaryError}
+          </p>
+        )}
+
         <div className="accountant-page__summary">
           <FinanceCard
             title="Total Collected"
-            value={`₦${financialSummary.totalCollected.toLocaleString()}`}
+            value={summaryLoading ? "Loading..." : summaryError ? "Unavailable" : `₦${financialSummary.totalCollected.toLocaleString()}`}
             description="Total fees collected"
           />
 
           <FinanceCard
             title="Outstanding Fees"
-            value={`₦${financialSummary.outstandingFees.toLocaleString()}`}
+            value={summaryLoading ? "Loading..." : summaryError ? "Unavailable" : `₦${financialSummary.outstandingFees.toLocaleString()}`}
             description="Fees yet to be collected"
           />
 
           <FinanceCard
             title="Total Expenses"
-            value={`₦${financialSummary.totalExpenses.toLocaleString()}`}
+            value={summaryLoading ? "Loading..." : summaryError ? "Unavailable" : `₦${financialSummary.totalExpenses.toLocaleString()}`}
             description="School expenses"
           />
 
           <FinanceCard
             title="Net Balance"
-            value={`₦${financialSummary.netBalance.toLocaleString()}`}
+            value={summaryLoading ? "Loading..." : summaryError ? "Unavailable" : `₦${financialSummary.netBalance.toLocaleString()}`}
             description="Current financial balance"
           />
         </div>

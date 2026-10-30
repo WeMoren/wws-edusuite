@@ -86,3 +86,68 @@
 .parent-modal form > button:hover {
   opacity: 0.9;
 }
+/* Student selection and relationship fields */
+.parent-form__group select {
+  width: 100%;
+  padding: 0.75rem;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  background: #ffffff;
+  color: #111827;
+  font: inherit;
+  box-sizing: border-box;
+}
+
+.parent-form__group select:focus {
+  outline: none;
+  border-color: #2563eb;
+}
+
+.parent-form__group select[multiple] {
+  min-height: 100px;
+}
+
+.parent-form__group small {
+  color: #64748b;
+  font-size: 0.85rem;
+  line-height: 1.5;
+}
+
+.parent-modal__error {
+  padding: 0.75rem;
+  border: 1px solid #fecaca;
+  border-radius: 6px;
+  background: #fef2f2;
+  color: #b91c1c;
+  font-size: 0.9rem;
+  overflow-wrap: anywhere;
+}
+
+.parent-modal__error p {
+  margin: 0 0 0.5rem;
+}
+
+.parent-modal__error button {
+  padding: 0.4rem 0.65rem;
+  border: 1px solid #b91c1c;
+  border-radius: 5px;
+  background: #ffffff;
+  color: #b91c1c;
+  cursor: pointer;
+}
+
+.parent-modal form > button:disabled,
+.parent-modal__header button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.parent-modal form > button:disabled {
+  background: #64748b;
+}
+
+.parent-form__group input:disabled,
+.parent-form__group select:disabled {
+  background: #f8fafc;
+  cursor: not-allowed;
+}

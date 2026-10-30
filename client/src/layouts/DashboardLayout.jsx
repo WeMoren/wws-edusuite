@@ -1,61 +1,33 @@
 import React, {useEffect, useState } from 'react'
-import { Outlet } from 'react-router-dom'
+import { Outlet } from 'react-router-dom';
+import { useAuth } from "../auth/AuthContext";
 import Header from '../components/layout/Header/Header'
 import Sidebar from '../components/layout/Sidebar/Sidebar'
 import "../components/layout/Layout.css";
-import initialPayments from "../data/payments";
-import initialEnrollments from "../data/enrollments";
-import initialStudents from "../data/students";
 import initialParents from "../data/parents";
-import initialClasses from "../data/classes";
 import initialTeachers from "../data/teachers";
-import initialSections from "../data/sections";
-import initialAttendance from "../data/attendance";
 import initialActiveAcademicLevels from "../data/activeAcademicLevels";
-import initialAcademicSessions from "../data/academicSessions";
-import initialAcademicTerms from "../data/academicTerms";
-import initialAcademicLevels from "../data/academicLevels";
 import initialRecentActivities from "../data/recentActivity";
 import initialUpcomingEvents from "../data/upcomingEvents";
-import initialSubjects from "../data/subjects";
 import initialResults from "../data/results";
-import initialStreams from "../data/streams";
-import initialStreamLevels from "../data/streamLevels";
-import initialSubjectCombinations from "../data/subjectCombinations";
 
 
 const DashboardLayout = () => {
 
-
-     const [payments, setPayments] = useState(() => {
-    const savedPayments = localStorage.getItem("payments");
-
-    return savedPayments
-      ? JSON.parse(savedPayments)
-      : initialPayments;
-  });
-
-  const [enrollments, setEnrollments] = useState(() => {
-      const savedEnrollments = localStorage.getItem("enrollments");
-
-      return savedEnrollments
-        ? JSON.parse(savedEnrollments)
-        : initialEnrollments;
-});
+    const { authToken } = useAuth();
+    const API_BASE_URL = "http://localhost:5000/api";
 
 
-    useEffect(() => {
-    localStorage.setItem("enrollments", JSON.stringify(enrollments));
-}, [enrollments]);
+   const [payments, setPayments] = useState([]);
 
+   const [financialAccounts, setFinancialAccounts] = useState([]);
+  const [financialAccountsLoading, setFinancialAccountsLoading] = useState(false);
+  const [financialAccountsError, setFinancialAccountsError] = useState("");
 
-    const [students, setStudents] = useState(() => {
-      const savedStudents = localStorage.getItem("students");
-
-      return savedStudents
-        ? JSON.parse(savedStudents)
-        : initialStudents;
-  });
+  const [enrollments, setEnrollments] = useState([]);
+  const [students, setStudents] = useState([]);
+  const [studentsLoading, setStudentsLoading] = useState(false);
+  const [studentsError, setStudentsError] = useState("");
 
     const [teachers, setTeachers] = useState(() => {
       const savedTeachers = localStorage.getItem("teachers");
@@ -66,27 +38,12 @@ const DashboardLayout = () => {
   });
 
 
-  const [classes, setClasses] = useState(() => {
-      const savedClasses = localStorage.getItem("classes");
-
-    return savedClasses
-      ? JSON.parse(savedClasses)
-      : initialClasses;
-});
+    const [classes, setClasses] = useState([]);
 
 
-    const [sections, setSections] = useState(() => {
-       const savedSections = localStorage.getItem("sections");
-
-    return savedSections
-      ? JSON.parse(savedSections)
-      : initialSections;
-});
+    const [sections, setSections] = useState([]);
 
 
-    useEffect(() => {
-        localStorage.setItem("sections", JSON.stringify(sections));
-    }, [sections]);
 
 
       const [activeAcademicLevels, setActiveAcademicLevels] = useState(() => {
@@ -106,119 +63,589 @@ const DashboardLayout = () => {
     );
 }, [activeAcademicLevels]);
 
+const [academicSessions, setAcademicSessions] = useState([]);
+const [academicTerms, setAcademicTerms] = useState([]);
+const [academicLevels, setAcademicLevels] = useState([]);
 
-const [academicSessions, setAcademicSessions] = useState(() => {
-    const savedAcademicSessions =
-        localStorage.getItem("academicSessions");
-
-    return savedAcademicSessions
-        ? JSON.parse(savedAcademicSessions)
-        : initialAcademicSessions;
+const [dashboardData, setDashboardData] = useState({
+  students: [],
+  teachers: [],
+  classes: [],
+  sections: [],
+  parents: [],
+  attendance: [],
+  enrollments: [],
+  staff: [],
 });
+
+const [academicSetupLoading, setAcademicSetupLoading] = useState(false);
+const [academicSetupError, setAcademicSetupError] = useState("");
 
 
 useEffect(() => {
-    localStorage.setItem(
-        "academicSessions",
-        JSON.stringify(academicSessions)
-    );
-}, [academicSessions]);
+  if (!authToken) {
+    setAcademicSessions([]);
+    setAcademicTerms([]);
+    setAcademicLevels([]);
+    setAcademicSetupError("");
+    return;
+  }
 
+  const controller = new AbortController();
 
+  const loadAcademicSetup = async () => {
+    setAcademicSetupLoading(true);
+    setAcademicSetupError("");
 
-const [academicTerms, setAcademicTerms] = useState(() => {
-    const savedAcademicTerms =
-        localStorage.getItem("academicTerms");
+    try {
+      const endpoints = [
+        "/academic-levels",
+        "/academic-sessions",
+        "/terms",
+        "/classes",
+        "/sections",
+      ];
 
-    return savedAcademicTerms
-        ? JSON.parse(savedAcademicTerms)
-        : initialAcademicTerms;
-});
+      const responses = await Promise.all(
+        endpoints.map((endpoint) =>
+          fetch(`${API_BASE_URL}${endpoint}`, {
+            headers: {
+              Authorization: `Bearer ${authToken}`,
+            },
+            signal: controller.signal,
+          })
+        )
+      );
+
+      const results = await Promise.all(
+        responses.map(async (response) => {
+          const data = await response.json().catch(() => ({}));
+
+          if (!response.ok) {
+            throw new Error(
+              data.message || "Failed to load academic setup."
+            );
+          }
+
+          return data;
+        })
+      );
+
+      const [levelsData, sessionsData, termsData, classesData, sectionsData] = results;
+
+      setAcademicLevels(
+        (levelsData.levels || []).map((level) => ({
+          id: level.id,
+          name: level.name,
+          category: level.category,
+          displayOrder: level.display_order,
+        }))
+      );
+
+      setAcademicSessions(
+        (sessionsData.sessions || []).map((session) => ({
+          id: session.id,
+          name: session.name,
+          startDate: session.start_date,
+          endDate: session.end_date,
+          isCurrent: session.is_current,
+        }))
+      );
+
+      setAcademicTerms(
+        (termsData.terms || []).map((term) => ({
+          id: term.id,
+          academicSessionId: term.academic_session_id,
+          academicSessionName: term.academic_session_name,
+          name: term.name,
+          displayOrder: term.display_order,
+          startDate: term.start_date,
+          endDate: term.end_date,
+          isCurrent: term.is_current,
+        }))
+      );
+      setClasses(
+        (classesData.classes || []).map((schoolClass) => ({
+          id: schoolClass.id,
+          academicSessionId: schoolClass.academic_session_id,
+          academicLevelId: schoolClass.academic_level_id,
+          name: schoolClass.name,
+        }))
+      );
+
+      setSections(
+        (sectionsData.sections || []).map((section) => ({
+          id: section.id,
+          classId: section.class_id,
+          name: section.name,
+        }))
+      );
+
+    } catch (error) {
+      if (error.name !== "AbortError") {
+        console.error("Failed to load academic setup:", error);
+        setAcademicSetupError(error.message);
+      }
+    } finally {
+      if (!controller.signal.aborted) {
+        setAcademicSetupLoading(false);
+      }
+    }
+  };
+
+  loadAcademicSetup();
+
+  return () => controller.abort();
+}, [authToken]);
 
 useEffect(() => {
-    localStorage.setItem(
-        "academicTerms",
-        JSON.stringify(academicTerms)
-    );
-}, [academicTerms]);
+  if (!authToken) {
+    setStudents([]);
+    setEnrollments([]);
+    setStudentsError("");
+    setStudentsLoading(false);
+    return;
+  }
 
+  const controller = new AbortController();
 
-const [academicLevels, setAcademicLevels] = useState(() => {
-    const savedAcademicLevels =
-        localStorage.getItem("academicLevels");
+  async function loadStudentsAndEnrollments() {
+    setStudentsLoading(true);
+    setStudentsError("");
 
-    return savedAcademicLevels
-        ? JSON.parse(savedAcademicLevels)
-        : initialAcademicLevels;
-});
+    try {
+      const endpoints = ["/students", "/enrollments"];
+
+      const responses = await Promise.all(
+        endpoints.map((endpoint) =>
+          fetch(API_BASE_URL + endpoint, {
+            headers: {
+              Authorization: "Bearer " + authToken,
+            },
+            signal: controller.signal,
+          })
+        )
+      );
+
+      const results = await Promise.all(
+        responses.map(async (response) => {
+          const data = await response.json().catch(() => ({}));
+
+          if (!response.ok) {
+            throw new Error(
+              data.message || "Failed to load students and enrollments."
+            );
+          }
+
+          return data;
+        })
+      );
+
+      const studentsData = results[0];
+      const enrollmentsData = results[1];
+
+      const mappedStudents = (studentsData.students || []).map((student) => ({
+        id: student.id,
+        schoolId: student.school_id,
+        admissionNo: student.admission_no,
+        firstName: student.first_name,
+        middleName: student.middle_name,
+        lastName: student.last_name,
+        gender: student.gender,
+        dateOfBirth: student.date_of_birth,
+        phone: student.phone,
+        email: student.email,
+        address: student.address,
+        status: student.status,
+        createdAt: student.created_at,
+        updatedAt: student.updated_at,
+      }));
+
+      const mappedEnrollments = (enrollmentsData.enrollments || []).map(
+        (enrollment) => ({
+          id: enrollment.id,
+          schoolId: enrollment.school_id,
+          studentId: enrollment.student_id,
+          academicSessionId: enrollment.academic_session_id,
+          classId: enrollment.class_id,
+          sectionId: enrollment.section_id,
+          streamId: enrollment.stream_id,
+          combinationId: enrollment.subject_combination_id,
+          subjectCombinationId: enrollment.subject_combination_id,
+          status: enrollment.status,
+          enrolledAt: enrollment.enrolled_at,
+          admissionNo: enrollment.admission_no,
+          firstName: enrollment.first_name,
+          middleName: enrollment.middle_name,
+          lastName: enrollment.last_name,
+          academicSessionName: enrollment.academic_session_name,
+          className: enrollment.class_name,
+          sectionName: enrollment.section_name,
+          streamName: enrollment.stream_name,
+          combinationName: enrollment.subject_combination_name,
+          academicLevelId: enrollment.academic_level_id,
+        })
+      );
+
+      if (!controller.signal.aborted) {
+        setStudents(mappedStudents);
+        setEnrollments(mappedEnrollments);
+      }
+    } catch (error) {
+      if (error.name !== "AbortError" && !controller.signal.aborted) {
+        console.error("Failed to load students and enrollments:", error);
+        setStudents([]);
+        setEnrollments([]);
+        setStudentsError(error.message || "Failed to load students.");
+      }
+    } finally {
+      if (!controller.signal.aborted) {
+        setStudentsLoading(false);
+      }
+    }
+  }
+
+  loadStudentsAndEnrollments();
+
+  return () => controller.abort();
+}, [authToken]);
 
 
 useEffect(() => {
-    localStorage.setItem(
-        "academicLevels",
-        JSON.stringify(academicLevels)
-    );
-}, [academicLevels]);
+  if (!authToken) {
+    setPayments([]);
+    return;
+  }
 
+  const controller = new AbortController();
 
+  const loadPayments = async () => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/payments`, {
+        headers: {
+          Authorization: `Bearer ${authToken}`,
+        },
+        signal: controller.signal,
+      });
 
-const [subjects, setSubjects] = useState(() => {
-  const savedSubjects = localStorage.getItem("subjects");
+      const data = await response.json().catch(() => ({}));
 
-  return savedSubjects
-    ? JSON.parse(savedSubjects)
-    : initialSubjects;
-});
+      if (!response.ok) {
+        throw new Error(data.message || "Failed to load payments.");
+      }
+
+      const mappedPayments = (data.payments || []).map((payment) => ({
+        id: payment.id,
+        schoolId: payment.school_id,
+        studentId: payment.student_id,
+        financialAccountId: payment.financial_account_id,
+        enrollmentId: payment.enrollment_id,
+        amount: Number(payment.amount),
+        date: payment.payment_date,
+        paymentMethod: payment.payment_method,
+        reference: payment.reference,
+        description: payment.description,
+        studentName: [
+          payment.first_name,
+          payment.middle_name,
+          payment.last_name,
+        ]
+          .filter((name) => typeof name === "string" && name.trim() !== "")
+          .map((name) => name.trim())
+          .join(" "),
+        admissionNo: payment.admission_no,
+        academicSessionName: payment.academic_session_name,
+        termName: payment.term_name,
+        className: payment.class_name,
+      }));
+
+      if (!controller.signal.aborted) {
+        setPayments(mappedPayments);
+      }
+    } catch (error) {
+      if (error.name !== "AbortError" && !controller.signal.aborted) {
+        console.error("Failed to load payments:", error);
+        setPayments([]);
+      }
+    }
+  };
+
+  loadPayments();
+
+  return () => controller.abort();
+}, [authToken]);
+
 
 
 useEffect(() => {
-  localStorage.setItem("subjects", JSON.stringify(subjects));
-}, [subjects]);
+  if (!authToken) {
+    setFinancialAccounts([]);
+    setFinancialAccountsError("");
+    setFinancialAccountsLoading(false);
+    return;
+  }
+
+  const controller = new AbortController();
+
+  const loadFinancialAccounts = async () => {
+    setFinancialAccountsLoading(true);
+    setFinancialAccountsError("");
+
+    try {
+      const response = await fetch(
+        `${API_BASE_URL}/student-financial-accounts`,
+        {
+          headers: {
+            Authorization: `Bearer ${authToken}`,
+          },
+          signal: controller.signal,
+        }
+      );
+
+      const data = await response.json().catch(() => ({}));
+
+      if (!response.ok) {
+        throw new Error(
+          data.message || "Failed to load student financial accounts."
+        );
+      }
+
+      const mappedAccounts = (data.financialAccounts || []).map((account) => ({
+        id: account.id,
+        studentId: account.student_id,
+        enrollmentId: account.enrollment_id,
+        academicSessionId: account.academic_session_id,
+        academicSessionName: account.academic_session_name,
+        termId: account.term_id,
+        termName: account.term_name,
+        feeStructureId: account.fee_structure_id,
+        feeStructureName: account.fee_structure_name,
+        className: account.class_name,
+        academicLevelName: account.academic_level_name,
+        totalDue: Number(account.total_due),
+        totalPaid: Number(account.total_paid),
+        status: account.status,
+        outstanding: Math.max(
+          Number(account.total_due) - Number(account.total_paid),
+          0
+        ),
+      }));
+
+      if (!controller.signal.aborted) {
+        setFinancialAccounts(mappedAccounts);
+      }
+    } catch (error) {
+      if (error.name !== "AbortError" && !controller.signal.aborted) {
+        console.error("Failed to load financial accounts:", error);
+        setFinancialAccounts([]);
+        setFinancialAccountsError(
+          error.message || "Failed to load student financial accounts."
+        );
+      }
+    } finally {
+      if (!controller.signal.aborted) {
+        setFinancialAccountsLoading(false);
+      }
+    }
+  };
+
+  loadFinancialAccounts();
+
+  return () => controller.abort();
+}, [authToken]);
 
 
-const [streams, setStreams] = useState(() => {
-  const savedStreams = localStorage.getItem("streams");
 
-  return savedStreams
-    ? JSON.parse(savedStreams)
-    : initialStreams;
-});
+const [subjects, setSubjects] = useState([]);
 
 useEffect(() => {
-  localStorage.setItem("streams", JSON.stringify(streams));
-}, [streams]);
+    if (!authToken) {
+        setSubjects([]);
+        return;
+    }
+
+    const controller = new AbortController();
+
+    const loadSubjects = async () => {
+        try {
+            const response = await fetch(`${API_BASE_URL}/subjects`, {
+                headers: {
+                    Authorization: `Bearer ${authToken}`,
+                },
+                signal: controller.signal,
+            });
+
+            const data = await response.json();
+
+            if (!response.ok) {
+                throw new Error(
+                    data.message || "Failed to load subjects."
+                );
+            }
+
+            setSubjects(
+                (data.subjects || []).map((subject) => ({
+                    id: subject.id,
+                    name: subject.name,
+                    code: subject.code,
+                    category: subject.category,
+                    isCore: subject.is_core,
+                    academicLevelIds: (subject.academic_levels || []).map(
+                        (level) => level.id
+                    ),
+                }))
+            );
+        } catch (error) {
+            if (error.name !== "AbortError") {
+                console.error("Failed to load subjects:", error);
+            }
+        }
+    };
+
+    loadSubjects();
+
+    return () => controller.abort();
+}, [authToken]);
 
 
-const [streamLevels, setStreamLevels] = useState(() => {
-  const savedStreamLevels = localStorage.getItem("streamLevels");
 
-  return savedStreamLevels
-    ? JSON.parse(savedStreamLevels)
-    : initialStreamLevels;
-});
+const [streams, setStreams] = useState([]);
+const [streamLevels, setStreamLevels] = useState([]);
+const [subjectCombinations, setSubjectCombinations] = useState([]);
 
 useEffect(() => {
-  localStorage.setItem("streamLevels", JSON.stringify(streamLevels));
-}, [streamLevels]);
+  if (!authToken) {
+    setStreams([]);
+    setStreamLevels([]);
+    setSubjectCombinations([]);
+    return;
+  }
 
+  const controller = new AbortController();
 
+  const loadStreams = async () => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/streams`, {
+        headers: {
+          Authorization: `Bearer ${authToken}`,
+        },
+        signal: controller.signal,
+      });
 
-const [subjectCombinations, setSubjectCombinations] = useState(() => {
-  const savedSubjectCombinations = localStorage.getItem(
-    "subjectCombinations"
-  );
+      const data = await response.json().catch(() => ({}));
 
-  return savedSubjectCombinations
-    ? JSON.parse(savedSubjectCombinations)
-    : initialSubjectCombinations;
-});
+      if (!response.ok) {
+        throw new Error(data.message || "Failed to load streams.");
+      }
 
-useEffect(() => {
-  localStorage.setItem(
-    "subjectCombinations",
-    JSON.stringify(subjectCombinations)
-  );
-}, [subjectCombinations]);
+      const mappedStreams = (data.streams || []).map((stream) => {
+        const academicLevels = (stream.academic_levels || []).map((level) => ({
+          id: level.id,
+          name: level.name,
+          category: level.category,
+          displayOrder: level.displayOrder,
+          isActive: level.isActive,
+        }));
+
+        return {
+          id: stream.id,
+          name: stream.name,
+          code: stream.code,
+          description: stream.description ?? "",
+          isActive: stream.is_active,
+          academicLevels,
+          academicLevelIds: academicLevels.map((level) => level.id),
+        };
+      });
+
+      if (controller.signal.aborted) return;
+
+      setStreams(mappedStreams);
+      setStreamLevels(
+        mappedStreams.flatMap((stream) =>
+          stream.academicLevels.map((level) => ({
+            id: `${stream.id}:${level.id}`,
+            academicLevelId: level.id,
+            streamId: stream.id,
+            isActive: level.isActive,
+          }))
+        )
+      );
+    } catch (error) {
+      if (error.name !== "AbortError") {
+        console.error("Failed to load streams:", error);
+        // Preserve the last successfully loaded data on request failure.
+      }
+    }
+  };
+
+  const loadSubjectCombinations = async () => {
+    try {
+      const response = await fetch(
+        `${API_BASE_URL}/subject-combinations`,
+        {
+          headers: {
+            Authorization: `Bearer ${authToken}`,
+          },
+          signal: controller.signal,
+        }
+      );
+
+      const data = await response.json().catch(() => ({}));
+
+      if (!response.ok) {
+        throw new Error(
+          data.message || "Failed to load subject combinations."
+        );
+      }
+
+      const mappedCombinations = (data.subjectCombinations || []).map(
+        (combination) => {
+          const subjects = (combination.subjects || []).map((subject) => ({
+            id: subject.id,
+            name: subject.name,
+            code: subject.code,
+            category: subject.category,
+            isCore: subject.isCore,
+          }));
+
+          return {
+            id: combination.id,
+            academicLevelId: combination.academic_level_id,
+            streamId: combination.stream_id,
+            name: combination.name,
+            code: combination.code,
+            isActive: combination.is_active,
+            academicLevelName: combination.academic_level_name,
+            academicLevelCategory: combination.academic_level_category,
+            streamName: combination.stream_name,
+            streamCode: combination.stream_code,
+            subjects,
+            subjectIds: subjects.map((subject) => subject.id),
+          };
+        }
+      );
+
+      if (!controller.signal.aborted) {
+        setSubjectCombinations(mappedCombinations);
+      }
+    } catch (error) {
+      if (error.name !== "AbortError") {
+        console.error("Failed to load subject combinations:", error);
+        // Preserve the last successfully loaded data on request failure.
+      }
+    }
+  };
+
+  setStreams([]);
+  setStreamLevels([]);
+  setSubjectCombinations([]);
+
+  loadStreams();
+  loadSubjectCombinations();
+
+  return () => controller.abort();
+}, [authToken]);
 
 
 const [results, setResults] = useState(() => {
@@ -234,21 +661,63 @@ useEffect(() => {
 }, [results]);
 
 
-const [attendance, setAttendance] = useState(() => {
-        const savedAttendance = localStorage.getItem("attendance");
+const [attendance, setAttendance] = useState([]);
 
-        return savedAttendance
-        ? JSON.parse(savedAttendance)
-        : initialAttendance;
-    });
+useEffect(() => {
+  if (!authToken) {
+    setAttendance([]);
+    return;
+  }
 
+  const controller = new AbortController();
 
-    useEffect(() => {
-    localStorage.setItem(
-        "attendance",
-        JSON.stringify(attendance)
-    );
-    }, [attendance]);
+  const loadAttendance = async () => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/attendance`, {
+        headers: {
+          Authorization: `Bearer ${authToken}`,
+        },
+        signal: controller.signal,
+      });
+
+      const data = await response.json().catch(() => ({}));
+
+      if (!response.ok) {
+        throw new Error(
+          data.message || "Failed to load attendance records."
+        );
+      }
+
+      if (!controller.signal.aborted) {
+        setAttendance(
+          (data.attendance || []).map((record) => ({
+            id: record.id,
+            schoolId: record.school_id,
+            enrollmentId: record.enrollment_id,
+            studentId: record.student_id,
+            academicSessionId: record.academic_session_id,
+            academicTermId: record.academic_term_id,
+            classId: record.class_id,
+            sectionId: record.section_id,
+            date: record.attendance_date,
+            status: record.status,
+          }))
+        );
+      }
+    } catch (error) {
+      if (
+        error.name !== "AbortError" &&
+        !controller.signal.aborted
+      ) {
+        console.error("Failed to load attendance:", error);
+      }
+    }
+  };
+
+  loadAttendance();
+
+  return () => controller.abort();
+}, [authToken]);
 
 
 /* Recent activity and persistence */
@@ -298,6 +767,23 @@ const [upcomingEvents, setUpcomingEvents] = useState(() => {
 
     try {
         return JSON.parse(savedEvents);
+      setClasses(
+        (classesData.classes || []).map((schoolClass) => ({
+          id: schoolClass.id,
+          academicSessionId: schoolClass.academic_session_id,
+          academicLevelId: schoolClass.academic_level_id,
+          name: schoolClass.name,
+        }))
+      );
+
+      setSections(
+        (sectionsData.sections || []).map((section) => ({
+          id: section.id,
+          classId: section.class_id,
+          name: section.name,
+        }))
+      );
+
     } catch (error) {
         console.error("Failed to load upcoming events:", error);
 
@@ -360,10 +846,15 @@ return (
                     context={{
                         payments,
                         setPayments,
+                        financialAccounts,
+                        financialAccountsLoading,
+                        financialAccountsError,
                         enrollments,
                         setEnrollments,
                         students,
                         setStudents,
+                        studentsLoading,
+                        studentsError,
                         teachers,
                         setTeachers,
                         parents,
@@ -380,6 +871,8 @@ return (
                         setAcademicTerms,
                         academicLevels,
                         setAcademicLevels,
+                        academicSetupLoading,
+                        academicSetupError,
                         streams,
                         setStreams,
                         streamLevels,

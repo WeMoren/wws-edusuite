@@ -8,6 +8,7 @@ import authRoutes from "./routes/authRoutes.js";
 import subscriptionPlanRoutes from "./routes/subscriptionPlanRoutes.js";
 import subscriptionRoutes from "./routes/subscriptionRoutes.js";
 import studentRoutes from "./routes/studentRoutes.js";
+import parentRoutes from "./routes/parentRoutes.js";
 import enrollmentRoutes from "./routes/enrollmentRoutes.js";
 import academicSessionRoutes from "./routes/academicSessionRoutes.js";
 import academicLevelRoutes from "./routes/academicLevelRoutes.js";
@@ -18,9 +19,11 @@ import staffRoutes from "./routes/staffRoutes.js";
 import feeStructureRoutes from "./routes/feeStructureRoutes.js";
 import termRoutes from "./routes/termRoutes.js";
 import studentFinancialAccountRoutes from "./routes/studentFinancialAccountRoutes.js";
+import financialSummaryRoutes from "./routes/financialSummaryRoutes.js";
 import paymentRoutes from "./routes/paymentRoutes.js";
 import paymentReceiptRoutes from "./routes/paymentReceiptRoutes.js";
 import schoolOfficialRoutes from "./routes/schoolOfficialRoutes.js";
+import schoolProfileRoutes from "./routes/schoolProfileRoutes.js";
 import expenseRoutes from "./routes/expenseRoutes.js";
 import expenseCategoryRoutes from "./routes/expenseCategoryRoutes.js";
 import attendanceRoutes from "./routes/attendanceRoutes.js";
@@ -28,6 +31,7 @@ import subjectRoutes from "./routes/subjectRoutes.js";
 import streamRoutes from "./routes/streamRoutes.js";
 import subjectCombinationRoutes from "./routes/subjectCombinationRoutes.js";
 import resultRoutes from "./routes/resultRoutes.js";
+import resultSettingsRoutes from "./routes/resultSettingsRoutes.js";
 
 
 const app = express();
@@ -40,11 +44,13 @@ app.use( cors({
 
 app.use(express.json());
 
+app.use("/api/school-profile", schoolProfileRoutes);
 app.use("/api/school-officials", schoolOfficialRoutes);
 app.use("/api/auth", authRoutes);
 app.use("/api/subscription", subscriptionRoutes);
 app.use("/api/subscription-plans", subscriptionPlanRoutes);
 app.use("/api/students", studentRoutes);
+app.use("/api/parents", parentRoutes);
 app.use("/api/enrollments", enrollmentRoutes);
 app.use("/api/academic-levels", academicLevelRoutes);
 app.use("/api/classes", classRoutes);
@@ -55,6 +61,7 @@ app.use("/api/subject-combinations", subjectCombinationRoutes);
 app.use("/api/streams", streamRoutes);
 app.use("/api/subjects", subjectRoutes);
 app.use("/api/results", resultRoutes);
+app.use("/api/result-settings", resultSettingsRoutes);
 app.use("/api/teachers", teacherRoutes);
 app.use("/api/staff", staffRoutes);
 app.use("/api/fee-structures", feeStructureRoutes);
@@ -62,6 +69,7 @@ app.use(
     "/api/student-financial-accounts",
     studentFinancialAccountRoutes
 );
+app.use("/api/financial-summary", financialSummaryRoutes);
 app.use("/api/payments", paymentRoutes);
 app.use("/api/expenses", expenseRoutes);
 app.use("/api/expense-categories", expenseCategoryRoutes);

@@ -8,6 +8,8 @@ const TeacherModal = ({onClose, onAddTeacher, editingTeacher}) => {
         firstName:"",
         lastName:"",
         subject:"",
+        email:"",
+        phoneNum:"",
         gender:""
     });
 
@@ -27,7 +29,7 @@ const TeacherModal = ({onClose, onAddTeacher, editingTeacher}) => {
         onAddTeacher(teacher)
     }
 
-    
+
   return (
     <div className='teacher-modal__overlay'>
         <div className="teacher-modal">
@@ -40,7 +42,7 @@ const TeacherModal = ({onClose, onAddTeacher, editingTeacher}) => {
             <form action="" onSubmit={handleSubmit}>
                 <div className="teacher-form__group">
                     <label>Staff ID</label>
-                    <input 
+                    <input
                         type="text"
                         name='staffId'
                         value={teacher.staffId}
@@ -52,7 +54,7 @@ const TeacherModal = ({onClose, onAddTeacher, editingTeacher}) => {
 
                 <div className="teacher-form__group">
                     <label>First Name</label>
-                    <input 
+                    <input
                         type="text"
                         name='firstName'
                         value={teacher.firstName}
@@ -64,7 +66,7 @@ const TeacherModal = ({onClose, onAddTeacher, editingTeacher}) => {
 
                 <div className="teacher-form__group">
                     <label>Last Name</label>
-                    <input 
+                    <input
                         type="text"
                         name='lastName'
                         value={teacher.lastName}
@@ -76,7 +78,7 @@ const TeacherModal = ({onClose, onAddTeacher, editingTeacher}) => {
 
                 <div className="teacher-form__group">
                     <label>Subject</label>
-                    <input 
+                    <input
                         type="text"
                         name='subject'
                         value={teacher.subject}
@@ -86,10 +88,36 @@ const TeacherModal = ({onClose, onAddTeacher, editingTeacher}) => {
                         />
                 </div>
 
+
+                 <div className="teacher-form__group">
+                    <label>Email</label>
+                    <input
+                        type="email"
+                        name='email'
+                        value={teacher.email}
+                        onChange={handleChange}
+                        placeholder='Enter email address e.g name@example.com'
+                        required
+                        />
+                </div>
+
+
+                <div className="teacher-form__group">
+                    <label>Phone Number</label>
+                    <input
+                        type="text"
+                        name='phoneNum'
+                        value={teacher.phoneNum}
+                        onChange={handleChange}
+                        placeholder='Enter phone Number'
+                        required
+                        />
+                </div>
+
                 <div className="teacher form__group">
                     <label>Gender</label>
 
-                    <select 
+                    <select
                         name="gender"
                         value={teacher.gender}
                         onChange={handleChange}
@@ -100,6 +128,8 @@ const TeacherModal = ({onClose, onAddTeacher, editingTeacher}) => {
                             <option value="Female">Female</option>
                         </select>
                 </div>
+
+
 
                 <button type='submit'>
                     Add Teacher

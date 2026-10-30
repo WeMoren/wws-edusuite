@@ -72,9 +72,10 @@
 }
 
 .login-form__error {
-  margin: -4px 0 0;
+  margin:  0 0;
   color: #d92d20;
   font-size: 14px;
+  text-align: center;
 }
 
 .login-form__success {

@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from "react";
+import { useAuth } from "../../auth/AuthContext";
 import { useOutletContext } from "react-router-dom";
 import NotificationDialog from "../../components/common/NotificationDialog/NotificationDialog";
 import ConfirmDialog from "../../components/common/ConfirmDialog/ConfirmDialog";
@@ -12,6 +13,36 @@ function generateId(items) {
 }
 
 const AcademicSetup = () => {
+
+  const { authToken } = useAuth();
+const API_BASE_URL = "http://localhost:5000/api";
+
+const apiRequest = async (path, options = {}) => {
+  if (!authToken) {
+    throw new Error("Your session has expired. Please log in again.");
+  }
+
+  const response = await fetch(`${API_BASE_URL}${path}`, {
+    ...options,
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${authToken}`,
+      ...options.headers,
+    },
+  });
+
+  const data = await response.json().catch(() => ({}));
+
+  if (!response.ok) {
+    throw new Error(
+      data.message || "The request could not be completed."
+    );
+  }
+
+  return data;
+};
+
+
   // Notification
   const [showNotification, setShowNotification] = useState(false);
   const [notification, setNotification] = useState({
@@ -36,7 +67,7 @@ const AcademicSetup = () => {
   const [subjectToDelete, setSubjectToDelete] = useState(null);
   const [gradeToDelete, setGradeToDelete] = useState(null);
   const [gradeToEdit, setGradeToEdit] = useState(null);
-  
+
 
 
 
@@ -52,6 +83,7 @@ const AcademicSetup = () => {
   const [newSessionName, setNewSessionName] = useState("");
   const [selectedTermSession, setSelectedTermSession] = useState("");
   const [newTermName, setNewTermName] = useState("");
+  const [selectedClassSession, setSelectedClassSession] = useState("");
   const [selectedClassLevel, setSelectedClassLevel] = useState("");
   const [newClassName, setNewClassName] = useState("");
   const [selectedClassId, setSelectedClassId] = useState("");
@@ -86,120 +118,69 @@ const AcademicSetup = () => {
   const [newGradeMax, setNewGradeMax] = useState("");
   const [newGrade, setNewGrade] = useState("");
   const [newGradeRemark, setNewGradeRemark] = useState("");
- 
+  const [newSubjectAcademicLevelIds, setNewSubjectAcademicLevelIds] =
+  useState([]);
 
-        // Persist assessment structure
-    const [caMax, setCaMax] = useState(() => {
-        const savedAssessment = localStorage.getItem("assessmentSettings");
+  const [newSessionStartDate, setNewSessionStartDate] = useState("");
+  const [newSessionEndDate, setNewSessionEndDate] = useState("");
+  const [newSessionIsCurrent, setNewSessionIsCurrent] = useState(false);
 
-        if (savedAssessment) {
-          const parsedAssessment = JSON.parse(savedAssessment);
-          return parsedAssessment.caMax;
+  const [newTermStartDate, setNewTermStartDate] = useState("");
+  const [newTermEndDate, setNewTermEndDate] = useState("");
+  const [newTermIsCurrent, setNewTermIsCurrent] = useState(false);
+
+
+  // Assessment structure — loaded from the database
+  const [caMax, setCaMax] = useState(30);
+  const [examMax, setExamMax] = useState(70);
+
+  // Grading rules — loaded from the database
+  const [gradingScale, setGradingScale] = useState([]);
+
+
+  const [resultSettingsLoading, setResultSettingsLoading] = useState(true);
+  const [resultSettingsLoaded, setResultSettingsLoaded] = useState(false);
+  const [assessmentSettingsSaving, setAssessmentSettingsSaving] = useState(false);
+
+  // Load the school's assessment and grading settings
+  useEffect(() => {
+    let cancelled = false;
+
+    const loadResultSettings = async () => {
+      setResultSettingsLoading(true);
+      setResultSettingsLoaded(false);
+
+      try {
+        const data = await apiRequest("/result-settings");
+
+        if (cancelled) return;
+
+        setCaMax(Number(data.assessmentSettings.caMax));
+        setExamMax(Number(data.assessmentSettings.examMax));
+        setGradingScale(data.gradingScale);
+        setResultSettingsLoaded(true);
+      } catch (error) {
+        if (cancelled) return;
+
+        notify({
+          title: "Unable to Load Result Settings",
+          message: error.message,
+        });
+      } finally {
+        if (!cancelled) {
+          setResultSettingsLoading(false);
         }
-
-        return 30;
-      });
-
-      const [examMax, setExamMax] = useState(() => {
-        const savedAssessment = localStorage.getItem("assessmentSettings");
-
-        if (savedAssessment) {
-          const parsedAssessment = JSON.parse(savedAssessment);
-          return parsedAssessment.examMax;
-        }
-
-        return 70;
-    });
-
-
-    useEffect(() => {
-      localStorage.setItem(
-        "assessmentSettings",
-        JSON.stringify({
-          caMax: Number(caMax),
-          examMax: Number(examMax),
-        })
-      );
-    }, [caMax, examMax]);
-    
-
-      // Grading rules
-    const [gradingScale, setGradingScale] = useState(() => {
-      const savedGradingScale = localStorage.getItem("gradingScale");
-
-      if (savedGradingScale) {
-        return JSON.parse(savedGradingScale);
       }
+    };
 
-      return [
-        {
-          id: 1,
-          min: 90,
-          max: 100,
-          grade: "A1",
-          remark: "Excellent",
-        },
-        {
-          id: 2,
-          min: 80,
-          max: 89,
-          grade: "B2",
-          remark: "Very Good",
-        },
-        {
-          id: 3,
-          min: 70,
-          max: 79,
-          grade: "B3",
-          remark: "Good",
-        },
-        {
-          id: 4,
-          min: 60,
-          max: 69,
-          grade: "C4",
-          remark: "Credit",
-        },
-        {
-          id: 5,
-          min: 50,
-          max: 59,
-          grade: "C5",
-          remark: "Credit",
-        },
-        {
-          id: 6,
-          min: 45,
-          max: 49,
-          grade: "D7",
-          remark: "Pass",
-        },
-        {
-          id: 7,
-          min: 40,
-          max: 44,
-          grade: "E8",
-          remark: "Pass",
-        },
-        {
-          id: 8,
-          min: 0,
-          max: 39,
-          grade: "F9",
-          remark: "Fail",
-        },
-      ];
-  });
+    loadResultSettings();
 
-    
-    // Persistence effect for grading scale edit 
+    return () => {
+      cancelled = true;
+    };
+  }, [authToken]);
 
-    useEffect(() => {
-        localStorage.setItem(
-          "gradingScale",
-          JSON.stringify(gradingScale)
-        );
-    }, [gradingScale]);
+
 
 
 
@@ -225,7 +206,7 @@ const AcademicSetup = () => {
     setStreamLevels,
     subjectCombinations,
     setSubjectCombinations,
-   
+
   } = useOutletContext();
 
       // Selected academic levels
@@ -260,8 +241,8 @@ const AcademicSetup = () => {
     );
   };
 
-  // Add Academic Level
-  const handleAddLevel = () => {
+    // Add Academic Level
+  const handleAddLevel = async () => {
     const name = newLevelName.trim();
     const category = newLevelCategory;
 
@@ -270,72 +251,153 @@ const AcademicSetup = () => {
         title: "Missing fields",
         message: "Please enter level name and category.",
       });
-
       return;
     }
 
-    const newLevel = {
-      id: generateId(academicLevels),
-      name,
-      category,
-    };
+    const displayOrder =
+      Math.max(
+        0,
+        ...academicLevels.map(
+          (level) => Number(level.displayOrder) || 0
+        )
+      ) + 1;
 
-    setAcademicLevels((prev) => [...prev, newLevel]);
-
-    setNewLevelName("");
-    setNewLevelCategory("");
-  };
-
-  // Add Academic Session
-  const handleAddSession = () => {
-    const name = newSessionName.trim();
-
-    if (!name) {
-      notify({
-        title: "Missing session",
-        message: "Please enter a session name.",
+    try {
+      const data = await apiRequest("/academic-levels", {
+        method: "POST",
+        body: JSON.stringify({
+          name,
+          category,
+          displayOrder,
+        }),
       });
 
+      const level = data.level;
+
+      setAcademicLevels((prev) => [
+        ...prev,
+        {
+          id: level.id,
+          name: level.name,
+          category: level.category,
+          displayOrder: level.display_order,
+        },
+      ]);
+
+      setNewLevelName("");
+      setNewLevelCategory("");
+
+      notify({
+        title: "Level Created",
+        message: `${level.name} was saved successfully.`,
+      });
+    } catch (error) {
+      notify({
+        title: "Unable to Create Level",
+        message: error.message,
+      });
+    }
+  };
+
+
+    // Add Academic Session
+  const handleAddSession = async () => {
+    const name = newSessionName.trim();
+
+    if (!name || !newSessionStartDate || !newSessionEndDate) {
+      notify({
+        title: "Missing fields",
+        message: "Enter the session name, start date, and end date.",
+      });
       return;
     }
 
-    const newSession = {
-      id: generateId(academicSessions),
-      name,
-    };
+    if (newSessionEndDate < newSessionStartDate) {
+      notify({
+        title: "Invalid Dates",
+        message: "The end date cannot be earlier than the start date.",
+      });
+      return;
+    }
 
-    setAcademicSessions((prev) => [...prev, newSession]);
+    try {
+      const data = await apiRequest("/academic-sessions", {
+        method: "POST",
+        body: JSON.stringify({
+          name,
+          startDate: newSessionStartDate,
+          endDate: newSessionEndDate,
+          isCurrent: newSessionIsCurrent,
+        }),
+      });
 
-    setNewSessionName("");
+      const session = data.session;
+
+      const newSession = {
+        id: session.id,
+        name: session.name,
+        startDate: session.start_date,
+        endDate: session.end_date,
+        isCurrent: session.is_current,
+      };
+
+      setAcademicSessions((prev) => [
+        ...prev.map((item) =>
+          newSession.isCurrent
+            ? { ...item, isCurrent: false }
+            : item
+        ),
+        newSession,
+      ]);
+
+      setNewSessionName("");
+      setNewSessionStartDate("");
+      setNewSessionEndDate("");
+      setNewSessionIsCurrent(false);
+
+      notify({
+        title: "Session Created",
+        message: `${session.name} was saved successfully.`,
+      });
+    } catch (error) {
+      notify({
+        title: "Unable to Create Session",
+        message: error.message,
+      });
+    }
   };
 
-  // Add Academic Term
-  const handleAddTerm = () => {
+    // Add Academic Term
+  const handleAddTerm = async () => {
     if (!selectedTermSession) {
       notify({
         title: "Select Session",
         message: "Please select an academic session.",
       });
-
       return;
     }
 
     const name = newTermName.trim();
 
-    if (!name) {
+    if (!name || !newTermStartDate || !newTermEndDate) {
       notify({
-        title: "Term Required",
-        message: "Please enter a term name.",
+        title: "Missing fields",
+        message: "Enter the term name, start date, and end date.",
       });
-
       return;
     }
 
-    const sessionId = Number(selectedTermSession);
+    if (newTermEndDate < newTermStartDate) {
+      notify({
+        title: "Invalid Dates",
+        message: "The end date cannot be earlier than the start date.",
+      });
+      return;
+    }
 
     const alreadyExists = academicTerms.some(
       (term) =>
-        term.academicSessionId === sessionId &&
+        term.academicSessionId === selectedTermSession &&
         term.name.toLowerCase() === name.toLowerCase()
     );
 
@@ -344,24 +406,72 @@ const AcademicSetup = () => {
         title: "Term Already Exists",
         message: `${name} already exists for this academic session.`,
       });
-
       return;
     }
 
-    const newTerm = {
-      id: generateId(academicTerms),
-      academicSessionId: sessionId,
-      name,
-    };
+    const displayOrder =
+      Math.max(
+        0,
+        ...academicTerms
+          .filter(
+            (term) =>
+              term.academicSessionId === selectedTermSession
+          )
+          .map((term) => Number(term.displayOrder) || 0)
+      ) + 1;
 
-    setAcademicTerms((prev) => [...prev, newTerm]);
+    try {
+      const data = await apiRequest("/terms", {
+        method: "POST",
+        body: JSON.stringify({
+          academicSessionId: selectedTermSession,
+          name,
+          displayOrder,
+          startDate: newTermStartDate,
+          endDate: newTermEndDate,
+          isCurrent: newTermIsCurrent,
+        }),
+      });
 
-    setNewTermName("");
+      const term = data.term;
+
+      setAcademicTerms((prev) => [
+        ...prev,
+        {
+          id: term.id,
+          academicSessionId: term.academic_session_id,
+          academicSessionName:
+            academicSessions.find(
+              (session) => session.id === term.academic_session_id
+            )?.name || "",
+          name: term.name,
+          displayOrder: term.display_order,
+          startDate: term.start_date,
+          endDate: term.end_date,
+          isCurrent: term.is_current,
+        },
+      ]);
+
+      setNewTermName("");
+      setNewTermStartDate("");
+      setNewTermEndDate("");
+      setNewTermIsCurrent(false);
+
+      notify({
+        title: "Term Created",
+        message: `${term.name} was saved successfully.`,
+      });
+    } catch (error) {
+      notify({
+        title: "Unable to Create Term",
+        message: error.message,
+      });
+    }
   };
 
 
     // Add Stream
-  const handleAddStream = () => {
+  const handleAddStream = async () => {
     const name = newStreamName.trim();
     const code = newStreamCode.trim().toUpperCase();
     const description = newStreamDescription.trim();
@@ -371,7 +481,6 @@ const AcademicSetup = () => {
         title: "Missing fields",
         message: "Please enter a stream name and code.",
       });
-
       return;
     }
 
@@ -386,119 +495,155 @@ const AcademicSetup = () => {
         title: "Stream exists",
         message: "A stream with this name or code already exists.",
       });
-
       return;
     }
 
-    const newStream = {
-      id: generateId(streams),
-      name,
-      code,
-      description,
-      isActive: true,
-    };
+    try {
+      const data = await apiRequest("/streams", {
+        method: "POST",
+        body: JSON.stringify({ name, code, description, isActive: true }),
+      });
 
-    setStreams((prev) => [...prev, newStream]);
+      const savedStream = data.stream;
+      setStreams((prev) => [
+        ...prev,
+        {
+          id: savedStream.id,
+          name: savedStream.name,
+          code: savedStream.code,
+          description: savedStream.description ?? "",
+          isActive: savedStream.is_active,
+          academicLevelIds: data.academicLevelIds ?? [],
+          academicLevels: savedStream.academic_levels ?? [],
+        },
+      ]);
 
-    setNewStreamName("");
-    setNewStreamCode("");
-    setNewStreamDescription("");
+      setNewStreamName("");
+      setNewStreamCode("");
+      setNewStreamDescription("");
 
-    notify({
-      title: "Stream Added",
-      message: `${name} has been added successfully.`,
-    });
+      notify({
+        title: "Stream Added",
+        message: name + " has been added successfully.",
+      });
+    } catch (error) {
+      notify({
+        title: "Unable to Create Stream",
+        message: error.message,
+      });
+    }
   };
 
 
-  const handleAddCombination = () => {
-  const academicLevelId = Number(newCombinationLevelId);
-  const streamId = Number(newCombinationStreamId);
-  const name = newCombinationName.trim();
-  const code = newCombinationCode.trim().toUpperCase();
+  const handleAddCombination = async () => {
+    const academicLevelId = newCombinationLevelId;
+    const streamId = newCombinationStreamId;
+    const name = newCombinationName.trim();
+    const code = newCombinationCode.trim().toUpperCase();
 
-  if (!academicLevelId || !streamId || !name || !code) {
-    notify({
-      title: "Missing fields",
-      message:
-        "Please select an academic level and stream, then enter a combination name and code.",
-    });
-    return;
-  }
+    if (!academicLevelId || !streamId || !name || !code) {
+      notify({
+        title: "Missing fields",
+        message:
+          "Please select an academic level and stream, then enter a combination name and code.",
+      });
+      return;
+    }
 
-  const selectedStream = streams.find(
-    (stream) => stream.id === streamId
-  );
+    const selectedStream = streams.find(
+      (stream) => stream.id === streamId
+    );
 
-  if (!selectedStream) {
-    notify({
-      title: "Invalid stream",
-      message: "The selected stream could not be found.",
-    });
-    return;
-  }
+    if (!selectedStream) {
+      notify({
+        title: "Invalid stream",
+        message: "The selected stream could not be found.",
+      });
+      return;
+    }
 
-  const streamIsAvailable = streamLevels.some(
-    (streamLevel) =>
-      streamLevel.academicLevelId === academicLevelId &&
-      streamLevel.streamId === streamId &&
-      streamLevel.isActive
-  );
+    const streamIsAvailable = streamLevels.some(
+      (streamLevel) =>
+        streamLevel.academicLevelId === academicLevelId &&
+        streamLevel.streamId === streamId &&
+        streamLevel.isActive
+    );
 
-  if (!streamIsAvailable) {
-    notify({
-      title: "Stream unavailable",
-      message:
-        "The selected stream is not assigned to this academic level.",
-    });
-    return;
-  }
+    if (!streamIsAvailable) {
+      notify({
+        title: "Stream unavailable",
+        message:
+          "The selected stream is not assigned to this academic level.",
+      });
+      return;
+    }
 
-  const alreadyExists = subjectCombinations.some(
-    (combination) =>
-      combination.academicLevelId === academicLevelId &&
-      combination.streamId === streamId &&
-      (combination.name.toLowerCase() === name.toLowerCase() ||
-        combination.code.toLowerCase() === code.toLowerCase())
-  );
+    const alreadyExists = subjectCombinations.some(
+      (combination) =>
+        combination.academicLevelId === academicLevelId &&
+        combination.streamId === streamId &&
+        (combination.name.toLowerCase() === name.toLowerCase() ||
+          combination.code.toLowerCase() === code.toLowerCase())
+    );
 
-  if (alreadyExists) {
-    notify({
-      title: "Combination exists",
-      message:
-        "A combination with this name or code already exists for the selected stream and academic level.",
-    });
-    return;
-  }
+    if (alreadyExists) {
+      notify({
+        title: "Combination exists",
+        message:
+          "A combination with this name or code already exists for the selected stream and academic level.",
+      });
+      return;
+    }
 
-  const newCombination = {
-    id: generateId(subjectCombinations),
-    academicLevelId,
-    streamId,
-    name,
-    code,
-    subjectIds: [],
-    isActive: true,
+    try {
+      const data = await apiRequest("/subject-combinations", {
+        method: "POST",
+        body: JSON.stringify({
+          academicLevelId,
+          streamId,
+          name,
+          code,
+          isActive: true,
+          subjectIds: [],
+        }),
+      });
+
+      const saved = data.subjectCombination;
+      const savedSubjectIds = data.subjectIds ?? [];
+
+      setSubjectCombinations((prev) => [
+        ...prev,
+        {
+          id: saved.id,
+          academicLevelId: saved.academic_level_id,
+          streamId: saved.stream_id,
+          name: saved.name,
+          code: saved.code,
+          isActive: saved.is_active,
+          subjectIds: savedSubjectIds,
+          subjects: [],
+        },
+      ]);
+
+      setNewCombinationLevelId("");
+      setNewCombinationStreamId("");
+      setNewCombinationName("");
+      setNewCombinationCode("");
+
+      notify({
+        title: "Combination Added",
+        message: name + " has been added successfully.",
+      });
+    } catch (error) {
+      notify({
+        title: "Unable to Create Combination",
+        message: error.message,
+      });
+    }
   };
 
-  setSubjectCombinations((prev) => [
-    ...prev,
-    newCombination,
-  ]);
 
-  setNewCombinationLevelId("");
-  setNewCombinationStreamId("");
-  setNewCombinationName("");
-  setNewCombinationCode("");
-
-  notify({
-    title: "Combination Added",
-    message: `${name} has been added successfully.`,
-  });
-};
-
-
-const handleAddSubject = () => {
+const handleAddSubject = async () => {
   const name = newSubjectName.trim();
   const code = newSubjectCode.trim().toUpperCase();
   const category = newSubjectCategory.trim();
@@ -511,6 +656,14 @@ const handleAddSubject = () => {
     return;
   }
 
+  if (newSubjectAcademicLevelIds.length === 0) {
+    notify({
+      title: "Select Academic Levels",
+      message: "Assign the subject to at least one academic level.",
+    });
+    return;
+  }
+
   const alreadyExists = subjects.some(
     (subject) =>
       subject.name.toLowerCase() === name.toLowerCase() ||
@@ -519,162 +672,202 @@ const handleAddSubject = () => {
 
   if (alreadyExists) {
     notify({
-      title: "Subject exists",
+      title: "Subject Exists",
       message: "A subject with this name or code already exists.",
     });
     return;
   }
 
-  const newSubject = {
-    id: generateId(subjects),
-    name,
-    code,
-    category,
-    isCore: newSubjectIsCore,
-    academicLevelIds: [], // Initialize with an empty array for academic level IDs
-  };
+  try {
+    const data = await apiRequest("/subjects", {
+      method: "POST",
+      body: JSON.stringify({
+        name,
+        code,
+        category,
+        isCore: newSubjectIsCore,
+        academicLevelIds: newSubjectAcademicLevelIds,
+      }),
+    });
 
-  setSubjects((prev) => [...prev, newSubject]);
+    const saved = data.subject;
 
-  setNewSubjectName("");
-  setNewSubjectCode("");
-  setNewSubjectCategory("");
-  setNewSubjectIsCore(true);
+    if (!saved?.id) {
+      throw new Error("The server did not return the saved subject.");
+    }
+
+    setSubjects((prev) => [
+      ...prev,
+      {
+        id: saved.id,
+        name: saved.name,
+        code: saved.code,
+        category: saved.category,
+        isCore: saved.is_core ?? saved.isCore,
+        academicLevelIds:
+          saved.academicLevelIds ??
+          saved.academic_level_ids ??
+          newSubjectAcademicLevelIds,
+      },
+    ]);
+
+    setNewSubjectName("");
+    setNewSubjectCode("");
+    setNewSubjectCategory("");
+    setNewSubjectIsCore(true);
+    setNewSubjectAcademicLevelIds([]);
+
+    notify({
+      title: "Subject Added",
+      message: `${saved.name} has been added successfully.`,
+    });
+  } catch (error) {
+    notify({
+      title: "Unable to Add Subject",
+      message: error.message,
+    });
+  }
 };
 
 
-  // Add Class
-  const handleAddClass = () => {
-    if (!selectedClassLevel) {
-      notify({
-        title: "Select level",
-        message: "Please select an academic level.",
-      });
 
-      return;
-    }
+         // Add Class
+    const handleAddClass = async () => {
+      if (!selectedClassSession) {
+        notify({
+          title: "Select session",
+          message: "Please select an academic session.",
+        });
+        return;
+      }
 
-    const levelId = Number(selectedClassLevel);
+      if (!selectedClassLevel) {
+        notify({
+          title: "Select level",
+          message: "Please select an academic level.",
+        });
+        return;
+      }
 
-    const level = academicLevels.find(
-      (academicLevel) => academicLevel.id === levelId
-    );
+      const session = academicSessions.find(
+        (item) => item.id === selectedClassSession
+      );
 
-    if (!level) {
-      notify({
-        title: "Invalid level",
-        message: "Selected academic level not found.",
-      });
+      const level = academicLevels.find(
+        (item) => item.id === selectedClassLevel
+      );
 
-      return;
-    }
+      if (!session || !level) {
+        notify({
+          title: "Invalid selection",
+          message: "The selected academic session or level could not be found.",
+        });
+        return;
+      }
 
-    const sessionId =
-      academicSessions.length > 0 ? academicSessions[0].id : null;
+      const className = newClassName.trim() || level.name;
 
-    const alreadyExists = classes.some(
-      (classItem) =>
-        classItem.academicLevelId === levelId &&
-        classItem.academicSessionId === sessionId
-    );
+      try {
+        const data = await apiRequest("/classes", {
+          method: "POST",
+          body: JSON.stringify({
+            academicSessionId: selectedClassSession,
+            academicLevelId: selectedClassLevel,
+            name: className,
+          }),
+        });
 
-    if (alreadyExists) {
-      notify({
-        title: "Class exists",
-        message:
-          "A class for this level and session already exists.",
-      });
+        const createdClass = data.class;
 
-      return;
-    }
+        if (!createdClass?.id) {
+          throw new Error("The server did not return the created class.");
+        }
 
-    const newClass = {
-      id: generateId(classes),
-      academicLevelId: levelId,
-      academicSessionId: sessionId,
-      name: newClassName.trim() || level.name,
+        setClasses((prev) => [
+          ...prev,
+          {
+            id: createdClass.id,
+            academicSessionId: createdClass.academic_session_id,
+            academicLevelId: createdClass.academic_level_id,
+            name: createdClass.name,
+          },
+        ]);
+
+        setSelectedClassSession("");
+        setSelectedClassLevel("");
+        setNewClassName("");
+
+        notify({
+          title: "Class created",
+          message: `${createdClass.name} was created successfully.`,
+        });
+      } catch (error) {
+        notify({
+          title: "Unable to create class",
+          message: error.message || "Please try again.",
+        });
+      }
     };
 
-    setClasses((prev) => [...prev, newClass]);
-
-    setSelectedClassLevel("");
-    setNewClassName("");
-  };
-
-  // Add Section
-  const handleAddSection = () => {
+      // Add Section
+  const handleAddSection = async () => {
     if (!selectedClassId) {
       notify({
         title: "Select a Class",
         message: "Please select a class before adding a section.",
       });
-
       return;
     }
 
-    const sectionName = newSectionName.trim().toUpperCase();
+    const sectionName = newSectionName.trim();
 
     if (!sectionName) {
       notify({
         title: "Section Name Required",
         message: "Please enter a section name.",
       });
-
       return;
     }
 
-    if (!["A", "B", "C", "D", "E"].includes(sectionName)) {
-      notify({
-        title: "Invalid Section",
-        message: "Sections must be A, B, C, D, or E.",
+    try {
+      const data = await apiRequest("/sections", {
+        method: "POST",
+        body: JSON.stringify({
+          classId: selectedClassId,
+          name: sectionName,
+        }),
       });
 
-      return;
-    }
+      const createdSection = data.section;
 
-    const classIdNum = Number(selectedClassId);
+      if (!createdSection?.id) {
+        throw new Error("The server did not return the created section.");
+      }
 
-    const classSections = sections.filter(
-      (section) => section.classId === classIdNum
-    );
+      setSections((prev) => [
+        ...prev,
+        {
+          id: createdSection.id,
+          classId: createdSection.class_id,
+          name: createdSection.name,
+          classTeacherId: createdSection.class_teacher_id,
+          room: createdSection.room ?? "",
+          capacity: createdSection.capacity,
+        },
+      ]);
 
-    if (classSections.length >= 5) {
+      setNewSectionName("");
+
       notify({
-        title: "Maximum Sections Reached",
-        message:
-          "A class can have a maximum of 5 sections (A-E).",
+        title: "Section created",
+        message: `Section ${createdSection.name} was created successfully.`,
       });
-
-      return;
-    }
-
-    const alreadyExists = classSections.some(
-      (section) =>
-        section.name.toUpperCase() === sectionName
-    );
-
-    if (alreadyExists) {
+    } catch (error) {
       notify({
-        title: "Section Already Exists",
-        message:
-          `Section ${sectionName} already exists for this class.`,
+        title: "Unable to create section",
+        message: error.message || "Please try again.",
       });
-
-      return;
     }
-
-    const newSection = {
-      id: generateId(sections),
-      classId: classIdNum,
-      name: sectionName,
-      classTeacherId: null,
-      room: "",
-      capacity: 40,
-    };
-
-    setSections((prev) => [...prev, newSection]);
-
-    setNewSectionName("");
   };
 
   // Edit dialog helpers
@@ -696,8 +889,8 @@ const handleAddSubject = () => {
     });
   };
 
-  // Save edit
-  const handleEditSave = () => {
+    // Save edit
+  const handleEditSave = async () => {
     const value = editDialog.value.trim();
 
     if (!value) {
@@ -705,6 +898,97 @@ const handleAddSubject = () => {
         title: "Value Required",
         message: "Please enter a value before saving.",
       });
+      return;
+    }
+
+    if (editDialog.type === "class") {
+      try {
+        const data = await apiRequest(
+          `/classes/${editDialog.item.id}`,
+          {
+            method: "PATCH",
+            body: JSON.stringify({ name: value }),
+          }
+        );
+
+        const updatedClass = data.class;
+
+        if (!updatedClass?.id) {
+          throw new Error("The server did not return the updated class.");
+        }
+
+        setClasses((prev) =>
+          prev.map((classItem) =>
+            classItem.id === updatedClass.id
+              ? {
+                  ...classItem,
+                  name: updatedClass.name,
+                  academicSessionId: updatedClass.academic_session_id,
+                  academicLevelId: updatedClass.academic_level_id,
+                }
+              : classItem
+          )
+        );
+
+        notify({
+          title: "Class updated",
+          message: `${updatedClass.name} was updated successfully.`,
+        });
+
+        closeEditDialog();
+      } catch (error) {
+        notify({
+          title: "Unable to update class",
+          message: error.message || "Please try again.",
+        });
+      }
+
+      return;
+    }
+
+    if (editDialog.type === "section") {
+      try {
+        const data = await apiRequest(
+          `/sections/${editDialog.item.id}`,
+          {
+            method: "PATCH",
+            body: JSON.stringify({ name: value }),
+          }
+        );
+
+        const updatedSection = data.section;
+
+        if (!updatedSection?.id) {
+          throw new Error("The server did not return the updated section.");
+        }
+
+        setSections((prev) =>
+          prev.map((section) =>
+            section.id === updatedSection.id
+              ? {
+                  ...section,
+                  classId: updatedSection.class_id,
+                  name: updatedSection.name,
+                  classTeacherId: updatedSection.class_teacher_id,
+                  room: updatedSection.room ?? "",
+                  capacity: updatedSection.capacity,
+                }
+              : section
+          )
+        );
+
+        notify({
+          title: "Section updated",
+          message: `Section ${updatedSection.name} was updated successfully.`,
+        });
+
+        closeEditDialog();
+      } catch (error) {
+        notify({
+          title: "Unable to update section",
+          message: error.message || "Please try again.",
+        });
+      }
 
       return;
     }
@@ -729,18 +1013,15 @@ const handleAddSubject = () => {
       const exists = academicTerms.some(
         (term) =>
           term.id !== editDialog.item.id &&
-          term.academicSessionId ===
-            editDialog.item.academicSessionId &&
+          term.academicSessionId === editDialog.item.academicSessionId &&
           term.name.toLowerCase() === value.toLowerCase()
       );
 
       if (exists) {
         notify({
           title: "Term Already Exists",
-          message:
-            `${value} already exists for this academic session.`,
+          message: `${value} already exists for this academic session.`,
         });
-
         return;
       }
 
@@ -751,82 +1032,50 @@ const handleAddSubject = () => {
             : term
         )
       );
+    }else if (editDialog.type === "subject") {
+    const exists = subjects.some(
+      (subject) =>
+        subject.id !== editDialog.item.id &&
+        subject.name.toLowerCase() === value.toLowerCase()
+    );
 
-
-      } else if (editDialog.type === "subject") { 
-        const value = editDialog.value.trim();
-
-        const exists = subjects.some(
-          (subject) =>
-            subject.id !== editDialog.item.id &&
-            subject.name.toLowerCase() === value.toLowerCase()
-        );
-
-        if (exists) {
-          notify({
-            title: "Subject Already Exists",
-            message: `${value} already exists.`,
-          });
-          return;
-        }
-
-        setSubjects((prev) =>
-          prev.map((subject) =>
-            subject.id === editDialog.item.id
-              ? { ...subject, name: value }
-              : subject
-          )
-        );
-
-
-
-
-    } else if (editDialog.type === "class") {
-      setClasses((prev) =>
-        prev.map((classItem) =>
-          classItem.id === editDialog.item.id
-            ? { ...classItem, name: value }
-            : classItem
-        )
-      );
-    } else if (editDialog.type === "section") {
-      const sectionName = value.toUpperCase();
-
-      if (!["A", "B", "C", "D", "E"].includes(sectionName)) {
-        notify({
-          title: "Invalid Section",
-          message:
-            "Sections must be A, B, C, D, or E.",
-        });
-
-        return;
-      }
-
-      const exists = sections.some(
-        (section) =>
-          section.id !== editDialog.item.id &&
-          section.classId === editDialog.item.classId &&
-          section.name.toUpperCase() === sectionName
-      );
-
-      if (exists) {
-        notify({
-          title: "Section Already Exists",
-          message:
-            `Section ${sectionName} already exists for this class.`,
-        });
-
-        return;
-      }
-
-      setSections((prev) =>
-        prev.map((section) =>
-          section.id === editDialog.item.id
-            ? { ...section, name: sectionName }
-            : section
-        )
-      );
+    if (exists) {
+      notify({
+        title: "Subject Already Exists",
+        message: `${value} already exists.`,
+      });
+      return;
     }
+
+    try {
+      const data = await apiRequest(
+        `/subjects/${editDialog.item.id}`,
+        {
+          method: "PATCH",
+          body: JSON.stringify({ name: value }),
+        }
+      );
+
+      const saved = data.subject;
+
+      setSubjects((prev) =>
+        prev.map((subject) =>
+          subject.id === editDialog.item.id
+            ? {
+                ...subject,
+                name: saved?.name ?? value,
+              }
+            : subject
+        )
+      );
+    } catch (error) {
+      notify({
+        title: "Unable to Update Subject",
+        message: error.message,
+      });
+      return;
+    }
+  }
 
     closeEditDialog();
   };
@@ -837,54 +1086,111 @@ const handleAddSubject = () => {
   };
 
 
-   // Add grade
-    const handleAddGrade = () => {
-      const min = Number(newGradeMin);
-      const max = Number(newGradeMax);
+  // Save assessment structure
+  const handleSaveAssessmentSettings = async () => {
+    const ca = Number(caMax);
+    const exam = Number(examMax);
 
-      if (
-        newGradeMin === "" ||
-        newGradeMax === "" ||
-        !newGrade.trim() ||
-        !newGradeRemark.trim()
-      ) {
-        notify({
-          title: "Incomplete Grade",
-          message: "Please fill in all grading fields.",
-        });
-        return;
-      }
+    if (
+      caMax === "" ||
+      examMax === "" ||
+      !Number.isFinite(ca) ||
+      !Number.isFinite(exam) ||
+      ca < 0 ||
+      ca > 100 ||
+      exam < 0 ||
+      exam > 100 ||
+      ca + exam !== 100
+    ) {
+      notify({
+        title: "Invalid Assessment Structure",
+        message: "CAT and Exam marks must be between 0 and 100 and total exactly 100.",
+      });
+      return;
+    }
 
-      if (min < 0 || max > 100 || min > max) {
-        notify({
-          title: "Invalid Range",
-          message: "Please enter a valid score range between 0 and 100.",
-        });
-        return;
-      }
+    setAssessmentSettingsSaving(true);
 
-      const overlaps = gradingScale.some(
-        (grading) => min <= grading.max && max >= grading.min
-      );
+    try {
+      const data = await apiRequest("/result-settings/assessment", {
+        method: "PATCH",
+        body: JSON.stringify({
+          caMax: ca,
+          examMax: exam,
+        }),
+      });
 
-      if (overlaps) {
-        notify({
-          title: "Overlapping Range",
-          message: "This score range overlaps an existing grading range.",
-        });
-        return;
-      }
+      setCaMax(data.assessmentSettings.caMax);
+      setExamMax(data.assessmentSettings.examMax);
 
-      setGradingScale((prev) => [
-        ...prev,
-        {
-          id: Date.now(),
-          min,
-          max,
-          grade: newGrade.trim(),
-          remark: newGradeRemark.trim(),
-        },
-      ]);
+      notify({
+        title: "Assessment Settings Saved",
+        message: data.message,
+      });
+    } catch (error) {
+      notify({
+        title: "Unable to Save Assessment Settings",
+        message: error.message,
+      });
+    } finally {
+      setAssessmentSettingsSaving(false);
+    }
+  };
+
+
+  // Add grade
+  const handleAddGrade = async () => {
+    const min = Number(newGradeMin);
+    const max = Number(newGradeMax);
+    const grade = newGrade.trim();
+    const remark = newGradeRemark.trim();
+
+    if (
+      newGradeMin === "" ||
+      newGradeMax === "" ||
+      !grade ||
+      !remark
+    ) {
+      notify({
+        title: "Incomplete Grade",
+        message: "Please fill in all grading fields.",
+      });
+      return;
+    }
+
+    if (
+      !Number.isFinite(min) ||
+      !Number.isFinite(max) ||
+      min < 0 ||
+      max > 100 ||
+      min > max
+    ) {
+      notify({
+        title: "Invalid Range",
+        message: "Please enter a valid score range between 0 and 100.",
+      });
+      return;
+    }
+
+    const overlaps = gradingScale.some(
+      (grading) => min <= grading.max && max >= grading.min
+    );
+
+    if (overlaps) {
+      notify({
+        title: "Overlapping Range",
+        message: "This score range overlaps an existing grading range.",
+      });
+      return;
+    }
+
+    try {
+      const data = await apiRequest("/result-settings/grading-scales", {
+        method: "POST",
+        body: JSON.stringify({ min, max, grade, remark }),
+      });
+
+      setGradingScale((prev) => [...prev, data.gradingRule]);
 
       setNewGradeMin("");
       setNewGradeMax("");
@@ -893,78 +1199,101 @@ const handleAddSubject = () => {
 
       notify({
         title: "Grade Added",
-        message: `${newGrade.trim()} grading rule has been added.`,
+        message: `${grade} grading rule has been saved successfully.`,
       });
+    } catch (error) {
+      notify({
+        title: "Unable to Add Grade",
+        message: error.message,
+      });
+    }
   };
 
+  // Update grade
+  const handleUpdateGrade = async () => {
+    if (!gradeToEdit) {
+      return;
+    }
 
+    const min = Number(gradeToEdit.min);
+    const max = Number(gradeToEdit.max);
+    const grade = gradeToEdit.grade.trim();
+    const remark = gradeToEdit.remark.trim();
 
-    const handleUpdateGrade = () => {
-        if (!gradeToEdit) {
-          return;
+    if (
+      gradeToEdit.min === "" ||
+      gradeToEdit.max === "" ||
+      !grade ||
+      !remark
+    ) {
+      notify({
+        title: "Incomplete Grade",
+        message: "Please fill in all grading fields.",
+      });
+      return;
+    }
+
+    if (
+      !Number.isFinite(min) ||
+      !Number.isFinite(max) ||
+      min < 0 ||
+      max > 100 ||
+      min > max
+    ) {
+      notify({
+        title: "Invalid Range",
+        message: "Please enter a valid score range between 0 and 100.",
+      });
+      return;
+    }
+
+    const overlaps = gradingScale.some(
+      (grading) =>
+        grading.id !== gradeToEdit.id &&
+        min <= grading.max &&
+        max >= grading.min
+    );
+
+    if (overlaps) {
+      notify({
+        title: "Overlapping Range",
+        message: "This score range overlaps an existing grading range.",
+      });
+      return;
+    }
+
+    try {
+      const data = await apiRequest(
+        `/result-settings/grading-scales/${gradeToEdit.id}`,
+        {
+          method: "PATCH",
+          body: JSON.stringify({ min, max, grade, remark }),
         }
+      );
 
-        const min = Number(gradeToEdit.min);
-        const max = Number(gradeToEdit.max);
+      setGradingScale((prev) =>
+        prev.map((gradingRule) =>
+          gradingRule.id === data.gradingRule.id
+            ? data.gradingRule
+            : gradingRule
+        )
+      );
 
-        if (
-          gradeToEdit.min === "" ||
-          gradeToEdit.max === "" ||
-          !gradeToEdit.grade.trim() ||
-          !gradeToEdit.remark.trim()
-        ) {
-          notify({
-            title: "Incomplete Grade",
-            message: "Please fill in all grading fields.",
-          });
-          return;
-        }
+      setGradeToEdit(null);
 
-        if (min < 0 || max > 100 || min > max) {
-          notify({
-            title: "Invalid Range",
-            message: "Please enter a valid score range between 0 and 100.",
-          });
-          return;
-        }
+      notify({
+        title: "Grade Updated",
+        message: "The grading rule has been saved successfully.",
+      });
+    } catch (error) {
+      notify({
+        title: "Unable to Update Grade",
+        message: error.message,
+      });
+    }
+  };
 
-        const overlaps = gradingScale.some(
-          (grading) =>
-            grading.id !== gradeToEdit.id &&
-            min <= grading.max &&
-            max >= grading.min
-        );
-
-        if (overlaps) {
-          notify({
-            title: "Overlapping Range",
-            message: "This score range overlaps an existing grading range.",
-          });
-          return;
-        }
-
-        setGradingScale((prev) =>
-          prev.map((grading) =>
-            grading.id === gradeToEdit.id
-              ? {
-                  ...grading,
-                  min,
-                  max,
-                  grade: gradeToEdit.grade.trim(),
-                  remark: gradeToEdit.remark.trim(),
-                }
-              : grading
-          )
-        );
-
-        setGradeToEdit(null);
-
-        notify({
-          title: "Grade Updated",
-          message: "The grading rule has been updated successfully.",
-        });
-    };
-
+  // Delete requests
 
 
   // Delete requests
@@ -993,7 +1322,7 @@ const handleAddSubject = () => {
 
   const requestDeleteGrade = (grading) => setGradeToDelete(grading);
 
- 
+
 
   // Helpers
   const getLevelById = (id) =>
@@ -1025,39 +1354,81 @@ const handleAddSubject = () => {
 
       <div className="academic-setup">
 
-        {/* Add Academic Level */}
-        <div className="academic-levels__form">
-          <h2>Add Academic Level</h2>
 
-          <input
-            type="text"
-            value={newLevelName}
-            onChange={(e) => setNewLevelName(e.target.value)}
-            placeholder="e.g. Primary 6"
-          />
+        {/* Academic Levels */}
+        <div className="academic-levels">
+          <h2>Academic Levels</h2>
 
-          <select
-            value={newLevelCategory}
-            onChange={(e) =>
-              setNewLevelCategory(e.target.value)
-            }
-          >
-            <option value="">Select category</option>
-            <option value="Early Years">Early Years</option>
-            <option value="Kindergarten">Kindergarten</option>
-            <option value="Primary">Primary</option>
-            <option value="Junior Secondary">
-              Junior Secondary
-            </option>
-            <option value="Senior Secondary">
-              Senior Secondary
-            </option>
-          </select>
+          <div className="academic-levels__form">
+            <input
+              type="text"
+              value={newLevelName}
+              onChange={(e) => setNewLevelName(e.target.value)}
+              placeholder="e.g. Primary 6"
+            />
 
-          <button type="button" onClick={handleAddLevel}>
-            + Add Level
-          </button>
+            <select
+              value={newLevelCategory}
+              onChange={(e) =>
+                setNewLevelCategory(e.target.value)
+              }
+            >
+              <option value="">Select category</option>
+              <option value="Early Childhood">Early Childhood</option>
+              <option value="Early Years">Early Years</option>
+              <option value="Kindergarten">Kindergarten</option>
+              <option value="Primary">Primary</option>
+              <option value="Junior Secondary">
+                Junior Secondary
+              </option>
+              <option value="Senior Secondary">
+                Senior Secondary
+              </option>
+            </select>
+
+            <button type="button" onClick={handleAddLevel}>
+              + Add Level
+            </button>
+          </div>
+
+          <div className="academic-levels__list">
+            {academicLevels.map((level) => (
+              <div
+                key={level.id}
+                className="academic-levels__item"
+              >
+                <span>{level.name}</span>
+
+                <div className="academic-levels__actions">
+                  <button
+                    className="edit"
+                    type="button"
+                    onClick={() =>
+                      openEditDialog(
+                        "level",
+                        level,
+                        level.name
+                      )
+                    }
+                  >
+                    Edit
+                  </button>
+
+                  <button
+                    className="delete"
+                    type="button"
+                    onClick={() => requestDeleteLevel(level)}
+                  >
+                    Delete
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
+
+
+
 
         {/* Academic Sessions */}
         <div className="academic-sessions">
@@ -1073,6 +1444,29 @@ const handleAddSubject = () => {
               }
             />
 
+            <input
+              type="date"
+              value={newSessionStartDate}
+              onChange={(e) => setNewSessionStartDate(e.target.value)}
+              aria-label="Session start date"
+            />
+
+            <input
+              type="date"
+              value={newSessionEndDate}
+              onChange={(e) => setNewSessionEndDate(e.target.value)}
+              aria-label="Session end date"
+            />
+
+            <label>
+              <input
+                type="checkbox"
+                checked={newSessionIsCurrent}
+                onChange={(e) => setNewSessionIsCurrent(e.target.checked)}
+              />
+              Current session
+            </label>
+
             <button
               type="button"
               onClick={handleAddSession}
@@ -1080,6 +1474,9 @@ const handleAddSubject = () => {
               + Add Session
             </button>
           </div>
+
+
+
 
           <div className="academic-sessions__list">
             {academicSessions.map((session) => (
@@ -1152,6 +1549,30 @@ const handleAddSubject = () => {
               }
               placeholder="e.g. First Term"
             />
+
+
+            <input
+                type="date"
+                value={newTermStartDate}
+                onChange={(e) => setNewTermStartDate(e.target.value)}
+                aria-label="Term start date"
+              />
+
+              <input
+                type="date"
+                value={newTermEndDate}
+                onChange={(e) => setNewTermEndDate(e.target.value)}
+                aria-label="Term end date"
+              />
+
+              <label>
+                <input
+                  type="checkbox"
+                  checked={newTermIsCurrent}
+                  onChange={(e) => setNewTermIsCurrent(e.target.checked)}
+                />
+                Current term
+              </label>
 
             <button
               type="button"
@@ -1349,7 +1770,7 @@ const handleAddSubject = () => {
                     (streamLevel) =>
                       streamLevel.streamId === stream.id &&
                       streamLevel.academicLevelId ===
-                        Number(newCombinationLevelId) &&
+                        newCombinationLevelId &&
                       streamLevel.isActive
                   )
                 )
@@ -1492,6 +1913,29 @@ const handleAddSubject = () => {
               <option value="Other">Other</option>
             </select>
 
+
+          <div className="academic-subjects__levels">
+            <span>Select academic levels (required)</span>
+
+            {academicLevels.map((level) => (
+              <label key={level.id}>
+                <input
+                  type="checkbox"
+                  checked={newSubjectAcademicLevelIds.includes(level.id)}
+                  onChange={(e) => {
+                    setNewSubjectAcademicLevelIds((prev) =>
+                      e.target.checked
+                        ? [...prev, level.id]
+                        : prev.filter((id) => id !== level.id)
+                    );
+                  }}
+                />
+                {level.name}
+              </label>
+            ))}
+          </div>
+
+
             <label className="academic-subjects__core">
               <input
                 type="checkbox"
@@ -1581,6 +2025,7 @@ const handleAddSubject = () => {
                   max="100"
                   value={caMax}
                   onChange={(e) => setCaMax(e.target.value)}
+                   disabled={!resultSettingsLoaded || assessmentSettingsSaving}
                 />
               </div>
 
@@ -1593,6 +2038,7 @@ const handleAddSubject = () => {
                   max="100"
                   value={examMax}
                   onChange={(e) => setExamMax(e.target.value)}
+                   disabled={!resultSettingsLoaded || assessmentSettingsSaving}
                 />
               </div>
 
@@ -1601,7 +2047,17 @@ const handleAddSubject = () => {
                 <strong>{Number(caMax || 0) + Number(examMax || 0)}</strong>
               </div>
             </div>
+
+            <button
+              type="button"
+              onClick={handleSaveAssessmentSettings}
+             disabled={!resultSettingsLoaded || assessmentSettingsSaving}
+            >
+              {assessmentSettingsSaving ? "Saving..." : "Save Assessment Structure"}
+            </button>
+
           </div>
+
 
 
             {/* Grading System */}
@@ -1619,6 +2075,7 @@ const handleAddSubject = () => {
                 max="100"
                 value={newGradeMin}
                 onChange={(e) => setNewGradeMin(e.target.value)}
+                disabled={!resultSettingsLoaded}
                 placeholder="Min score"
               />
 
@@ -1628,6 +2085,7 @@ const handleAddSubject = () => {
                 max="100"
                 value={newGradeMax}
                 onChange={(e) => setNewGradeMax(e.target.value)}
+                disabled={!resultSettingsLoaded}
                 placeholder="Max score"
               />
 
@@ -1635,6 +2093,7 @@ const handleAddSubject = () => {
                 type="text"
                 value={newGrade}
                 onChange={(e) => setNewGrade(e.target.value)}
+                disabled={!resultSettingsLoaded}
                 placeholder="Grade e.g. A1"
               />
 
@@ -1642,12 +2101,14 @@ const handleAddSubject = () => {
                 type="text"
                 value={newGradeRemark}
                 onChange={(e) => setNewGradeRemark(e.target.value)}
+                disabled={!resultSettingsLoaded}
                 placeholder="Remark e.g. Excellent"
               />
 
               <button
                 type="button"
                 onClick={handleAddGrade}
+                 disabled={!resultSettingsLoaded}
               >
                 + Add Grade
               </button>
@@ -1672,6 +2133,7 @@ const handleAddSubject = () => {
                         type="button"
                         className="edit"
                         onClick={() => setGradeToEdit(grading)}
+                        disabled={!resultSettingsLoaded}
                       >
                         Edit
                       </button>
@@ -1680,6 +2142,7 @@ const handleAddSubject = () => {
                         type="button"
                         className="delete"
                         onClick={() => requestDeleteGrade(grading)}
+                        disabled={!resultSettingsLoaded}
                       >
                         Delete
                       </button>
@@ -1706,6 +2169,7 @@ const handleAddSubject = () => {
                         min: e.target.value,
                       }))
                     }
+                    disabled={!resultSettingsLoaded}
                     placeholder="Min score"
                   />
 
@@ -1720,6 +2184,7 @@ const handleAddSubject = () => {
                         max: e.target.value,
                       }))
                     }
+                    disabled={!resultSettingsLoaded}
                     placeholder="Max score"
                   />
 
@@ -1732,6 +2197,7 @@ const handleAddSubject = () => {
                         grade: e.target.value,
                       }))
                     }
+                    disabled={!resultSettingsLoaded}
                     placeholder="Grade"
                   />
 
@@ -1744,12 +2210,14 @@ const handleAddSubject = () => {
                         remark: e.target.value,
                       }))
                     }
+                    disabled={!resultSettingsLoaded}
                     placeholder="Remark"
                   />
 
                   <button
                     type="button"
                     onClick={handleUpdateGrade}
+                    disabled={!resultSettingsLoaded}
                   >
                     Save Changes
                   </button>
@@ -1757,12 +2225,13 @@ const handleAddSubject = () => {
                   <button
                     type="button"
                     onClick={() => setGradeToEdit(null)}
+                    disabled={!resultSettingsLoaded}
                   >
                     Cancel
                   </button>
                 </div>
               </div>
-          )}      
+          )}
 
 
         </div>
@@ -1775,6 +2244,20 @@ const handleAddSubject = () => {
           <h2>Classes</h2>
 
           <div className="academic-classes__form">
+
+              <select
+                value={selectedClassSession}
+                onChange={(e) => setSelectedClassSession(e.target.value)}
+              >
+                <option value="">Select academic session</option>
+
+                {academicSessions.map((session) => (
+                  <option key={session.id} value={session.id}>
+                    {session.name}
+                  </option>
+                ))}
+          </select>
+
             <select
               value={selectedClassLevel}
               onChange={(e) =>
@@ -1785,11 +2268,7 @@ const handleAddSubject = () => {
                 Select academic level
               </option>
 
-              {academicLevels
-                .filter((level) =>
-                  activeAcademicLevels.includes(level.id)
-                )
-                .map((level) => (
+              {academicLevels.map((level) => (
                   <option
                     key={level.id}
                     value={level.id}
@@ -1866,7 +2345,7 @@ const handleAddSubject = () => {
             <select
               value={selectedClassId}
               onChange={(e) =>
-                setSelectedClassId(Number(e.target.value))
+                setSelectedClassId(e.target.value)
               }
             >
               <option value="">Select class</option>
@@ -1967,75 +2446,73 @@ const handleAddSubject = () => {
         </div>
 
         {/* Category Level Checkboxes */}
-        {[
-          "Early Years",
-          "Kindergarten",
-          "Primary",
-          "Junior Secondary",
-          "Senior Secondary",
-        ].map((category) => {
-          const categoryLevels = academicLevels.filter(
-            (level) => level.category === category
-          );
+          {[
+            {
+              name: "Early Childhood",
+              categories: ["Early Childhood", "Early Years"],
+            },
+            {
+              name: "Kindergarten",
+              categories: ["Kindergarten"],
+            },
+            {
+              name: "Primary",
+              categories: ["Primary"],
+            },
+            {
+              name: "Junior Secondary",
+              categories: ["Junior Secondary"],
+            },
+            {
+              name: "Senior Secondary",
+              categories: ["Senior Secondary"],
+            },
+          ].map(({ name, categories }) => {
+            const categoryLevels = academicLevels.filter((level) =>
+              categories.includes(level.category)
+            );
 
-          return (
-            <section
-              key={category}
-              className="academic-setup__category"
-            >
-              <h2>{category}</h2>
+            return (
+              <section key={name} className="academic-setup__category">
+                <h2>{name}</h2>
 
-              <div className="academic-setup__levels">
-                {categoryLevels.map((level) => (
-                  <div
-                    key={level.id}
-                    className="academic-setup__level"
-                  >
-                    <label>
-                      <input
-                        type="checkbox"
-                        checked={selectedLevels.includes(
-                          level.id
-                        )}
-                        onChange={() =>
-                          handleToggle(level.id)
-                        }
-                      />
+                <div className="academic-setup__levels">
+                  {categoryLevels.map((level) => (
+                    <div key={level.id} className="academic-setup__level">
+                      <label>
+                        <input
+                          type="checkbox"
+                          checked={selectedLevels.includes(level.id)}
+                          onChange={() => handleToggle(level.id)}
+                        />
+                        <span>{level.name}</span>
+                      </label>
 
-                      <span>{level.name}</span>
-                    </label>
+                      <div className="academic-level__actions">
+                        <button
+                          type="button"
+                          className="edit"
+                          onClick={() =>
+                            openEditDialog("level", level, level.name)
+                          }
+                        >
+                          Edit
+                        </button>
 
-                    <div className="academic-level__actions">
-                      <button
-                        type="button"
-                        className="edit"
-                        onClick={() =>
-                          openEditDialog(
-                            "level",
-                            level,
-                            level.name
-                          )
-                        }
-                      >
-                        Edit
-                      </button>
-
-                      <button
-                        type="button"
-                        className="delete"
-                        onClick={() =>
-                          requestDeleteLevel(level)
-                        }
-                      >
-                        Delete
-                      </button>
+                        <button
+                          type="button"
+                          className="delete"
+                          onClick={() => requestDeleteLevel(level)}
+                        >
+                          Delete
+                        </button>
+                      </div>
                     </div>
-                  </div>
-                ))}
-              </div>
-            </section>
-          );
-        })}
+                  ))}
+                </div>
+              </section>
+            );
+          })}
       </div>
 
       {/* Notification */}
@@ -2057,15 +2534,30 @@ const handleAddSubject = () => {
           onCancel={() =>
             setSectionToDelete(null)
           }
-          onConfirm={() => {
-            setSections((prev) =>
-              prev.filter(
-                (section) =>
-                  section.id !== sectionToDelete.id
-              )
-            );
+            onConfirm={async () => {
+            const sectionId = sectionToDelete.id;
 
-            setSectionToDelete(null);
+            try {
+              await apiRequest(`/sections/${sectionId}`, {
+                method: "DELETE",
+              });
+
+              setSections((prev) =>
+                prev.filter((section) => section.id !== sectionId)
+              );
+
+              setSectionToDelete(null);
+
+              notify({
+                title: "Section deleted",
+                message: "The section was deleted successfully.",
+              });
+            } catch (error) {
+              notify({
+                title: "Unable to delete section",
+                message: error.message || "Please try again.",
+              });
+            }
           }}
         />
       )}
@@ -2078,23 +2570,32 @@ const handleAddSubject = () => {
           onCancel={() =>
             setClassToDelete(null)
           }
-          onConfirm={() => {
-            setClasses((prev) =>
-              prev.filter(
-                (classItem) =>
-                  classItem.id !== classToDelete.id
-              )
-            );
+          onConfirm={async () => {
+              const classId = classToDelete.id;
 
-            setSections((prev) =>
-              prev.filter(
-                (section) =>
-                  section.classId !== classToDelete.id
-              )
-            );
+              try {
+                await apiRequest(`/classes/${classId}`, {
+                  method: "DELETE",
+                });
 
-            setClassToDelete(null);
-          }}
+                setClasses((prev) =>
+                  prev.filter((classItem) => classItem.id !== classId)
+                );
+
+                setClassToDelete(null);
+                setSelectedClassId("");
+
+                notify({
+                  title: "Class deleted",
+                  message: "The class was deleted successfully.",
+                });
+              } catch (error) {
+                notify({
+                  title: "Unable to delete class",
+                  message: error.message || "Please try again.",
+                });
+              }
+            }}
         />
       )}
 
@@ -2154,36 +2655,78 @@ const handleAddSubject = () => {
                 title="Delete Subject"
                 message={`Are you sure you want to delete ${subjectToDelete.name}?`}
                 onCancel={() => setSubjectToDelete(null)}
-                onConfirm={() => {
-                  setSubjects((prev) =>
-                    prev.filter((subject) => subject.id !== subjectToDelete.id)
-                  );
+               onConfirm={async () => {
+                  const subject = subjectToDelete;
 
-                  setSubjectToDelete(null);
+                  if (!subject) return;
+
+                  try {
+                    await apiRequest(`/subjects/${subject.id}`, {
+                      method: "DELETE",
+                    });
+
+                    setSubjects((prev) =>
+                      prev.filter((item) => item.id !== subject.id)
+                    );
+
+                    setSubjectToDelete(null);
+
+                    notify({
+                      title: "Subject Deleted",
+                      message: `${subject.name} has been deleted successfully.`,
+                    });
+                  } catch (error) {
+                    notify({
+                      title: "Unable to Delete Subject",
+                      message: error.message,
+                    });
+                  }
                 }}
             />
           )}
+
 
 
           {gradeToDelete && (
             <ConfirmDialog
               title="Delete Grade"
               message={`Are you sure you want to delete the ${gradeToDelete.grade} grading rule?`}
-              onConfirm={() => {
-                setGradingScale((prev) =>
-                  prev.filter((grading) => grading.id !== gradeToDelete.id)
-                );
+              onConfirm={async () => {
+                const grade = gradeToDelete;
 
-                setGradeToDelete(null);
+                if (!grade) return;
 
-                notify({
-                  title: "Grade Deleted",
-                  message: "The grading rule has been deleted successfully.",
-                });
+                try {
+                  const data = await apiRequest(
+                    `/result-settings/grading-scales/${grade.id}`,
+                    {
+                      method: "DELETE",
+                    }
+                  );
+
+                  setGradingScale((prev) =>
+                    prev.filter((item) => item.id !== grade.id)
+                  );
+
+                  setGradeToDelete(null);
+
+                  notify({
+                    title: "Grade Deleted",
+                    message:
+                      data.message ||
+                      "The grading rule has been deleted successfully.",
+                  });
+                } catch (error) {
+                  notify({
+                    title: "Unable to Delete Grade",
+                    message: error.message,
+                  });
+                }
               }}
               onCancel={() => setGradeToDelete(null)}
             />
           )}
+
 
 
       {/* Delete Academic Level */}
@@ -2342,75 +2885,78 @@ const handleAddSubject = () => {
 
                                     <button
                     type="button"
-                    onClick={() => {
-                      const {
-                        stream,
-                        selectedLevels,
-                      } = streamLevelDialog;
+                    onClick={async () => {
+                      const { stream, selectedLevels } = streamLevelDialog;
 
-                      const existingForStream =
-                        streamLevels.filter(
-                          (item) =>
-                            item.streamId === stream.id
+                      if (!stream) {
+                        notify({
+                          title: "No Stream Selected",
+                          message: "Please select a stream before saving its academic levels.",
+                        });
+                        return;
+                      }
+
+                      if (!selectedLevels.length) {
+                        notify({
+                          title: "Select Academic Levels",
+                          message: "A stream must be assigned to at least one academic level.",
+                        });
+                        return;
+                      }
+
+                      try {
+                        const data = await apiRequest("/streams/" + stream.id, {
+                          method: "PATCH",
+                          body: JSON.stringify({
+                            academicLevelIds: selectedLevels,
+                          }),
+                        });
+
+                        const savedStream = data.stream;
+                        const savedLevelIds = data.academicLevelIds ?? [];
+
+                        setStreams((prev) =>
+                          prev.map((item) =>
+                            item.id === savedStream.id
+                              ? {
+                                  ...item,
+                                  name: savedStream.name,
+                                  code: savedStream.code,
+                                  description: savedStream.description ?? "",
+                                  isActive: savedStream.is_active,
+                                  academicLevelIds: savedLevelIds,
+                                  academicLevels: savedStream.academic_levels ?? [],
+                                }
+                              : item
+                          )
                         );
 
-                      const nextStreamLevels =
-                        streamLevels.filter(
-                          (item) =>
-                            item.streamId !== stream.id
-                        );
+                        setStreamLevels((prev) => [
+                          ...prev.filter((item) => item.streamId !== savedStream.id),
+                          ...savedLevelIds.map((academicLevelId) => ({
+                            id: savedStream.id + ":" + academicLevelId,
+                            academicLevelId,
+                            streamId: savedStream.id,
+                            isActive: true,
+                          })),
+                        ]);
 
-                      const usedIds = streamLevels.map(
-                        (item) => item.id
-                      );
+                        setStreamLevelDialog({
+                          open: false,
+                          stream: null,
+                          selectedLevels: [],
+                        });
 
-                      let nextId =
-                        usedIds.length > 0
-                          ? Math.max(...usedIds) + 1
-                          : 1;
-
-                      const newAssignments =
-                        selectedLevels.map(
-                          (academicLevelId) => {
-                            const existing =
-                              existingForStream.find(
-                                (item) =>
-                                  item.academicLevelId ===
-                                  academicLevelId
-                              );
-
-                            if (existing) {
-                              return existing;
-                            }
-
-                            const assignment = {
-                              id: nextId,
-                              academicLevelId,
-                              streamId: stream.id,
-                              isActive: true,
-                            };
-
-                            nextId += 1;
-
-                            return assignment;
-                          }
-                        );
-
-                      setStreamLevels([
-                        ...nextStreamLevels,
-                        ...newAssignments,
-                      ]);
-
-                      setStreamLevelDialog({
-                        open: false,
-                        stream: null,
-                        selectedLevels: [],
-                      });
-
-                      notify({
-                        title: "Levels Saved",
-                        message: `${stream.name} has been assigned to the selected academic levels.`,
-                      });
+                        notify({
+                          title: "Levels Saved",
+                          message: savedStream.name + " has been assigned to the selected academic levels.",
+                        });
+                      } catch (error) {
+                        notify({
+                          title: "Unable to Save Levels",
+                          message: error.message,
+                        });
+                      }
                     }}
                   >
                     Save Levels
@@ -2495,7 +3041,7 @@ const handleAddSubject = () => {
 
         <button
           type="button"
-          onClick={() => {
+          onClick={async () => {
             const {
               combination,
               selectedSubjects,
@@ -2503,39 +3049,65 @@ const handleAddSubject = () => {
 
             if (!combination) return;
 
-            const validSubjectIds = selectedSubjects.filter(
-              (subjectId) => {
-                const subject = subjects.find(
-                  (item) => item.id === subjectId
-                );
+            const validSubjectIds = selectedSubjects.filter((subjectId) => {
+              const subject = subjects.find(
+                (item) => item.id === subjectId
+              );
 
-                return subject?.academicLevelIds?.includes(
-                  combination.academicLevelId
-                );
-              }
-            );
-
-            setSubjectCombinations((prev) =>
-              prev.map((item) =>
-                item.id === combination.id
-                  ? {
-                      ...item,
-                      subjectIds: validSubjectIds,
-                    }
-                  : item
-              )
-            );
-
-            setCombinationSubjectDialog({
-              open: false,
-              combination: null,
-              selectedSubjects: [],
+              return subject?.academicLevelIds?.includes(
+                combination.academicLevelId
+              );
             });
 
-            notify({
-              title: "Subjects Saved",
-              message: `Subjects for ${combination.name} have been updated successfully.`,
-            });
+            try {
+              const data = await apiRequest(
+                "/subject-combinations/" + combination.id,
+                {
+                  method: "PATCH",
+                  body: JSON.stringify({
+                    subjectIds: validSubjectIds,
+                  }),
+                }
+              );
+
+              const saved = data.subjectCombination;
+              const savedSubjectIds = data.subjectIds ?? [];
+
+              setSubjectCombinations((prev) =>
+                prev.map((item) =>
+                  item.id === saved.id
+                    ? {
+                        ...item,
+                        academicLevelId: saved.academic_level_id,
+                        streamId: saved.stream_id,
+                        name: saved.name,
+                        code: saved.code,
+                        isActive: saved.is_active,
+                        subjectIds: savedSubjectIds,
+                        subjects: subjects.filter((subject) =>
+                          savedSubjectIds.includes(subject.id)
+                        ),
+                      }
+                    : item
+                )
+              );
+
+              setCombinationSubjectDialog({
+                open: false,
+                combination: null,
+                selectedSubjects: [],
+              });
+
+              notify({
+                title: "Subjects Saved",
+                message: "Subjects for " + combination.name + " have been updated successfully.",
+              });
+            } catch (error) {
+              notify({
+                title: "Unable to Save Subjects",
+                message: error.message,
+              });
+            }
           }}
         >
           Save Subjects
@@ -2590,31 +3162,69 @@ const handleAddSubject = () => {
                   </button>
                     <button
                           type="button"
-                          onClick={() => {
-                            const { subject, selectedLevels } = subjectLevelDialog;
 
-                            setSubjects((prev) =>
-                              prev.map((item) =>
-                                item.id === subject.id
-                                  ? {
-                                      ...item,
-                                      academicLevelIds: selectedLevels,
-                                    }
-                                  : item
-                              )
-                            );
+                      onClick={async () => {
+                        const { subject, selectedLevels } = subjectLevelDialog;
 
-                            setSubjectLevelDialog({
-                              open: false,
-                              subject: null,
-                              selectedLevels: [],
-                            });
+                        if (!subject) return;
 
-                            notify({
-                              title: "Levels Saved",
-                              message: `${subject.name} has been assigned to the selected academic levels.`,
-                            });
-                          }}
+                        if (selectedLevels.length === 0) {
+                          notify({
+                            title: "Select Academic Levels",
+                            message: "A subject must belong to at least one academic level.",
+                          });
+                          return;
+                        }
+
+                        try {
+                          const data = await apiRequest(`/subjects/${subject.id}`, {
+                            method: "PATCH",
+                            body: JSON.stringify({
+                              academicLevelIds: selectedLevels,
+                            }),
+                          });
+
+                          const saved = data.subject;
+
+                          if (!saved?.id) {
+                            throw new Error("The server did not return the updated subject.");
+                          }
+
+                          const savedLevelIds = data.academicLevelIds ?? selectedLevels;
+
+                          setSubjects((prev) =>
+                            prev.map((item) =>
+                              item.id === saved.id
+                                ? {
+                                    ...item,
+                                    name: saved.name,
+                                    code: saved.code,
+                                    category: saved.category,
+                                    isCore: saved.is_core,
+                                    academicLevelIds: savedLevelIds,
+                                  }
+                                : item
+                            )
+                          );
+
+                          setSubjectLevelDialog({
+                            open: false,
+                            subject: null,
+                            selectedLevels: [],
+                          });
+
+                          notify({
+                            title: "Levels Saved",
+                            message: `${saved.name} has been assigned to the selected academic levels.`,
+                          });
+                        } catch (error) {
+                          notify({
+                            title: "Unable to Save Levels",
+                            message: error.message,
+                          });
+                        }
+                      }}
+
                     >
                               Save Levels
                   </button>

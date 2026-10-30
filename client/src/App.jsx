@@ -25,6 +25,7 @@ const Classes = lazy(() => import("./pages/dashboard/Classes"));
 const Attendance = lazy(() => import("./pages/dashboard/attendance/Attendance"));
 const Sections = lazy(() => import("./pages/dashboard/Sections"));
 const AcademicSetup = lazy(() => import("./pages/dashboard/AcademicSetup"));
+const SchoolFees = lazy(() => import("./pages/dashboard/SchoolFees"));
 const Subscription = lazy(() => import("./pages/dashboard/subscription/Subscription"));
 const Events = lazy(() => import("./pages/dashboard/Events"));
 const Results = lazy(() => import("./pages/dashboard/Results"));
@@ -191,6 +192,15 @@ const App = () => {
                 ]}
               >
                 <Sections />
+              </RoleRoute>
+            }
+          />
+
+          <Route
+            path="school-fees"
+            element={
+              <RoleRoute allowedRoles={["Principal", "School Admin"]}>
+                <SchoolFees />
               </RoleRoute>
             }
           />

@@ -25,6 +25,7 @@
   font-size: 1.3rem;
   font-weight: 700;
   white-space: nowrap;
+  color:  #2563eb;
 }
 
 .header__menu-toggle {
@@ -36,10 +37,15 @@
   flex-direction: column;
   justify-content: center;
   gap: 4px;
-  border: 1px solid #e5e7eb;
+  border: 1px solid #b0b0b0;
   border-radius: 8px;
   background: #ffffff;
   cursor: pointer;
+  transition: .2s ease;
+}
+
+.header__menu-toggle:hover{
+  box-shadow: 1px 1px 8px #7ea3f2;
 }
 
 .header__menu-toggle span {
@@ -97,6 +103,7 @@
 .header__profile-name {
   line-height: 1.2;
   overflow-wrap: anywhere;
+  color: #2563eb;
 }
 
 .header__profile-role {
@@ -134,10 +141,18 @@
 
   .header__menu-toggle {
     display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 35px;
+    height: 35px;
   }
 
   .header__logo h2 {
     font-size: 1.05rem;
+  }
+
+  .header__brand   .header__logo h2{
+    font-size: 0.8rem;
   }
 
   .header__actions {
@@ -156,7 +171,7 @@
   }
 
   .header__profile-role {
-    font-size: 0.55rem;
+    font-size: 0.5rem;
   }
 }
 

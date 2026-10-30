@@ -3,12 +3,12 @@ import {useOutletContext} from "react-router-dom";
 import StudentTable from '../../components/students/StudentTable'
 import "./Students.css"
 import StudentModal from '../../components/students/StudentModal/StudentModal'
-import initialStudents from "../../data/students";
 import StudentDetails from '../../components/students/StudentDetails/StudentDetails'
 import ConfirmDialog from "../../components/common/ConfirmDialog/ConfirmDialog";
 import { useAuth } from "../../auth/AuthContext";
 import { hasPermission } from "../../auth/permissions";
-
+import NotificationDialog from "../../components/common/NotificationDialog/NotificationDialog";
+const API_BASE_URL = "http://localhost:5000/api";
 
 const Students = () => {
 
@@ -21,15 +21,19 @@ const Students = () => {
     const [currentPage, setCurrentPage] = useState(1);
     const studentsPerPage = 5;
     const [selectedStudent, setSelectedStudent] = useState(null)
-    
+    const [notification, setNotification] = useState(null);
 
 
 
-   const { 
-            students, 
-            setStudents, 
-            payments, 
-            enrollments, 
+
+   const {
+            students,
+            setStudents,
+            payments,
+            financialAccounts,
+            financialAccountsLoading,
+            financialAccountsError,
+            enrollments,
             setEnrollments,
             academicLevels,
             academicSessions,
@@ -41,9 +45,7 @@ const Students = () => {
             setRecentActivities,
          } = useOutletContext();
 
-    useEffect(() => {
-        localStorage.setItem("students", JSON.stringify(students))
-    }, [students]);
+
 
 
         useEffect(() => {
@@ -51,8 +53,7 @@ const Students = () => {
     }, [searchTerm, classFilter, genderFilter]);
 
 
-
-    const { currentUser } = useAuth();
+const { currentUser, authToken } = useAuth();
 
     const canCreateStudent = hasPermission(
     currentUser?.role,
@@ -73,25 +74,50 @@ const Students = () => {
     );
 
 
+
     const filteredStudents = students.filter((student) => {
-        const search = searchTerm.toLowerCase();
+        const search = searchTerm.trim().toLowerCase();
+
+        const enrollment = enrollments.find(
+            (item) => item.studentId === student.id
+        );
+
+        const section = sections.find(
+            (item) => item.id === enrollment?.sectionId
+        );
+
+        const classItem = classes.find(
+            (item) =>
+                item.id === (section?.classId ?? enrollment?.classId)
+        );
+
+        const academicLevel = academicLevels.find(
+            (item) =>
+                item.id === (
+                    classItem?.academicLevelId ??
+                    enrollment?.academicLevelId
+                )
+        );
 
         const matchesSearch =
-            student.admissionNo.toLowerCase().includes(search)  ||
-            student.firstName.toLowerCase().includes(search)  ||
-            student.lastName.toLowerCase().includes(search)  ||
-            student.class.toLowerCase().includes(search);
-            
-            
-            const matchesClass = 
-                classFilter === "" || student.class === classFilter;
+            (student.admissionNo ?? "").toLowerCase().includes(search) ||
+            (student.firstName ?? "").toLowerCase().includes(search) ||
+            (student.middleName ?? "").toLowerCase().includes(search) ||
+            (student.lastName ?? "").toLowerCase().includes(search) ||
+            (classItem?.name ?? "").toLowerCase().includes(search) ||
+            (academicLevel?.name ?? "").toLowerCase().includes(search);
 
-            const matchesGender = 
-                genderFilter === "" || student.gender === genderFilter;
-                
-          return matchesSearch && matchesClass && matchesGender      
-        
+        const matchesClass =
+            classFilter === "" ||
+            academicLevel?.name === classFilter;
+
+        const matchesGender =
+            genderFilter === "" || student.gender === genderFilter;
+
+        return matchesSearch && matchesClass && matchesGender;
     });
+
+
 
     const totalPages = Math.ceil(filteredStudents.length / studentsPerPage)
 
@@ -104,7 +130,7 @@ const Students = () => {
   return (
     <div className='student-page'>
         <div className="students-page__header">
-             <h1>Students</h1>
+             <h1 className='students-header'>Students</h1>
 
         {canCreateStudent && (
             <button
@@ -117,7 +143,7 @@ const Students = () => {
         </div>
 
         <div className="students-page__search">
-            <input 
+            <input
                 type="text"
                 placeholder='Search students...'
                 value={searchTerm}
@@ -125,7 +151,7 @@ const Students = () => {
                 />
 
 
-                <select 
+                <select
                     value={classFilter}
                     onChange={(e) => setClassFilter(e.target.value)}
                 >
@@ -151,7 +177,7 @@ const Students = () => {
                 </select>
         </div>
 
-        <StudentTable 
+        <StudentTable
             students ={currentStudents}
             payments={payments}
             enrollments={enrollments}
@@ -190,6 +216,9 @@ const Students = () => {
                 student={selectedStudent}
                 onClose={() => setSelectedStudent(null)}
                 payments={payments}
+                 financialAccounts={financialAccounts}
+                financialAccountsLoading={financialAccountsLoading}
+                financialAccountsError={financialAccountsError}
                 canEdit={canEditStudent}
                 onEdit={(student) => {
                     if(!canEditStudent){
@@ -206,13 +235,13 @@ const Students = () => {
             <div className="students-page__pagination">
                 <button
                     onClick={() => setCurrentPage((prev) => prev - 1)}
-                    disabled={currentPage === 1} 
+                    disabled={currentPage === 1}
                 >
                     Previous
                 </button>
 
                 <span>
-                    Page {currentPage} of {totalPages}  
+                    Page {currentPage} of {totalPages}
                 </span>
 
                 <button
@@ -230,15 +259,44 @@ const Students = () => {
                     title="Delete Student"
                     message={`Are you sure you want to delete ${studentToDelete.firstName} ${studentToDelete.lastName}?`}
                     onCancel={() => setStudentToDelete(null)}
-                    onConfirm={() => {
-                    setStudents((prevStudents) =>
-                        prevStudents.filter(
-                        (student) => student.id !== studentToDelete.id
-                        )
-                    );
+                    onConfirm={async () => {
+    try {
+        const response = await fetch(
+            `${API_BASE_URL}/students/${studentToDelete.id}`,
+            {
+                method: "DELETE",
+                headers: {
+                    Authorization: `Bearer ${authToken}`,
+                },
+            }
+        );
 
-      setStudentToDelete(null);
-    }}
+        const data = await response.json();
+
+        if (!response.ok) {
+            throw new Error(data.message || "Failed to delete student.");
+        }
+
+        setStudents((previousStudents) =>
+            previousStudents.filter(
+                (student) => student.id !== studentToDelete.id
+            )
+        );
+
+        setEnrollments((previousEnrollments) =>
+            previousEnrollments.filter(
+                (enrollment) => enrollment.studentId !== studentToDelete.id
+            )
+        );
+
+        setStudentToDelete(null);
+    } catch (error) {
+    setNotification({
+        title: "Unable to delete student",
+        message: error.message || "Something went wrong. Please try again.",
+    });
+}
+}}
   />
 )}
 
@@ -247,7 +305,7 @@ const Students = () => {
         {showModal && (
             <StudentModal
                 onClose={() => setShowModal(false) }
-                studentToEdit={editingStudent} 
+                studentToEdit={editingStudent}
                 academicSessions={academicSessions}
                 academicLevels={academicLevels}
                 sections={sections}
@@ -256,125 +314,162 @@ const Students = () => {
                  streams={streams}
                 streamLevels={streamLevels}
                 subjectCombinations={subjectCombinations}
-                onAddStudent={(studentData, enrollmentData, studentToEdit) => {
-                    if (studentToEdit) {
-                        // Update existing student
-                        setStudents((prevStudents) =>
-                            prevStudents.map((student) =>
-                                student.id === studentToEdit.id
-                                    ? {
-                                        ...studentData,
-                                        id: student.id,
-                                    }
-                                    : student
-                            )
-                        );
 
-                     //Update recent activities
-                     setRecentActivities((prevActivities) => [
-                        {
-                            id:Date.now(),
-                            activity: "New student added",
-                            createdAt: new Date().toISOString(),
-                        },
-                        ...prevActivities,
-                     ])      
+onAddStudent={async (studentData, enrollmentData, studentToEdit) => {
+    const request = async (url, options = {}) => {
+        const response = await fetch(`${API_BASE_URL}${url}`, {
+            ...options,
+            headers: {
+                "Content-Type": "application/json",
+                Authorization: `Bearer ${authToken}`,
+                ...options.headers,
+            },
+        });
 
+        const data = await response.json();
 
+        if (!response.ok) {
+            throw new Error(data.message || "The request failed.");
+        }
 
-                        // Update the student's enrollment
-                        setEnrollments((prevEnrollments) =>
-                            prevEnrollments.map((enrollment) =>
-                                enrollment.studentId === studentToEdit.id
-                                    ? {
-                                        ...enrollment,
-                                        academicSessionId: Number(
-                                            enrollmentData.academicSessionId
-                                        ),
-                                        academicLevelId: Number(
-                                            enrollmentData.academicLevelId
-                                        ),
+        return data;
+    };
 
-                                        classId:enrollmentData.classId
-                                        ? Number(enrollment.classId) : null,
+    const refreshStudentsAndEnrollments = async () => {
+        const [studentsData, enrollmentsData] = await Promise.all([
+            request("/students"),
+            request("/enrollments"),
+        ]);
 
-                                        sectionId:enrollmentData.sectionId
-                                        ? Number(enrollmentData.sectionId) : null,
+        setStudents(
+            (studentsData.students || []).map((student) => ({
+                id: student.id,
+                schoolId: student.school_id,
+                admissionNo: student.admission_no,
+                firstName: student.first_name,
+                middleName: student.middle_name,
+                lastName: student.last_name,
+                gender: student.gender,
+                dateOfBirth: student.date_of_birth,
+                phone: student.phone,
+                email: student.email,
+                address: student.address,
+                status: student.status,
+                createdAt: student.created_at,
+                updatedAt: student.updated_at,
+            }))
+        );
 
-                                        streamId: enrollmentData.streamId
-                                        ? Number(enrollmentData.streamId)
-                                        : null,
+        setEnrollments(
+            (enrollmentsData.enrollments || []).map((enrollment) => ({
+                id: enrollment.id,
+                schoolId: enrollment.school_id,
+                studentId: enrollment.student_id,
+                academicSessionId: enrollment.academic_session_id,
+                academicLevelId: enrollment.academic_level_id,
+                classId: enrollment.class_id,
+                sectionId: enrollment.section_id,
+                streamId: enrollment.stream_id,
+                combinationId: enrollment.subject_combination_id,
+                subjectCombinationId: enrollment.subject_combination_id,
+                status: enrollment.status,
+                enrolledAt: enrollment.enrolled_at,
+                admissionNo: enrollment.admission_no,
+                firstName: enrollment.first_name,
+                middleName: enrollment.middle_name,
+                lastName: enrollment.last_name,
+                academicSessionName: enrollment.academic_session_name,
+                className: enrollment.class_name,
+                sectionName: enrollment.section_name,
+                streamName: enrollment.stream_name,
+                combinationName: enrollment.subject_combination_name,
+            }))
+        );
+    };
 
-                                    combinationId: enrollmentData.combinationId
-                                        ? Number(enrollmentData.combinationId)
-                                        : null,
-                                    }
-                                    : enrollment
-                            )
-                        );
-                    } else {
-                        // Create a new student ID
-                        const newStudentId =
-                            students.length > 0
-                                ? Math.max(
-                                    ...students.map((student) => student.id)
-                                ) + 1
-                                : 1;
+    const enrollmentPayload = {
+        academicSessionId: enrollmentData.academicSessionId,
+        classId: enrollmentData.classId,
+        sectionId: enrollmentData.sectionId,
+        streamId: enrollmentData.streamId || null,
+        subjectCombinationId: enrollmentData.combinationId || null,
+    };
 
-                        // Save the student
-                        setStudents((prevStudents) => [
-                            ...prevStudents,
-                            {
-                                ...studentData,
-                                id: newStudentId,
-                            },
-                        ]);
+    if (studentToEdit) {
+        const existingEnrollment = enrollments.find(
+            (enrollment) => enrollment.studentId === studentToEdit.id
+        );
 
-                        // Create the enrollment
-                        setEnrollments((prevEnrollments) => [
-                            ...prevEnrollments,
-                            
+        if (!existingEnrollment) {
+            throw new Error(
+                "The student's enrollment could not be found. Refresh the page and try again."
+            );
+        }
 
-                            {
-                                id:
-                                    prevEnrollments.length > 0
-                                        ? Math.max(
-                                            ...prevEnrollments.map(
-                                                (enrollment) => enrollment.id
-                                            )
-                                        ) + 1
-                                        : 1,
+        await request(`/students/${studentToEdit.id}`, {
+            method: "PATCH",
+            body: JSON.stringify(studentData),
+        });
 
-                                studentId: newStudentId,
+        try {
+            await request(`/enrollments/${existingEnrollment.id}`, {
+                method: "PATCH",
+                body: JSON.stringify(enrollmentPayload),
+            });
+        } catch (error) {
+            await refreshStudentsAndEnrollments();
+            throw new Error(
+                `Student details were saved, but the enrollment update failed: ${error.message}`
+            );
+        }
 
-                                academicSessionId: Number(
-                                    enrollmentData.academicSessionId
-                                ),
+        await refreshStudentsAndEnrollments();
 
-                                academicLevelId: Number(
-                                    enrollmentData.academicLevelId
-                                ),
+        setRecentActivities((previous) => [
+            {
+                id: Date.now(),
+                activity: "Student details updated",
+                createdAt: new Date().toISOString(),
+            },
+            ...previous,
+        ]);
+    } else {
+        const result = await request("/students", {
+            method: "POST",
+            body: JSON.stringify(studentData),
+        });
 
-                                classId: enrollmentData.classId
-                                    ? Number(enrollmentData.classId)
-                                    : null,
+        try {
+            await request("/enrollments", {
+                method: "POST",
+                body: JSON.stringify({
+                    studentId: result.student.id,
+                    ...enrollmentPayload,
+                }),
+            });
+        } catch (error) {
+            await refreshStudentsAndEnrollments();
+            throw new Error(
+                `The student was created, but enrollment failed: ${error.message}`
+            );
+        }
 
-                                sectionId: enrollmentData.sectionId
-                                    ? Number(enrollmentData.sectionId)
-                                    : null,
-                                streamId: enrollmentData.streamId
-                                    ? Number(enrollmentData.streamId)
-                                    : null,
-                                combinationId: enrollmentData.combinationId
-                                    ? Number(enrollmentData.combinationId)
-                                    : null,
-                            }
-                        ]);
-                    }
+        await refreshStudentsAndEnrollments();
 
-                    setShowModal(false);
-                    setEditingStudent(null);
-                }}
+        setRecentActivities((previous) => [
+            {
+                id: Date.now(),
+                activity: "New student added",
+                createdAt: new Date().toISOString(),
+            },
+            ...previous,
+        ]);
+    }
+
+    setShowModal(false);
+    setEditingStudent(null);
+}}
+
         />)}
 
     </div>

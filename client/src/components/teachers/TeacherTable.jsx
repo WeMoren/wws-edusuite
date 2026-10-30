@@ -18,6 +18,8 @@ const TeacherTable = ({
             <th>Last Name</th>
             <th>Subject</th>
             <th>Gender</th>
+            <th>Email</th>
+            <th>Phone Num.</th>
             <th>Actions</th>
           </tr>
         </thead>
@@ -41,6 +43,15 @@ const TeacherTable = ({
 
               <td data-label="Gender">
                 {teacher.gender}
+              </td>
+
+              <td data-label="Email">
+                {teacher.email}
+              </td>
+
+
+               <td data-label="Phone Num.">
+                {teacher.phoneNum}
               </td>
 
             <td data-label="Actions">

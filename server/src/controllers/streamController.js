@@ -133,15 +133,19 @@ export const createStream = async (req, res) => {
             academicLevelIds,
         } = req.body;
 
+        if (!name || !code) {
+            return res.status(400).json({
+                message: "Stream name and code are required.",
+            });
+
+        }
+
         if (
-            !name ||
-            !code ||
-            !Array.isArray(academicLevelIds) ||
-            academicLevelIds.length === 0
+            academicLevelIds !== undefined &&
+            !Array.isArray(academicLevelIds)
         ) {
             return res.status(400).json({
-                message:
-                    "Stream name, code, and at least one academic level are required.",
+                message: "academicLevelIds must be an array.",
             });
         }
 
@@ -154,13 +158,15 @@ export const createStream = async (req, res) => {
             });
         }
 
+        const requestedAcademicLevelIds = academicLevelIds ?? [];
+
         const uniqueAcademicLevelIds = [
-            ...new Set(academicLevelIds),
+            ...new Set(requestedAcademicLevelIds),
         ];
 
         if (
             uniqueAcademicLevelIds.length !==
-            academicLevelIds.length
+            requestedAcademicLevelIds.length
         ) {
             return res.status(400).json({
                 message:

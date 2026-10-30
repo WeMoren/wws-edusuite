@@ -29,7 +29,7 @@ const Header = ({ onMenuToggle }) => {
         </button>
 
         <div className="header__logo">
-          <h2>WWS EduSuite</h2>
+          <h2>WWS-EduSuite</h2>
         </div>
       </div>
 

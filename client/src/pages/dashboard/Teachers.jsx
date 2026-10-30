@@ -91,7 +91,7 @@ const filteredTeachers = teachers.filter((teacher) => {
   return (
     <div className='teachers-page'>
         <div className="teachers-page_header">
-            <h1>Teachers</h1>
+            <h1 className='teachers-header'>Teachers</h1>
 
          {canCreateTeacher && (
             <button

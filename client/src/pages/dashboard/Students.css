@@ -4,11 +4,11 @@
     gap: 1.5rem;
 }
 
-.students-page header{
+.students-page__header{
     display: flex;
     flex-direction: column;
     justify-content: space-between;
-    align-items: center;
+    align-items: start;
 }
 
 .students-page__button{
@@ -116,3 +116,15 @@
   cursor: not-allowed;
 }
 
+
+
+@media(max-width:768px){
+
+
+
+    .students-page__button {
+      width: 100%;
+      margin-top: 10px;
+    }
+
+}

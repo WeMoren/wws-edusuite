@@ -158,7 +158,7 @@ const Register = () => {
           </div>
 
           <div className="register-section">
-            <h2>Principal / Administrator Account</h2>
+            <h2>Principal's Account</h2>
 
             <div className="register-form__row">
               <div className="register-form__group">
@@ -189,14 +189,14 @@ const Register = () => {
             </div>
 
             <div className="register-form__group">
-              <label htmlFor="email">Administrator Email</label>
+              <label htmlFor="email">Principal's Email</label>
               <input
                 id="email"
                 name="email"
                 type="email"
                 value={formData.email}
                 onChange={handleChange}
-                placeholder="Enter administrator email"
+                placeholder="Enter principal's email"
                 required
               />
             </div>

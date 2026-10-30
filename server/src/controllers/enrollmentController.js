@@ -1,5 +1,9 @@
 import pool from "../config/db.js";
 
+import {
+    createStudentFinancialAccountForCurrentTerm,
+} from "../services/studentFinancialAccountService.js";
+
 const validStatuses = [
     "active",
     "completed",
@@ -173,8 +177,10 @@ export const getEnrollmentById = async (req, res) => {
 
 export const createEnrollment = async (req, res) => {
     const client = await pool.connect();
+      let transactionStarted = false;
 
     try {
+
         const { schoolId } = req;
 
         const {
@@ -422,6 +428,9 @@ if (subjectCombinationId) {
             });
         }
 
+                await client.query("BEGIN");
+                 transactionStarted = true;
+
         const result = await client.query(
             `
             INSERT INTO student_enrollments (
@@ -473,11 +482,40 @@ if (subjectCombinationId) {
             ]
         );
 
+                const financialAccountResult =
+            await createStudentFinancialAccountForCurrentTerm(
+                client,
+                {
+                    schoolId,
+                    studentId,
+                    enrollmentId: result.rows[0].id,
+                }
+            );
+
+        await client.query("COMMIT");
+        transactionStarted = false;
+
         return res.status(201).json({
             message: "Student enrolled successfully.",
             enrollment: result.rows[0],
+            financialAccount:
+                financialAccountResult.financialAccount,
+            financialAccountCreated:
+                financialAccountResult.created,
         });
-    } catch (error) {
+      } catch (error) {
+        if (transactionStarted) {
+            try {
+                await client.query("ROLLBACK");
+                transactionStarted = false;
+            } catch (rollbackError) {
+                console.error(
+                    "Failed to roll back enrollment transaction:",
+                    rollbackError.message
+                );
+            }
+        }
+
         if (error.code === "23505") {
             return res.status(409).json({
                 message:

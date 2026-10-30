@@ -192,11 +192,11 @@ const updateSchoolOfficial = async (req, res) => {
                 official_type = $1,
                 name = $2,
                 title = $3,
-                signature_url = $4,
-                stamp_url = $5,
+                signature_url = CASE WHEN $4 THEN $5 ELSE signature_url END,
+                stamp_url = CASE WHEN $6 THEN $7 ELSE stamp_url END,
                 updated_at = NOW()
-            WHERE id = $6
-              AND school_id = $7
+            WHERE id = $8
+              AND school_id = $9
             RETURNING
                 id,
                 official_type,
@@ -211,8 +211,10 @@ const updateSchoolOfficial = async (req, res) => {
                 officialType,
                 name,
                 title,
-                signatureUrl || null,
-                stampUrl || null,
+                Object.prototype.hasOwnProperty.call(req.body, "signatureUrl"),
+                signatureUrl ?? null,
+                Object.prototype.hasOwnProperty.call(req.body, "stampUrl"),
+                stampUrl ?? null,
                 id,
                 req.schoolId
             ]

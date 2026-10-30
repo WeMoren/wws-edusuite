@@ -2,8 +2,12 @@
 import React, { useEffect, useState } from "react";
 import "./Settings.css";
 import NotificationDialog from "../../components/common/NotificationDialog/NotificationDialog";
+import { useAuth } from "../../auth/AuthContext";
 
 const Settings = () => {
+  const { authToken } = useAuth();
+  const API_BASE_URL = "http://localhost:5000/api";
+  const [officialIds, setOfficialIds] = useState({});
   const [schoolProfile, setSchoolProfile] = useState({
     name: "",
     address: "",
@@ -42,25 +46,97 @@ const Settings = () => {
     message: "",
   });
 
+  const apiRequest = async (path, options = {}) => {
+    if (!authToken) {
+      throw new Error("Your session has expired. Please log in again.");
+    }
+
+    const response = await fetch(`${API_BASE_URL}${path}`, {
+      ...options,
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${authToken}`,
+        ...options.headers,
+      },
+    });
+
+    const data = await response.json().catch(() => ({}));
+
+    if (!response.ok) {
+      throw new Error(data.message || "The request could not be completed.");
+    }
+
+    return data;
+  };
+
   useEffect(() => {
-    const savedProfile =
-      localStorage.getItem("schoolProfile");
+    if (!authToken) return;
 
-    if (savedProfile) {
-      setSchoolProfile(JSON.parse(savedProfile));
-    }
+    let cancelled = false;
 
-    const savedAuthorization =
-      localStorage.getItem(
-        "documentAuthorization"
-      );
+    const loadSettings = async () => {
+      try {
+        const [profileData, officialsData] = await Promise.all([
+          apiRequest("/school-profile"),
+          apiRequest("/school-officials"),
+        ]);
 
-    if (savedAuthorization) {
-      setDocumentAuthorization(
-        JSON.parse(savedAuthorization)
-      );
-    }
-  }, []);
+        if (cancelled) return;
+
+        const profile = profileData.profile;
+        if (profile) {
+          setSchoolProfile({
+            name: profile.name || "",
+            address: profile.address || "",
+            phone: profile.phone || "",
+            email: profile.email || "",
+            website: profile.website || "",
+            logo: profile.logo_url || "",
+          });
+        }
+
+        const defaults = {
+          principal: { name: "", title: "Principal", signature: "", stamp: "" },
+          examOfficer: { name: "", title: "Exam Officer", signature: "", stamp: "" },
+          accountingOfficer: { name: "", title: "Accounting Officer", signature: "", stamp: "" },
+        };
+        const typeMap = {
+          principal: "principal",
+          exam_officer: "examOfficer",
+          accounting_officer: "accountingOfficer",
+        };
+        const nextAuthorization = { ...defaults };
+        const nextIds = {};
+
+        for (const official of officialsData.officials || []) {
+          const key = typeMap[official.official_type];
+          if (!key) continue;
+
+          nextAuthorization[key] = {
+            name: official.name || "",
+            title: official.title || defaults[key].title,
+            signature: official.signature_url || "",
+            stamp: official.stamp_url || "",
+          };
+          nextIds[key] = official.id;
+        }
+
+        setDocumentAuthorization(nextAuthorization);
+        setOfficialIds(nextIds);
+      } catch (error) {
+        if (!cancelled) {
+          setNotification({ title: "Settings Could Not Load", message: error.message });
+          setShowNotification(true);
+        }
+      }
+    };
+
+    loadSettings();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [authToken]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -109,33 +185,72 @@ const Settings = () => {
     reader.readAsDataURL(file);
   };
 
-  const handleSaveProfile = () => {
-    localStorage.setItem(
-      "schoolProfile",
-      JSON.stringify(schoolProfile)
-    );
+  const handleSaveProfile = async () => {
+    try {
+      const data = await apiRequest("/school-profile", {
+        method: "PUT",
+        body: JSON.stringify({
+          name: schoolProfile.name,
+          email: schoolProfile.email,
+          phone: schoolProfile.phone,
+          address: schoolProfile.address,
+          website: schoolProfile.website,
+          ...(schoolProfile.logo ? { logoUrl: schoolProfile.logo } : {}),
+        }),
+      });
 
-    setNotification({
-      title: "Profile Saved",
-      message:
-        "School profile has been saved successfully.",
-    });
+      const profile = data.profile;
+      if (profile) {
+        setSchoolProfile({
+          name: profile.name || "",
+          address: profile.address || "",
+          phone: profile.phone || "",
+          email: profile.email || "",
+          website: profile.website || "",
+          logo: profile.logo_url || "",
+        });
+      }
 
+      setNotification({ title: "Profile Saved", message: data.message || "School profile has been saved successfully." });
+    } catch (error) {
+      setNotification({ title: "Profile Save Failed", message: error.message });
+    }
     setShowNotification(true);
   };
 
-  const handleSaveAuthorization = () => {
-    localStorage.setItem(
-      "documentAuthorization",
-      JSON.stringify(documentAuthorization)
-    );
+  const handleSaveAuthorization = async () => {
+    const typeMap = {
+      principal: "principal",
+      examOfficer: "exam_officer",
+      accountingOfficer: "accounting_officer",
+    };
 
-    setNotification({
-      title: "Authorization Saved",
-      message:
-        "Document authorization settings have been saved successfully.",
-    });
+    try {
+      const nextIds = { ...officialIds };
 
+      for (const [key, official] of Object.entries(documentAuthorization)) {
+        const name = official.name.trim();
+        const title = official.title.trim();
+        if (!name || !title) continue;
+
+        const payload = { officialType: typeMap[key], name, title };
+        if (official.signature) payload.signatureUrl = official.signature;
+        if (official.stamp) payload.stampUrl = official.stamp;
+
+        const path = nextIds[key] ? `/school-officials/${nextIds[key]}` : "/school-officials";
+        const data = await apiRequest(path, {
+          method: nextIds[key] ? "PUT" : "POST",
+          body: JSON.stringify(payload),
+        });
+
+        if (data.official?.id) nextIds[key] = data.official.id;
+      }
+
+      setOfficialIds(nextIds);
+      setNotification({ title: "Authorization Saved", message: "Document authorization settings have been saved successfully." });
+    } catch (error) {
+      setNotification({ title: "Authorization Save Failed", message: error.message });
+    }
     setShowNotification(true);
   };
 

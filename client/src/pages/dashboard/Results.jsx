@@ -1,4 +1,5 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
+import { useAuth } from "../../auth/AuthContext";
 import { useOutletContext } from "react-router-dom";
 import jsPDF from "jspdf";
 import NotificationDialog from "../../components/common/NotificationDialog/NotificationDialog";
@@ -21,6 +22,22 @@ const Results = () => {
     streams = [],
   } = useOutletContext();
 
+  const { authToken } = useAuth();
+  const API_BASE_URL = "http://localhost:5000/api";
+
+  const getStudentFullName = (student) =>
+  [
+    student?.firstName,
+    student?.middleName,
+    student?.lastName,
+  ]
+    .filter(
+      (name) =>
+        typeof name === "string" && name.trim() !== ""
+    )
+    .map((name) => name.trim())
+    .join(" ");
+
   const [selectedSessionId, setSelectedSessionId] = useState("");
   const [selectedClassId, setSelectedClassId] = useState("");
   const [selectedTermId, setSelectedTermId] = useState("");
@@ -37,87 +54,21 @@ const Results = () => {
     message: "",
   });
 
-  const [assessmentSettings] = useState(() => {
-    const savedAssessment =
-      localStorage.getItem("assessmentSettings");
-
-    if (savedAssessment) {
-      return JSON.parse(savedAssessment);
-    }
-
-    return {
-      caMax: 30,
-      examMax: 70,
-    };
+  const [assessmentSettings, setAssessmentSettings] = useState({
+    caMax: 30,
+    examMax: 70,
   });
 
-  const [gradingScale] = useState(() => {
-    const savedGradingScale =
-      localStorage.getItem("gradingScale");
+  const [gradingScale, setGradingScale] = useState([]);
+  const [settingsLoading, setSettingsLoading] = useState(true);
+  const [settingsLoaded, setSettingsLoaded] = useState(false);
 
-    if (savedGradingScale) {
-      return JSON.parse(savedGradingScale);
-    }
+    const [schoolProfile, setSchoolProfile] = useState(null);
+  const [documentAuthorization, setDocumentAuthorization] = useState(null);
+  const [documentSettingsLoading, setDocumentSettingsLoading] = useState(true);
+  const [documentSettingsLoaded, setDocumentSettingsLoaded] = useState(false);
 
-    return [
-      {
-        id: 1,
-        min: 90,
-        max: 100,
-        grade: "A1",
-        remark: "Excellent",
-      },
-      {
-        id: 2,
-        min: 80,
-        max: 89,
-        grade: "B2",
-        remark: "Very Good",
-      },
-      {
-        id: 3,
-        min: 70,
-        max: 79,
-        grade: "B3",
-        remark: "Good",
-      },
-      {
-        id: 4,
-        min: 60,
-        max: 69,
-        grade: "C4",
-        remark: "Credit",
-      },
-      {
-        id: 5,
-        min: 50,
-        max: 59,
-        grade: "C5",
-        remark: "Credit",
-      },
-      {
-        id: 6,
-        min: 45,
-        max: 49,
-        grade: "D7",
-        remark: "Pass",
-      },
-      {
-        id: 7,
-        min: 40,
-        max: 44,
-        grade: "E8",
-        remark: "Pass",
-      },
-      {
-        id: 8,
-        min: 0,
-        max: 39,
-        grade: "F9",
-        remark: "Fail",
-      },
-    ];
-  });
+
 
   const notify = ({ title, message }) => {
     setNotification({
@@ -128,31 +79,200 @@ const Results = () => {
     setShowNotification(true);
   };
 
+
+    useEffect(() => {
+    let cancelled = false;
+
+    const loadResultSettings = async () => {
+      setSettingsLoading(true);
+
+      try {
+        if (!authToken) {
+          throw new Error(
+            "Your session has expired. Please log in again."
+          );
+        }
+
+        const response = await fetch(
+          `${API_BASE_URL}/result-settings`,
+          {
+            headers: {
+              Authorization: `Bearer ${authToken}`,
+            },
+          }
+        );
+
+        const data = await response.json().catch(() => ({}));
+
+        if (!response.ok) {
+          throw new Error(
+            data.message || "Failed to load result settings."
+          );
+        }
+
+        if (cancelled) return;
+
+        setAssessmentSettings(data.assessmentSettings);
+        setGradingScale(data.gradingScale);
+        setSettingsLoaded(true);
+      } catch (error) {
+        if (cancelled) return;
+
+        notify({
+          title: "Unable to Load Result Settings",
+          message: error.message,
+        });
+      } finally {
+        if (!cancelled) {
+          setSettingsLoading(false);
+        }
+      }
+    };
+
+    loadResultSettings();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [authToken]);
+
+
+  useEffect(() => {
+    let cancelled = false;
+
+    const loadDocumentSettings = async () => {
+      setDocumentSettingsLoading(true);
+      setDocumentSettingsLoaded(false);
+
+      try {
+        if (!authToken) {
+          throw new Error(
+            "Your session has expired. Please log in again."
+          );
+        }
+
+        const headers = {
+          Authorization: `Bearer ${authToken}`,
+        };
+
+        const [profileResponse, officialsResponse] = await Promise.all([
+          fetch(`${API_BASE_URL}/school-profile`, { headers }),
+          fetch(`${API_BASE_URL}/school-officials`, { headers }),
+        ]);
+
+        const [profileData, officialsData] = await Promise.all([
+          profileResponse.json().catch(() => ({})),
+          officialsResponse.json().catch(() => ({})),
+        ]);
+
+        if (!profileResponse.ok) {
+          throw new Error(
+            profileData.message || "Failed to load the school profile."
+          );
+        }
+
+        if (!officialsResponse.ok) {
+          throw new Error(
+            officialsData.message || "Failed to load school officials."
+          );
+        }
+
+        if (cancelled) return;
+
+        const profile = profileData.profile || {};
+
+        setSchoolProfile({
+          name: profile.name || "",
+          address: profile.address || "",
+          phone: profile.phone || "",
+          email: profile.email || "",
+          website: profile.website || "",
+          logo: profile.logo_url || "",
+        });
+
+        const defaults = {
+          principal: {
+            name: "",
+            title: "Principal",
+            signature: "",
+            stamp: "",
+          },
+          examOfficer: {
+            name: "",
+            title: "Exam Officer",
+            signature: "",
+            stamp: "",
+          },
+        };
+
+        const typeMap = {
+          principal: "principal",
+          exam_officer: "examOfficer",
+        };
+
+        const authorization = { ...defaults };
+
+        for (const official of officialsData.officials || []) {
+          const key = typeMap[official.official_type];
+          if (!key) continue;
+
+          authorization[key] = {
+            name: official.name || "",
+            title: official.title || defaults[key].title,
+            signature: official.signature_url || "",
+            stamp: official.stamp_url || "",
+          };
+        }
+
+        setDocumentAuthorization(authorization);
+        setDocumentSettingsLoaded(true);
+      } catch (error) {
+        if (cancelled) return;
+
+        notify({
+          title: "Unable to Load Document Settings",
+          message: error.message,
+        });
+      } finally {
+        if (!cancelled) {
+          setDocumentSettingsLoading(false);
+        }
+      }
+    };
+
+    loadDocumentSettings();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [authToken]);
+
+
   /* --------------------------------
       Academic helpers
   -------------------------------- */
 
   const getStudentEnrollment = (
     student,
-    sessionId = Number(selectedSessionId)
+    sessionId = selectedSessionId
   ) => {
     return enrollments.find(
       (enrollment) =>
-        enrollment.studentId === student.id &&
-        enrollment.academicSessionId === Number(sessionId)
+        enrollment.studentId === String(student.id) &&
+        enrollment.academicSessionId === String(sessionId)
     );
   };
 
   const getEnrollmentForSection = (
     student,
     sectionId,
-    sessionId = Number(selectedSessionId)
+    sessionId = selectedSessionId
   ) => {
     return enrollments.find(
       (enrollment) =>
         enrollment.studentId === student.id &&
-        enrollment.academicSessionId === Number(sessionId) &&
-        enrollment.sectionId === Number(sectionId)
+        enrollment.academicSessionId === String(sessionId) &&
+        enrollment.sectionId === String(sectionId)
     );
   };
 
@@ -164,7 +284,7 @@ const Results = () => {
     }
 
     const section = sections.find(
-      (item) => item.id === Number(enrollment.sectionId)
+      (item) => item.id === enrollment.sectionId
     );
 
     if (!section) {
@@ -173,8 +293,8 @@ const Results = () => {
 
     const classItem = classes.find(
       (item) =>
-        item.id === Number(section.classId) &&
-        item.academicSessionId === Number(selectedSessionId)
+        item.id === section.classId &&
+        item.academicSessionId === String(selectedSessionId)
     );
 
     if (!classItem) {
@@ -183,7 +303,7 @@ const Results = () => {
 
     const academicLevel = academicLevels.find(
       (item) =>
-        item.id === Number(classItem.academicLevelId)
+        item.id === classItem.academicLevelId
     );
 
     if (!academicLevel) {
@@ -198,151 +318,130 @@ const Results = () => {
     };
   };
 
-  const getStudentAttendanceStats = (
-    student,
-    termId
-  ) => {
-    const context =
-      getStudentAcademicContext(student);
 
-    if (!context) {
-      return {
-        present: 0,
-        absent: 0,
-        totalMarked: 0,
-        percentage: null,
-      };
-    }
+const getStudentAttendanceStats = (
+  student,
+  termId
+) => {
+  const context = getStudentAcademicContext(student);
 
-    const { classItem } = context;
-
-    const attendanceRecords = (
-      attendance || []
-    ).filter(
-      (record) =>
-        record.studentId === student.id &&
-        record.academicSessionId ===
-          Number(selectedSessionId) &&
-        record.academicTermId ===
-          Number(termId) &&
-        record.classId ===
-          Number(classItem.id)
-    );
-
-    const present =
-      attendanceRecords.filter(
-        (record) =>
-          record.status === "present"
-      ).length;
-
-    const absent =
-      attendanceRecords.filter(
-        (record) =>
-          record.status === "absent"
-      ).length;
-
-    const totalMarked =
-      present + absent;
-
-    const percentage =
-      totalMarked > 0
-        ? (present / totalMarked) * 100
-        : null;
-
+  if (!context) {
     return {
-      present,
-      absent,
-      totalMarked,
-      percentage,
+      present: 0,
+      absent: 0,
+      totalMarked: 0,
+      percentage: null,
     };
+  }
+
+  const { classItem } = context;
+
+  const attendanceRecords = (attendance || []).filter(
+    (record) =>
+      record.studentId === student.id &&
+      String(record.academicSessionId) === String(selectedSessionId) &&
+      String(record.academicTermId) === String(termId) &&
+      String(record.classId) === String(classItem.id)
+  );
+
+  const present = attendanceRecords.filter(
+    (record) => record.status === "present"
+  ).length;
+
+  const absent = attendanceRecords.filter(
+    (record) => record.status === "absent"
+  ).length;
+
+  const totalMarked = present + absent;
+
+  const percentage =
+    totalMarked > 0
+      ? (present / totalMarked) * 100
+      : null;
+
+  return {
+    present,
+    absent,
+    totalMarked,
+    percentage,
   };
+};
+
 
   /*
     Determine the exact subjects a student is allowed
     to take based on their academic level and, for SS2/SS3,
     their selected subject combination.
   */
-  const getStudentSubjectsForEnrollment = (
-    student,
-    enrollment
-  ) => {
-    if (!enrollment) {
-      return [];
-    }
 
-    const section = sections.find(
-      (item) =>
-        item.id === Number(enrollment.sectionId)
-    );
+const getStudentSubjectsForEnrollment = (
+  student,
+  enrollment
+) => {
+  if (!enrollment) {
+    return [];
+  }
 
-    if (!section) {
-      return [];
-    }
+  const section = sections.find(
+    (item) => item.id === enrollment.sectionId
+  );
 
-    const classItem = classes.find(
-      (item) =>
-        item.id === Number(section.classId) &&
-        item.academicSessionId ===
-          Number(selectedSessionId)
-    );
+  if (!section) {
+    return [];
+  }
 
-    if (!classItem) {
-      return [];
-    }
+  const classItem = classes.find(
+    (item) =>
+      item.id === section.classId &&
+      String(item.academicSessionId) === String(selectedSessionId)
+  );
 
-    const level = academicLevels.find(
-      (item) =>
-        item.id === Number(classItem.academicLevelId)
-    );
+  if (!classItem) {
+    return [];
+  }
 
-    if (!level) {
-      return [];
-    }
+  const level = academicLevels.find(
+    (item) => item.id === classItem.academicLevelId
+  );
 
-    const levelSubjects = subjects.filter((subject) =>
-      subject.academicLevelIds?.some(
-        (levelId) =>
-          Number(levelId) === Number(level.id)
-      )
-    );
+  if (!level) {
+    return [];
+  }
 
-    /*
-      SS1 remains level-wide.
+  const levelSubjects = subjects.filter((subject) =>
+    subject.academicLevelIds?.some(
+      (levelId) => String(levelId) === String(level.id)
+    )
+  );
 
-      SS2 and SS3 must use the student's
-      Science / Arts / Commercial combination.
-    */
-    const requiresCombination =
-      level.name === "SS 2" ||
-      level.name === "SS 3";
+  const requiresCombination =
+    level.name === "SS 2" ||
+    level.name === "SS 3";
 
-    if (!requiresCombination) {
-      return levelSubjects;
-    }
+  if (!requiresCombination) {
+    return levelSubjects;
+  }
 
-    if (!enrollment.combinationId) {
-      return [];
-    }
+  if (!enrollment.combinationId) {
+    return [];
+  }
 
-    const combination =
-      subjectCombinations.find(
-        (item) =>
-          Number(item.id) ===
-          Number(enrollment.combinationId)
-      );
+  const combination = subjectCombinations.find(
+    (item) =>
+      String(item.id) === String(enrollment.combinationId)
+  );
 
-    if (!combination) {
-      return [];
-    }
+  if (!combination) {
+    return [];
+  }
 
-    return levelSubjects.filter((subject) =>
-      combination.subjectIds?.some(
-        (subjectId) =>
-          Number(subjectId) ===
-          Number(subject.id)
-      )
-    );
-  };
+  return levelSubjects.filter((subject) =>
+    combination.subjectIds?.some(
+      (subjectId) => String(subjectId) === String(subject.id)
+    )
+  );
+};
+
 
   /* --------------------------------
       Load results
@@ -364,15 +463,15 @@ const Results = () => {
       return;
     }
 
-    const sessionId = Number(selectedSessionId);
-    const classId = Number(selectedClassId);
-    const sectionId = Number(selectedSectionId);
-    const termId = Number(selectedTermId);
+    const sessionId = selectedSessionId;
+    const classId = selectedClassId;
+    const sectionId = selectedSectionId;
+    const termId = selectedTermId;
 
     const selectedClass = classes.find(
       (classItem) =>
-        classItem.id === classId &&
-        classItem.academicSessionId === sessionId
+        String(classItem.id) === String(classId) &&
+        String(classItem.academicSessionId) === String(sessionId)
     );
 
     const selectedSection = sections.find(
@@ -394,13 +493,13 @@ const Results = () => {
     const studentIds = enrollments
       .filter(
         (enrollment) =>
-          enrollment.academicSessionId === sessionId &&
-          enrollment.sectionId === sectionId
+          String(enrollment.academicSessionId) === String(sessionId) &&
+          String(enrollment.sectionId) === String(sectionId)
       )
       .map((enrollment) => enrollment.studentId);
 
     const matchingStudents = students.filter((student) =>
-      studentIds.includes(student.id)
+      studentIds.includes(String(student.id))
     );
 
     /*
@@ -413,8 +512,8 @@ const Results = () => {
     const matchingSubjects = subjects.filter((subject) =>
       subject.academicLevelIds?.some(
         (levelId) =>
-          Number(levelId) ===
-          Number(selectedClass.academicLevelId)
+          String(levelId) ===
+          String(selectedClass.academicLevelId)
       )
     );
 
@@ -465,144 +564,24 @@ const Results = () => {
       Save results
   -------------------------------- */
 
-  const handleSaveResults = () => {
-      let updatedResults = results.filter((result) => {
-      const student = loadedStudents.find(
-        (item) => item.id === result.studentId
-      );
 
-      if (!student) {
-        return true;
-      }
+const handleSaveResults = () => {
+  let updatedResults = results.filter((result) => {
+    const student = loadedStudents.find(
+      (item) => item.id === result.studentId
+    );
 
-      const enrollment = getStudentEnrollment(
-        student,
-        Number(selectedSessionId)
-      );
+    if (!student) {
+      return true;
+    }
 
-      if (!enrollment) {
-        return true;
-      }
-
-      const studentSubjects =
-        getStudentSubjectsForEnrollment(
-          student,
-          enrollment
-        );
-
-      const isSameResultPeriod =
-        result.academicSessionId ===
-          Number(selectedSessionId) &&
-        result.academicTermId ===
-          Number(selectedTermId) &&
-        result.sectionId ===
-          Number(selectedSectionId);
-
-      if (!isSameResultPeriod) {
-        return true;
-      }
-
-      return studentSubjects.some(
-        (subject) =>
-          Number(subject.id) ===
-          Number(result.subjectId)
-      );
-    });
-
-    loadedStudents.forEach((student) => {
-      const enrollment =
-        getStudentEnrollment(
-          student,
-          Number(selectedSessionId)
-        );
-
-      const studentSubjects =
-        getStudentSubjectsForEnrollment(
-          student,
-          enrollment
-        );
-
-      studentSubjects.forEach((subject) => {
-        const entryKey =
-          `${student.id}-${subject.id}`;
-
-        const entry =
-          scoreEntries[entryKey];
-
-        if (!entry) {
-          return;
-        }
-
-        const ca = Number(entry.ca) || 0;
-        const exam = Number(entry.exam) || 0;
-
-        const existingIndex =
-          updatedResults.findIndex(
-            (result) =>
-              result.studentId === student.id &&
-              result.subjectId === subject.id &&
-              result.academicSessionId ===
-                Number(selectedSessionId) &&
-              result.academicTermId ===
-                Number(selectedTermId) &&
-              result.sectionId ===
-                Number(selectedSectionId)
-          );
-
-        const resultData = {
-          studentId: student.id,
-          subjectId: subject.id,
-          academicSessionId:
-            Number(selectedSessionId),
-          academicTermId:
-            Number(selectedTermId),
-          sectionId:
-            Number(selectedSectionId),
-          ca,
-          exam,
-        };
-
-        if (existingIndex !== -1) {
-          updatedResults[existingIndex] = {
-            ...updatedResults[existingIndex],
-            ...resultData,
-          };
-        } else {
-          updatedResults.push({
-            id:
-              Date.now() +
-              updatedResults.length,
-            ...resultData,
-          });
-        }
-      });
-    });
-
-    setResults(updatedResults);
-
-    notify({
-      title: "Results Saved",
-      message:
-        "Student results have been saved successfully.",
-    });
-  };
-
-  /* --------------------------------
-      Result calculations
-  -------------------------------- */
-
-  const getStudentTermAverage = (
-    student,
-    termId
-  ) => {
-    const enrollment =
-      getStudentEnrollment(
-        student,
-        Number(selectedSessionId)
-      );
+    const enrollment = getStudentEnrollment(
+      student,
+      selectedSessionId
+    );
 
     if (!enrollment) {
-      return null;
+      return true;
     }
 
     const studentSubjects =
@@ -611,74 +590,164 @@ const Results = () => {
         enrollment
       );
 
-    if (studentSubjects.length === 0) {
-      return null;
+    const isSameResultPeriod =
+      String(result.academicSessionId) === String(selectedSessionId) &&
+      String(result.academicTermId) === String(selectedTermId) &&
+      String(result.sectionId) === String(selectedSectionId);
+
+    if (!isSameResultPeriod) {
+      return true;
     }
 
-    const savedResults =
-      results.filter(
-        (result) =>
-          result.studentId === student.id &&
-          result.academicSessionId ===
-            Number(selectedSessionId) &&
-          result.academicTermId ===
-            Number(termId) &&
-          result.sectionId ===
-            Number(enrollment.sectionId)
+    return studentSubjects.some(
+      (subject) =>
+        String(subject.id) === String(result.subjectId)
+    );
+  });
+
+  loadedStudents.forEach((student) => {
+    const enrollment = getStudentEnrollment(
+      student,
+      selectedSessionId
+    );
+
+    const studentSubjects =
+      getStudentSubjectsForEnrollment(
+        student,
+        enrollment
       );
 
-    if (savedResults.length === 0) {
-      return null;
-    }
+    studentSubjects.forEach((subject) => {
+      const entryKey = `${student.id}-${subject.id}`;
+      const entry = scoreEntries[entryKey];
 
-    let totalScore = 0;
-    let subjectCount = 0;
-
-    studentSubjects.forEach(
-      (subject) => {
-        const result =
-          savedResults.find(
-            (item) =>
-              Number(item.subjectId) ===
-              Number(subject.id)
-          );
-
-        if (!result) {
-          return;
-        }
-
-        const ca =
-          Number(result.ca) || 0;
-
-        const exam =
-          Number(result.exam) || 0;
-
-        totalScore += ca + exam;
-        subjectCount += 1;
+      if (!entry) {
+        return;
       }
+
+      const ca = Number(entry.ca) || 0;
+      const exam = Number(entry.exam) || 0;
+
+      const existingIndex = updatedResults.findIndex(
+        (result) =>
+          result.studentId === student.id &&
+          String(result.subjectId) === String(subject.id) &&
+          String(result.academicSessionId) === String(selectedSessionId) &&
+          String(result.academicTermId) === String(selectedTermId) &&
+          String(result.sectionId) === String(selectedSectionId)
+      );
+
+      const resultData = {
+        studentId: student.id,
+        subjectId: subject.id,
+        academicSessionId: selectedSessionId,
+        academicTermId: selectedTermId,
+        sectionId: selectedSectionId,
+        ca,
+        exam,
+      };
+
+      if (existingIndex !== -1) {
+        updatedResults[existingIndex] = {
+          ...updatedResults[existingIndex],
+          ...resultData,
+        };
+      } else {
+        updatedResults.push({
+          id: Date.now() + updatedResults.length,
+          ...resultData,
+        });
+      }
+    });
+  });
+
+  setResults(updatedResults);
+
+  notify({
+    title: "Results Saved",
+    message: "Student results have been saved successfully.",
+  });
+};
+
+
+  /* --------------------------------
+      Result calculations
+  -------------------------------- */
+
+
+const getStudentTermAverage = (
+  student,
+  termId
+) => {
+  const enrollment = getStudentEnrollment(
+    student,
+    selectedSessionId
+  );
+
+  if (!enrollment) {
+    return null;
+  }
+
+  const studentSubjects = getStudentSubjectsForEnrollment(
+    student,
+    enrollment
+  );
+
+  if (studentSubjects.length === 0) {
+    return null;
+  }
+
+  const savedResults = results.filter(
+    (result) =>
+      result.studentId === student.id &&
+      String(result.academicSessionId) === String(selectedSessionId) &&
+      String(result.academicTermId) === String(termId) &&
+      String(result.sectionId) === String(enrollment.sectionId)
+  );
+
+  if (savedResults.length === 0) {
+    return null;
+  }
+
+  let totalScore = 0;
+  let subjectCount = 0;
+
+  studentSubjects.forEach((subject) => {
+    const result = savedResults.find(
+      (item) => String(item.subjectId) === String(subject.id)
     );
 
-    if (subjectCount === 0) {
-      return null;
+    if (!result) {
+      return;
     }
 
-    return (
-      totalScore /
-      subjectCount
-    );
-  };
+    const ca = Number(result.ca) || 0;
+    const exam = Number(result.exam) || 0;
 
-  const getSessionTermIds = () => {
-    return academicTerms
-      .filter(
-        (term) =>
-          term.academicSessionId ===
-          Number(selectedSessionId)
-      )
-      .sort((a, b) => a.id - b.id)
-      .slice(0, 3)
-      .map((term) => term.id);
-  };
+    totalScore += ca + exam;
+    subjectCount += 1;
+  });
+
+  if (subjectCount === 0) {
+    return null;
+  }
+
+  return totalScore / subjectCount;
+};
+
+
+
+const getSessionTermIds = () => {
+  return academicTerms
+    .filter(
+      (term) =>
+        String(term.academicSessionId) === String(selectedSessionId)
+    )
+    .sort((a, b) => a.name.localeCompare(b.name))
+    .slice(0, 3)
+    .map((term) => term.id);
+};
+
 
   const getStudentSessionAverage = (
     student
@@ -804,396 +873,246 @@ const Results = () => {
     };
   };
 
-  const getStudentPositions = (
-    student
-  ) => {
-    const context =
-      getStudentAcademicContext(
-        student
-      );
 
-    if (!context) {
-      return {
-        classPositionLabel: "—",
-        academicLevelPositionLabel:
-          "—",
-        sessionAcademicLevelPositionLabel:
-          "—",
-        classTotal: 0,
-        academicLevelTotal: 0,
-        sessionAcademicLevelTotal: 0,
-        termAverage: null,
-        sessionAverage: null,
-      };
-    }
+const getStudentPositions = (student) => {
+  const context = getStudentAcademicContext(student);
 
-    const {
-      classItem,
-      academicLevel,
-    } = context;
-
-    const sessionId =
-      Number(selectedSessionId);
-
-    const enrolledStudents =
-      students.filter((item) =>
-        enrollments.some(
-          (enrollment) =>
-            enrollment.studentId ===
-              item.id &&
-            enrollment.academicSessionId ===
-              sessionId &&
-            enrollment.sectionId
-        )
-      );
-
-    const classStudents =
-      enrolledStudents.filter(
-        (item) => {
-          const itemContext =
-            getStudentAcademicContext(
-              item
-            );
-
-          return (
-            itemContext?.classItem?.id ===
-            classItem.id
-          );
-        }
-      );
-
-    const academicLevelStudents =
-      enrolledStudents.filter(
-        (item) => {
-          const itemContext =
-            getStudentAcademicContext(
-              item
-            );
-
-          return (
-            itemContext?.academicLevel
-              ?.id ===
-            academicLevel.id
-          );
-        }
-      );
-
-    const currentTermAverage =
-      getStudentTermAverage(
-        student,
-        Number(selectedTermId)
-      );
-
-    const classPosition =
-      getCompetitionPosition(
-        classStudents,
-        student,
-        (item) =>
-          getStudentTermAverage(
-            item,
-            Number(selectedTermId)
-          )
-      );
-
-    const academicLevelPosition =
-      getCompetitionPosition(
-        academicLevelStudents,
-        student,
-        (item) =>
-          getStudentTermAverage(
-            item,
-            Number(selectedTermId)
-          )
-      );
-
-    let sessionAcademicLevelPosition =
-      null;
-
-    let sessionAverage = null;
-
-    if (
-      Number(selectedTermId) ===
-      getSessionTermIds()[2]
-    ) {
-      sessionAverage =
-        getStudentSessionAverage(
-          student
-        );
-
-      sessionAcademicLevelPosition =
-        getCompetitionPosition(
-          academicLevelStudents,
-          student,
-          (item) =>
-            getStudentSessionAverage(
-              item
-            )
-        );
-    }
-
+  if (!context) {
     return {
-      classPosition:
-        classPosition?.position ||
-        null,
-
-      classPositionLabel:
-        classPosition
-          ? `${formatPosition(
-              classPosition.position
-            )} of ${
-              classPosition.total
-            }`
-          : "—",
-
-      classTotal:
-        classPosition?.total || 0,
-
-      academicLevelPosition:
-        academicLevelPosition
-          ?.position || null,
-
-      academicLevelPositionLabel:
-        academicLevelPosition
-          ? `${formatPosition(
-              academicLevelPosition.position
-            )} of ${
-              academicLevelPosition.total
-            }`
-          : "—",
-
-      academicLevelTotal:
-        academicLevelPosition?.total ||
-        0,
-
-      sessionAcademicLevelPosition:
-        sessionAcademicLevelPosition
-          ?.position || null,
-
-      sessionAcademicLevelPositionLabel:
-        sessionAcademicLevelPosition
-          ? `${formatPosition(
-              sessionAcademicLevelPosition.position
-            )} of ${
-              sessionAcademicLevelPosition.total
-            }`
-          : "—",
-
-      sessionAcademicLevelTotal:
-        sessionAcademicLevelPosition
-          ?.total || 0,
-
-      termAverage:
-        currentTermAverage,
-
-      sessionAverage,
+      classPositionLabel: "—",
+      academicLevelPositionLabel: "—",
+      sessionAcademicLevelPositionLabel: "—",
+      classTotal: 0,
+      academicLevelTotal: 0,
+      sessionAcademicLevelTotal: 0,
+      termAverage: null,
+      sessionAverage: null,
     };
+  }
+
+  const { classItem, academicLevel } = context;
+  const sessionId = selectedSessionId;
+
+  const enrolledStudents = students.filter((item) =>
+    enrollments.some(
+      (enrollment) =>
+        enrollment.studentId === item.id &&
+        String(enrollment.academicSessionId) === String(sessionId) &&
+        Boolean(enrollment.sectionId)
+    )
+  );
+
+  const classStudents = enrolledStudents.filter((item) => {
+    const itemContext = getStudentAcademicContext(item);
+
+    return (
+      String(itemContext?.classItem?.id) === String(classItem.id)
+    );
+  });
+
+  const academicLevelStudents = enrolledStudents.filter((item) => {
+    const itemContext = getStudentAcademicContext(item);
+
+    return (
+      String(itemContext?.academicLevel?.id) === String(academicLevel.id)
+    );
+  });
+
+  const currentTermAverage = getStudentTermAverage(
+    student,
+    selectedTermId
+  );
+
+  const classPosition = getCompetitionPosition(
+    classStudents,
+    student,
+    (item) => getStudentTermAverage(item, selectedTermId)
+  );
+
+  const academicLevelPosition = getCompetitionPosition(
+    academicLevelStudents,
+    student,
+    (item) => getStudentTermAverage(item, selectedTermId)
+  );
+
+  let sessionAcademicLevelPosition = null;
+  let sessionAverage = null;
+
+  const sessionTermIds = getSessionTermIds();
+  const isThirdTerm =
+    String(selectedTermId) === String(sessionTermIds[2]);
+
+  if (isThirdTerm) {
+    sessionAverage = getStudentSessionAverage(student);
+
+    sessionAcademicLevelPosition = getCompetitionPosition(
+      academicLevelStudents,
+      student,
+      (item) => getStudentSessionAverage(item)
+    );
+  }
+
+  return {
+    classPosition: classPosition?.position || null,
+
+    classPositionLabel: classPosition
+      ? `${formatPosition(classPosition.position)} of ${classPosition.total}`
+      : "—",
+
+    classTotal: classPosition?.total || 0,
+
+    academicLevelPosition: academicLevelPosition?.position || null,
+
+    academicLevelPositionLabel: academicLevelPosition
+      ? `${formatPosition(academicLevelPosition.position)} of ${academicLevelPosition.total}`
+      : "—",
+
+    academicLevelTotal: academicLevelPosition?.total || 0,
+
+    sessionAcademicLevelPosition:
+      sessionAcademicLevelPosition?.position || null,
+
+    sessionAcademicLevelPositionLabel: sessionAcademicLevelPosition
+      ? `${formatPosition(sessionAcademicLevelPosition.position)} of ${sessionAcademicLevelPosition.total}`
+      : "—",
+
+    sessionAcademicLevelTotal:
+      sessionAcademicLevelPosition?.total || 0,
+
+    termAverage: currentTermAverage,
+    sessionAverage,
   };
+};
 
   /* --------------------------------
       Student result data
   -------------------------------- */
 
-  const getStudentResultData = (
-    student
-  ) => {
-    const enrollment =
-      getStudentEnrollment(
-        student,
-        Number(selectedSessionId)
-      );
 
-    const studentSubjects =
-      getStudentSubjectsForEnrollment(
-        student,
-        enrollment
-      );
+const getStudentResultData = (student) => {
+  const enrollment = getStudentEnrollment(
+    student,
+    selectedSessionId
+  );
 
-    const studentResults =
-      studentSubjects.map(
-        (subject) => {
-          const entryKey =
-            `${student.id}-${subject.id}`;
+  const studentSubjects = getStudentSubjectsForEnrollment(
+    student,
+    enrollment
+  );
 
-          const entry =
-            scoreEntries[entryKey] || {
-              ca: 0,
-              exam: 0,
-            };
+  const studentResults = studentSubjects.map((subject) => {
+    const entryKey = `${student.id}-${subject.id}`;
 
-            /*
-              A subject that is not part of
-              this student's combination must
-              not participate in result entry,
-              grading, totals, or averages.
-            */
-           
+    const entry = scoreEntries[entryKey] || {
+      ca: 0,
+      exam: 0,
+    };
 
+    const ca = Number(entry.ca) || 0;
+    const exam = Number(entry.exam) || 0;
+    const total = ca + exam;
 
-          const ca =
-            Number(entry.ca) || 0;
-
-          const exam =
-            Number(entry.exam) || 0;
-
-          const total = ca + exam;
-
-          const grading =
-            gradingScale.find(
-              (item) =>
-                total >= item.min &&
-                total <= item.max
-            );
-
-          return {
-            subjectId: subject.id,
-            subject: subject.name,
-            ca,
-            exam,
-            total,
-            grade:
-              grading?.grade || "-",
-            remark:
-              grading?.remark || "-",
-          };
-        }
-      );
-
-    const positions =
-      getStudentPositions(
-        student
-      );
-
-    const attendanceStats =
-      getStudentAttendanceStats(
-        student,
-        Number(selectedTermId)
-      );
+    const grading = gradingScale.find(
+      (item) => total >= item.min && total <= item.max
+    );
 
     return {
-      student,
-      results: studentResults,
-      positions,
-      attendanceStats,
+      subjectId: subject.id,
+      subject: subject.name,
+      ca,
+      exam,
+      total,
+      grade: grading?.grade || "-",
+      remark: grading?.remark || "-",
     };
+  });
+
+  const positions = getStudentPositions(student);
+
+  const attendanceStats = getStudentAttendanceStats(
+    student,
+    selectedTermId
+  );
+
+  return {
+    student,
+    results: studentResults,
+    positions,
+    attendanceStats,
   };
+};
+
 
   /* --------------------------------
       Download result
   -------------------------------- */
 
-  const handleDownloadResult = (
-    student
-  ) => {
-    const resultData =
-      getStudentResultData(
-        student
-      );
 
+const handleDownloadResult = (student) => {
+  const resultData = getStudentResultData(student);
 
-      /* number of subjects offered by student */
+  const enrollment = getStudentEnrollment(
+    student,
+    selectedSessionId
+  );
 
-      const enrollment =
-         getStudentEnrollment(
-        student,
-        Number(selectedSessionId)
-      );
+  const studentStream = streams.find(
+    (stream) =>
+      String(stream.id) === String(enrollment?.streamId)
+  );
 
-      const studentStream = streams.find(
-        (stream) =>
-          Number(stream.id) ===
-          Number(enrollment?.streamId)
-      );
+  const studentSubjects = getStudentSubjectsForEnrollment(
+    student,
+    enrollment
+  );
 
-      const studentSubjects =
-        getStudentSubjectsForEnrollment(
-          student,
-          enrollment
-        );
+  const totalSubjectsOffered = studentSubjects.length;
 
-      const totalSubjectsOffered =
-        studentSubjects.length;
+  const studentSubjectIds = studentSubjects.map(
+    (subject) => subject.id
+  );
 
-      const studentSubjectIds =
-        studentSubjects.map(
-          (subject) => subject.id
-        );
-     
+  const attendanceStats = resultData.attendanceStats || {
+    present: 0,
+    absent: 0,
+    totalMarked: 0,
+    percentage: null,
+  };
 
+    if (
+    documentSettingsLoading ||
+    !documentSettingsLoaded ||
+    !schoolProfile ||
+    !documentAuthorization
+  ) {
+    notify({
+      title: "Document Settings Unavailable",
+      message:
+        "The latest school profile and official details must load successfully before downloading this result.",
+    });
+    return;
+  }
 
-    const attendanceStats =
-      resultData.attendanceStats || {
-        present: 0,
-        absent: 0,
-        totalMarked: 0,
-        percentage: null,
-      };
-
-    const savedProfile =
-      localStorage.getItem(
-        "schoolProfile"
-      );
-
-    const schoolProfile =
-      savedProfile
-        ? JSON.parse(savedProfile)
-        : {
-            name: "",
-            address: "",
-            phone: "",
-            email: "",
-            logo: "",
-          };
-
-          const savedAuthorization =
-            localStorage.getItem(
-              "documentAuthorization"
-            );
-
-        const documentAuthorization =
-          savedAuthorization
-            ? JSON.parse(savedAuthorization)
-            : {
-                principal: {
-                  name: "",
-                  title: "Principal",
-                  signature: "",
-                  stamp: "",
-                },
-                examOfficer: {
-                  name: "",
-                  title: "Exam Officer",
-                  signature: "",
-                  stamp: "",
-                },
-              };
-
-    const selectedSession =
-      academicSessions.find(
+      const selectedSession = academicSessions.find(
         (session) =>
-          session.id ===
-          Number(selectedSessionId)
+          String(session.id) === String(selectedSessionId)
       );
 
-    const selectedTerm =
-      academicTerms.find(
+      const selectedTerm = academicTerms.find(
         (term) =>
-          term.id ===
-          Number(selectedTermId)
+          String(term.id) === String(selectedTermId)
       );
 
-    const selectedClass =
-      classes.find(
+      const selectedClass = classes.find(
         (classItem) =>
-          classItem.id ===
-          Number(selectedClassId)
+          String(classItem.id) === String(selectedClassId)
       );
 
-    const selectedSection =
-      sections.find(
+      const selectedSection = sections.find(
         (section) =>
-          section.id ===
-          Number(selectedSectionId)
+          String(section.id) === String(selectedSectionId)
       );
+
 
     const doc = new jsPDF();
 
@@ -1385,22 +1304,155 @@ const Results = () => {
 
     addPageIfNeeded(55);
 
+
     const infoX = 20;
     const infoY = y - 6;
     const infoWidth = 170;
-    const infoHeight = 52;
 
-    doc.setDrawColor(
-      220,
-      220,
-      220
-    );
+    doc.setFontSize(10);
 
-    doc.setFillColor(
-      248,
-      250,
-      252
-    );
+    const studentName = getStudentFullName(student) || "—";
+
+    const studentInfo = [
+      ["Student:", studentName],
+      ["Gender:", student.gender || "—"],
+      ["Admission No:", student.admissionNo || "—"],
+      ["Class:", selectedClass?.name || "—"],
+      ["Section:", selectedSection?.name || "—"],
+      ["Category:", studentStream?.name || "—"],
+      ["Subjects Offered:", totalSubjectsOffered],
+      ["Session:", selectedSession?.name || "—"],
+      ["Term:", selectedTerm?.name || "—"],
+    ];
+
+    const leftColumnX = 25;
+    const leftValueX = 65;
+    const rightColumnX = 105;
+    const rightValueX = 145;
+
+    const leftLabelWidth = 37;
+    const leftValueWidth = 35;
+    const rightLabelWidth = 37;
+    const rightValueWidth = 40;
+
+    const lineHeight = 5;
+    const rowPadding = 2;
+
+    const wrapInfoText = (value, width, fontStyle) => {
+      doc.setFont("helvetica", fontStyle);
+
+      return doc.splitTextToSize(
+        String(value ?? "—"),
+        width
+      );
+    };
+
+    const createInfoItem = (
+      label,
+      value,
+      labelX,
+      valueX,
+      labelWidth,
+      valueWidth
+    ) => {
+      const labelLines = wrapInfoText(
+        label,
+        labelWidth,
+        "bold"
+      );
+
+      const valueLines = wrapInfoText(
+        value,
+        valueWidth,
+        "normal"
+      );
+
+      return {
+        labelLines,
+        valueLines,
+        labelX,
+        valueX,
+        lineCount: Math.max(
+          labelLines.length,
+          valueLines.length,
+          1
+        ),
+      };
+    };
+
+    const infoRows = [];
+
+    // Give the full student name its own row.
+    infoRows.push({
+      items: [
+        createInfoItem(
+          "Student:",
+          studentName,
+          leftColumnX,
+          leftValueX,
+          leftLabelWidth,
+          120
+        ),
+      ],
+    });
+
+    // Keep all remaining information in two columns.
+    const remainingInfo = studentInfo.slice(1);
+
+    for (
+      let index = 0;
+      index < remainingInfo.length;
+      index += 2
+    ) {
+      const pair = remainingInfo.slice(index, index + 2);
+
+      const items = pair.map(
+        ([label, value], columnIndex) => {
+          const isRightColumn = columnIndex === 1;
+
+          return createInfoItem(
+            label,
+            value,
+            isRightColumn
+              ? rightColumnX
+              : leftColumnX,
+            isRightColumn
+              ? rightValueX
+              : leftValueX,
+            isRightColumn
+              ? rightLabelWidth
+              : leftLabelWidth,
+            isRightColumn
+              ? rightValueWidth
+              : leftValueWidth
+          );
+        }
+      );
+
+      infoRows.push({ items });
+    }
+
+    // Calculate each row's height from its longest wrapped field.
+    infoRows.forEach((row) => {
+      const lineCount = Math.max(
+        ...row.items.map((item) => item.lineCount),
+        1
+      );
+
+      row.height = lineCount * lineHeight + rowPadding;
+    });
+
+    // Calculate the box height before drawing it.
+    const infoHeight =
+      9 +
+      infoRows.reduce(
+        (total, row) => total + row.height,
+        0
+      ) +
+      3;
+
+    doc.setDrawColor(220, 220, 220);
+    doc.setFillColor(248, 250, 252);
 
     doc.roundedRect(
       infoX,
@@ -1412,110 +1464,34 @@ const Results = () => {
       "FD"
     );
 
-    doc.setFontSize(10);
+    // Draw every label and value within its allocated width.
+    let rowY = infoY + 9;
 
-    const studentName =
-      `${student.firstName} ${student.lastName}`;
-
-    const studentInfo = [
-      [
-        "Student:",
-        studentName,
-      ],
-      [
-        "Gender:",
-        student.gender || "—",
-      ],
-      [
-        "Admission No:",
-        student.admissionNo ||
-          "—",
-      ],
-      [
-        "Class:",
-        selectedClass?.name ||
-          "—",
-      ],
-      [
-        "Section:",
-        selectedSection?.name ||
-          "—",
-      ],
-       [
-        "Category:", studentStream?.name || "—"
-      ],
-       [
-        "Subjects Offered:", totalSubjectsOffered
-      ],
-      [
-        "Session:",
-        selectedSession?.name ||
-          "—",
-      ],
-      [
-        "Term:",
-        selectedTerm?.name ||
-          "—",
-      ],
-    ];
-
-    const leftColumnX = 25;
-    const leftValueX = 65;
-
-    const rightColumnX = 105;
-    const rightValueX = 145;
-
-    studentInfo.forEach(
-      ([label, value], index) => {
-        const row =
-          Math.floor(index / 2);
-
-        const isRightColumn =
-          index % 2 === 1;
-
-        const labelX =
-          isRightColumn
-            ? rightColumnX
-            : leftColumnX;
-
-        const valueX =
-          isRightColumn
-            ? rightValueX
-            : leftValueX;
-
-        const rowY =
-          infoY +
-          9 +
-          row * 8;
-
-        doc.setFont(
-          "helvetica",
-          "bold"
-        );
+    infoRows.forEach((row) => {
+      row.items.forEach((item) => {
+        doc.setFont("helvetica", "bold");
 
         doc.text(
-          label,
-          labelX,
+          item.labelLines,
+          item.labelX,
           rowY
         );
 
-        doc.setFont(
-          "helvetica",
-          "normal"
-        );
+        doc.setFont("helvetica", "normal");
 
         doc.text(
-          String(value),
-          valueX,
+          item.valueLines,
+          item.valueX,
           rowY
         );
-      }
-    );
+      });
 
-    y =
-      infoY +
-      infoHeight +
-      10;
+      rowY += row.height;
+    });
+
+    // Start the results table below the complete information box.
+    y = infoY + infoHeight + 10;
+
 
     /* --------------------------------
         Results table
@@ -1620,9 +1596,10 @@ const Results = () => {
       };
 
   const drawTableRow = (result) => {
-  const isOffered = 
-    studentSubjectIds.includes(
-      Number(result.subjectId));
+     const isOffered = studentSubjectIds.some(
+    (subjectId) =>
+      String(subjectId) === String(result.subjectId)
+  );
 
   // If subject is not offered, mark all fields as N/A
   const ca = isOffered ? (Number(result.ca) || 0) : "N/A";
@@ -1739,8 +1716,8 @@ const Results = () => {
     const summaryY = y - 5;
     const summaryWidth = 170;
     const summaryHeight =
-      Number(selectedTermId) ===
-      getSessionTermIds()[2]
+      String(selectedTermId) ===
+      String(getSessionTermIds()[2])
         ? 80
         : 65;
 
@@ -1855,8 +1832,8 @@ const Results = () => {
     );
 
     if (
-      Number(selectedTermId) ===
-      getSessionTermIds()[2]
+      String(selectedTermId) ===
+      String(getSessionTermIds()[2])
     ) {
       doc.text(
         `Session Average: ${
@@ -2113,7 +2090,7 @@ const Results = () => {
     }
 
     doc.save(
-      `${student.firstName}-${student.lastName}-Result.pdf`
+      `${getStudentFullName(student).replace(/\s+/g, "-")}-Result.pdf`
     );
   };
 
@@ -2188,8 +2165,8 @@ const Results = () => {
             {academicTerms
               .filter(
                 (term) =>
-                  Number(term.academicSessionId) ===
-                  Number(selectedSessionId)
+                  term.academicSessionId ===
+                  selectedSessionId
               )
               .map((term) => (
                 <option
@@ -2227,9 +2204,9 @@ const Results = () => {
                 (classItem) =>
                   !selectedSessionId ||
                   classItem.academicSessionId ===
-                    Number(
+
                       selectedSessionId
-                    )
+
               )
               .map((classItem) => (
                 <option
@@ -2265,9 +2242,9 @@ const Results = () => {
               .filter(
                 (section) =>
                   section.classId ===
-                  Number(
+
                     selectedClassId
-                  )
+
               )
               .map((section) => (
                 <option
@@ -2320,8 +2297,7 @@ const Results = () => {
               loadedStudents.map(
                 (student) => (
                   <p key={student.id}>
-                    {student.firstName}{" "}
-                    {student.lastName}
+                   {getStudentFullName(student)}
                   </p>
                 )
               )
@@ -2361,6 +2337,8 @@ const Results = () => {
       )}
 
       {resultsLoaded &&
+        settingsLoaded &&
+        !settingsLoading &&
         loadedStudents.length >
           0 &&
         loadedSubjects.length >
@@ -2398,12 +2376,7 @@ const Results = () => {
                   {loadedStudents.map(
                     (student) => {
                       const enrollment =
-                        getStudentEnrollment(
-                          student,
-                          Number(
-                            selectedSessionId
-                          )
-                        );
+                        getStudentEnrollment(student, selectedSessionId);
 
                       const studentSubjects =
                         getStudentSubjectsForEnrollment(
@@ -2418,12 +2391,7 @@ const Results = () => {
                           }
                         >
                           <td>
-                            {
-                              student.firstName
-                            }{" "}
-                            {
-                              student.lastName
-                            }
+                            {getStudentFullName(student)}
                           </td>
 
                           {loadedSubjects.map(
@@ -2431,10 +2399,10 @@ const Results = () => {
                               const isSubjectOffered =
                                 studentSubjects.some(
                                   (item) =>
-                                    Number(
+                                    String(
                                       item.id
                                     ) ===
-                                    Number(
+                                    String(
                                       subject.id
                                     )
                                 );
@@ -2484,7 +2452,7 @@ const Results = () => {
                                       item.max
                                 );
 
-                             
+
 
                               return (
                                 <td
@@ -2658,12 +2626,7 @@ const Results = () => {
                     >
                       <div className="results-students__info">
                         <strong>
-                          {
-                            student.firstName
-                          }{" "}
-                          {
-                            student.lastName
-                          }
+                          {getStudentFullName(student)}
                         </strong>
 
                         <span>

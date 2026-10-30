@@ -128,6 +128,78 @@
 }
 
 
+/* Academic Level List */
+.academic-levels__list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    margin-top: 1rem;
+}
+
+.academic-levels__item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    padding: 0.75rem 1rem;
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
+    background: #fff;
+}
+
+.academic-levels__item > span {
+    flex: 1;
+    min-width: 0;
+    overflow-wrap: anywhere;
+    font-weight: 500;
+}
+
+.academic-levels__actions {
+    display: flex;
+    gap: 0.5rem;
+    flex-shrink: 0;
+}
+
+
+
+.academic-levels__actions button {
+    border: none;
+    border-radius: 6px;
+    padding: 0.4rem 0.7rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: opacity 0.2s ease;
+}
+
+.academic-levels__actions .edit {
+    background: #e0f2fe;
+    color: #0369a1;
+}
+
+.academic-levels__actions .delete {
+    background: #fee2e2;
+    color: #b91c1c;
+}
+
+.academic-levels__actions button:hover {
+    opacity: 0.85;
+}
+
+@media (max-width: 480px) {
+    .academic-levels__item {
+        flex-wrap: wrap;
+    }
+
+    .academic-levels__actions {
+        width: 100%;
+    }
+
+    .academic-levels__actions button {
+        flex: 1;
+    }
+}
+
+
 
 
 /* Academic Sessions */
@@ -145,6 +217,8 @@
 
 .academic-sessions__form {
     display: flex;
+    flex-wrap: wrap;
+    align-items: center;
     gap: 0.75rem;
     margin-bottom: 1rem;
 }
@@ -329,7 +403,7 @@
 .academic-classes__actions .edit {
     background: #e0f2fe;
     color: #0369a1;
-    
+
 }
 
 .academic-classes__actions .delete {
@@ -618,8 +692,18 @@
         align-items: stretch;
     }
 
+    .academic-setup-page__header h1, p{
+       text-align: center;
+    }
+
+     .academic-setup-page__header h1{
+       font-size: 1.8rem;
+    }
+
+
     .academic-setup-page__save {
         width: 100%;
+
     }
 
     .academic-classes__form,
@@ -627,9 +711,7 @@
         grid-template-columns: 1fr;
     }
 
-    .academic-sessions__form {
-        flex-direction: column;
-    }
+
 
     .academic-sessions__form button,
     .academic-classes__form button,
@@ -1015,6 +1097,32 @@
   background: #eff6ff;
 }
 
+/* Save Assessment Structure */
+.academic-assessment > button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin-top: 16px;
+  padding: 10px 18px;
+  border: none;
+  border-radius: 6px;
+  background: #2563eb;
+  color: #ffffff;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.2s ease, opacity 0.2s ease;
+}
+
+.academic-assessment > button:hover:not(:disabled) {
+  background: #1d4ed8;
+}
+
+.academic-assessment > button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
 .academic-assessment__total span {
   font-size: 13px;
   color: #64748b;
@@ -1087,37 +1195,57 @@
 
 .academic-grading__item {
   display: grid;
-  grid-template-columns: 1fr auto;
+  grid-template-columns: minmax(0, 1fr) auto;
   align-items: center;
-  gap: 20px;
+  gap: 12px;
+  min-width: 0;
   padding: 14px 16px;
   border: 1px solid #e2e8f0;
   border-radius: 8px;
   background: #f8fafc;
+  box-sizing: border-box;
+}
+
+.academic-grading__item > * {
+  min-width: 0;
 }
 
 .academic-grading__details {
   display: grid;
-  grid-template-columns: 80px 80px 80px 1fr;
+  grid-template-columns: repeat(3, minmax(50px, 80px)) minmax(100px, 1fr);
   align-items: center;
-  gap: 16px;
+  gap: 12px;
+  min-width: 0;
 }
 
 .academic-grading__details span,
 .academic-grading__details strong {
+    min-width: 0;
+    overflow-wrap: break-word;
+    word-break: normal;
   font-size: 14px;
 }
 
 .academic-grading__actions {
   display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
   gap: 8px;
+  min-width: 0;
 }
 
 .academic-grading__actions button {
+    flex: 0 1 auto;
+    min-width: 0;
   padding: 7px 12px;
   border: none;
   border-radius: 6px;
   cursor: pointer;
+  white-space: nowrap;
+
+box-sizing: border-box;
+  font-size: 14px;
+  font-weight: 500;
 }
 
 .academic-grading__actions .edit {
@@ -1182,6 +1310,8 @@
   .academic-grading__form {
     grid-template-columns: 1fr;
   }
+
+
 
   .academic-grading__form button {
     width: 100%;
@@ -1568,6 +1698,26 @@
     .academic-combinations__form button {
         width: 100%;
     }
+}
+
+
+
+/* Tablet: stack grading actions below the details */
+@media (min-width: 769px) and (max-width: 1100px) {
+  .academic-grading__item {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 12px;
+  }
+
+  .academic-grading__details {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 10px;
+  }
+
+  .academic-grading__actions {
+    width: 100%;
+    justify-content: flex-start;
+  }
 }
 
 

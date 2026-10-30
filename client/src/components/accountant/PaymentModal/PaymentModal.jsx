@@ -4,6 +4,21 @@ import { useOutletContext } from "react-router-dom";
 import "./PaymentModal.css";
 
 const PaymentModal = ({ payment, onClose, onAddPayment }) => {
+
+      const getStudentFullName = (student) =>
+    [
+      student?.firstName,
+      student?.middleName,
+      student?.lastName,
+    ]
+      .filter(
+        (name) =>
+          typeof name === "string" && name.trim() !== ""
+      )
+      .map((name) => name.trim())
+      .join(" ");
+
+
   const { students } = useOutletContext();
 
   const [paymentData, setPaymentData] = useState({
@@ -26,14 +41,14 @@ const PaymentModal = ({ payment, onClose, onAddPayment }) => {
     e.preventDefault();
 
     const selectedStudent = students.find(
-      (student) => student.id === Number(paymentData.studentId)
+      (student) => student.id === paymentData.studentId
     );
 
     onAddPayment({
       ...paymentData,
       id: payment?.id,
-      studentId: Number(paymentData.studentId),
-      studentName: `${selectedStudent.firstName} ${selectedStudent.lastName}`,
+      studentId: paymentData.studentId,
+      studentName: getStudentFullName(selectedStudent),
       amount: Number(paymentData.amount),
       date: payment?.date || new Date().toISOString(),
     });
@@ -75,7 +90,7 @@ const PaymentModal = ({ payment, onClose, onAddPayment }) => {
                   key={student.id}
                   value={student.id}
                 >
-                  {student.firstName} {student.lastName}
+                  {getStudentFullName(student)}
                 </option>
               ))}
             </select>

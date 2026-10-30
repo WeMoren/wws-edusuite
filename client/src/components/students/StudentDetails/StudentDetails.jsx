@@ -1,25 +1,44 @@
 import React, { useState } from "react";
-import classFees from "../../../data/classFees";
 import "./StudentDetails.css";
 import PaymentReceipt from "../../accountant/PaymentReceipt/PaymentReceipt";
 import { Receipt } from "lucide-react";
 
 
-const StudentDetails = ({ student, payments, onClose, onEdit , canEdit}) => {
+const StudentDetails = ({
+  student,
+  payments,
+  financialAccounts,
+  financialAccountsLoading,
+  financialAccountsError,
+  onClose,
+  onEdit,
+  canEdit,
+}) => {
 
- 
+        const [selectedPayment, setSelectedPayment] = useState(null);
 
-  const [selectedPayment, setSelectedPayment] = useState(null);
+        const studentPayments = payments.filter(
+          (payment) => payment.studentId === student.id
+        );
 
-    const studentPayments = payments.filter(
-        (payment) => payment.studentId === student.id
-     );
-    const totalFees = classFees[student.class] || 0;
+        const studentFinancialAccounts = financialAccounts.filter(
+          (account) => account.studentId === student.id
+        );
 
-    const totalPaid = studentPayments.reduce(
-        (total, payment) => total + payment.amount, 0);
+        const totalFees = studentFinancialAccounts.reduce(
+          (total, account) => total + account.totalDue,
+          0
+        );
 
-    const outstandingFees = Math.max( totalFees - totalPaid, 0);
+        const totalPaid = studentFinancialAccounts.reduce(
+          (total, account) => total + account.totalPaid,
+          0
+        );
+
+        const outstandingFees = studentFinancialAccounts.reduce(
+          (total, account) => total + account.outstanding,
+          0
+        );
 
   return (
     <div className="student-details__overlay">
@@ -44,6 +63,11 @@ const StudentDetails = ({ student, payments, onClose, onEdit , canEdit}) => {
           </p>
 
           <p>
+            <strong>Middle Name:</strong>
+            {student.middleName || "—"}
+          </p>
+
+          <p>
             <strong>Last Name:</strong>
             {student.lastName}
           </p>
@@ -62,31 +86,87 @@ const StudentDetails = ({ student, payments, onClose, onEdit , canEdit}) => {
 
 
         <section className="student-details__financial">
-              <h3>Financial Summary</h3>
+            <h3>Financial Summary</h3>
 
-              <div className="student-details__financial-grid">
-                <div className="student-details__financial-card">
-                  <span>Total Fees</span>
-                  <strong>
-                    ₦{totalFees.toLocaleString()}
-                  </strong>
+            {financialAccountsLoading ? (
+              <p>Loading student financial records...</p>
+            ) : financialAccountsError ? (
+              <p role="alert">{financialAccountsError}</p>
+            ) : studentFinancialAccounts.length === 0 ? (
+              <p>No financial accounts found for this student.</p>
+            ) : (
+              <>
+                <div className="student-details__financial-grid">
+                  <div className="student-details__financial-card">
+                    <span>Total Fees Due</span>
+                    <strong>₦{totalFees.toLocaleString()}</strong>
+                  </div>
+
+                  <div className="student-details__financial-card">
+                    <span>Total Paid</span>
+                    <strong>₦{totalPaid.toLocaleString()}</strong>
+                  </div>
+
+                  <div className="student-details__financial-card">
+                    <span>Outstanding</span>
+                    <strong>₦{outstandingFees.toLocaleString()}</strong>
+                  </div>
                 </div>
 
-                <div className="student-details__financial-card">
-                  <span>Total Paid</span>
-                  <strong>
-                    ₦{totalPaid.toLocaleString()}
-                  </strong>
-                </div>
+                <div className="student-details__account-list">
+                  <h4>Account Breakdown</h4>
 
-                <div className="student-details__financial-card">
-                  <span>Outstanding</span>
-                  <strong>
-                    ₦{outstandingFees.toLocaleString()}
-                  </strong>
+                  {studentFinancialAccounts.map((account) => {
+                    const accountStatus =
+                      account.outstanding <= 0
+                        ? "Fully Paid"
+                        : account.totalPaid > 0
+                          ? "Partially Paid"
+                          : "Unpaid";
+
+                    return (
+                      <div
+                        className="student-details__account"
+                        key={account.id}
+                      >
+                        <h5>
+                          {account.academicSessionName} — {account.termName}
+                        </h5>
+
+                        <p>
+                          <strong>Class:</strong> {account.className || "—"}
+                        </p>
+
+                        <p>
+                          <strong>Fee Structure:</strong>{" "}
+                          {account.feeStructureName || "—"}
+                        </p>
+
+                        <p>
+                          <strong>Total Due:</strong>{" "}
+                          ₦{account.totalDue.toLocaleString()}
+                        </p>
+
+                        <p>
+                          <strong>Total Paid:</strong>{" "}
+                          ₦{account.totalPaid.toLocaleString()}
+                        </p>
+
+                        <p>
+                          <strong>Outstanding:</strong>{" "}
+                          ₦{account.outstanding.toLocaleString()}
+                        </p>
+
+                        <p>
+                          <strong>Payment Status:</strong> {accountStatus}
+                        </p>
+                      </div>
+                    );
+                  })}
                 </div>
-               </div>
-            </section>
+              </>
+            )}
+          </section>
 
 
           <section className="student-details__history">
