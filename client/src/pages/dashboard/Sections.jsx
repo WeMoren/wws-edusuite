@@ -3,6 +3,7 @@ import { useOutletContext } from "react-router-dom";
 import SectionTable from "../../components/classes/SectionTable/SectionTable";
 import SectionModal from "../../components/classes/SectionModal/SectionModal";
 import ConfirmDialog from "../../components/common/ConfirmDialog/ConfirmDialog";
+import NotificationDialog from "../../components/common/NotificationDialog/NotificationDialog";
 import { useAuth } from "../../auth/AuthContext";
 import { hasPermission } from "../../auth/permissions";
 import "./Sections.css";
@@ -11,7 +12,34 @@ import "./Sections.css";
 const Sections = () => {
    
 
-    const { currentUser } = useAuth();
+    const { currentUser, authToken } = useAuth();
+    const API_BASE_URL = "http://localhost:5000/api";
+
+
+    const apiRequest = async (path, options = {}) => {
+            if (!authToken) {
+                throw new Error("Your session has expired. Please log in again.");
+            }
+
+            const response = await fetch(`${API_BASE_URL}${path}`, {
+                ...options,
+                headers: {
+                    "Content-Type": "application/json",
+                    Authorization: `Bearer ${authToken}`,
+                    ...options.headers,
+                },
+            });
+
+            const data = await response.json().catch(() => ({}));
+
+            if (!response.ok) {
+                throw new Error(
+                    data.message || "The request could not be completed."
+                );
+            }
+
+            return data;
+        };
 
             const canCreateSection = hasPermission(
                 currentUser?.role,
@@ -47,6 +75,18 @@ const Sections = () => {
     const [editingSection, setEditingSection] = useState(null);
     const [sectionToDelete, setSectionToDelete] = useState(null);
 
+    const [showNotification, setShowNotification] = useState(false);
+
+    const [notification, setNotification] = useState({
+        title: "",
+        message: "",
+    });
+
+    const notify = ({ title, message }) => {
+        setNotification({ title, message });
+        setShowNotification(true);
+    };
+
     const [searchTerm, setSearchTerm] = useState("");
     const [classFilter, setClassFilter] = useState("");
 
@@ -54,14 +94,6 @@ const Sections = () => {
 
     const sectionsPerPage = 5;
 
-
-    // Persist sections
-    useEffect(() => {
-        localStorage.setItem(
-            "sections",
-            JSON.stringify(sections)
-        );
-    }, [sections]);
 
 
     // Reset pagination when filters change
@@ -82,7 +114,7 @@ const Sections = () => {
 
         const teacher = teachers.find(
             (teacher) =>
-                teacher.id === section.classTeacherId
+                teacher.schoolStaffId === section.classTeacherId
         );
 
         const teacherName = teacher
@@ -97,7 +129,7 @@ const Sections = () => {
 
         const matchesClass =
             classFilter === "" ||
-            section.classId === Number(classFilter);
+            String(section.classId) === classFilter;
 
         return matchesSearch && matchesClass;
     });
@@ -262,21 +294,34 @@ const Sections = () => {
                     onCancel={() =>
                         setSectionToDelete(null)
                     }
-                    onConfirm={() => {
-                         if (!canDeleteSection) {
+                   onConfirm={async () => {
+                        if (!canDeleteSection) {
                             return;
                         }
 
+                        try {
+                            await apiRequest(`/sections/${sectionToDelete.id}`, {
+                                method: "DELETE",
+                            });
 
-                        setSections((prevSections) =>
-                            prevSections.filter(
-                                (section) =>
-                                    section.id !==
-                                    sectionToDelete.id
-                            )
-                        );
+                            setSections((prevSections) =>
+                                prevSections.filter(
+                                    (section) => section.id !== sectionToDelete.id
+                                )
+                            );
 
-                        setSectionToDelete(null);
+                            setSectionToDelete(null);
+
+                            notify({
+                                title: "Section deleted",
+                                message: "The section was deleted successfully.",
+                            });
+                        } catch (error) {
+                            notify({
+                                title: "Unable to delete section",
+                                message: error.message || "Please try again.",
+                            });
+                        }
                     }}
                 />
             )}
@@ -287,6 +332,7 @@ const Sections = () => {
             {showModal && (
                 <SectionModal
                     classes={classes}
+                      teachers={teachers}
                     onClose={() => {
                         setShowModal(false);
                         setEditingSection(null);
@@ -294,45 +340,82 @@ const Sections = () => {
 
                     editingSection={editingSection}
 
-                    onAddSection={(sectionData) => {
+                    onAddSection={async (sectionData) => {
+                        const isEditing = Boolean(editingSection);
 
-                        if (editingSection) {
-
-                            setSections((prevSections) =>
-                                prevSections.map(
-                                    (section) =>
-                                        section.id ===
-                                        editingSection.id
-                                            ? {
-                                                ...sectionData,
-                                                id: editingSection.id
-                                            }
-                                            : section
-                                )
+                        try {
+                            const data = await apiRequest(
+                                isEditing
+                                    ? `/sections/${editingSection.id}`
+                                    : "/sections",
+                                {
+                                    method: isEditing ? "PATCH" : "POST",
+                                    body: JSON.stringify(sectionData),
+                                }
                             );
 
-                        } else {
+                            const savedSection = data.section;
 
-                            setSections((prevSections) => [
-                                ...prevSections,
-                                {
-                                    ...sectionData,
-                                    id:
-                                        prevSections.length > 0
-                                            ? Math.max(
-                                                ...prevSections.map(
-                                                    (section) =>
-                                                        section.id
-                                                )
-                                            ) + 1
-                                            : 1
-                                }
-                            ]);
+                            if (!savedSection?.id) {
+                                throw new Error(
+                                    "The server did not return the saved section."
+                                );
+                            }
+
+                            const normalizedSection = {
+                                id: savedSection.id,
+                                classId: savedSection.class_id,
+                                name: savedSection.name,
+                                classTeacherId: savedSection.class_teacher_id || "",
+                                room: savedSection.room || "",
+                                capacity: savedSection.capacity ?? "",
+                            };
+
+                            if (isEditing) {
+                                setSections((prevSections) =>
+                                    prevSections.map((section) =>
+                                        section.id === normalizedSection.id
+                                            ? normalizedSection
+                                            : section
+                                    )
+                                );
+
+                                notify({
+                                    title: "Section updated",
+                                    message: `Section ${normalizedSection.name} was updated successfully.`,
+                                });
+                            } else {
+                                setSections((prevSections) => [
+                                    ...prevSections,
+                                    normalizedSection,
+                                ]);
+
+                                notify({
+                                    title: "Section created",
+                                    message: `Section ${normalizedSection.name} was created successfully.`,
+                                });
+                            }
+
+                            setShowModal(false);
+                            setEditingSection(null);
+
+                        } catch (error) {
+                            notify({
+                                title: isEditing
+                                    ? "Unable to update section"
+                                    : "Unable to create section",
+                                message: error.message || "Please try again.",
+                            });
                         }
-
-                        setShowModal(false);
-                        setEditingSection(null);
                     }}
+                />
+            )}
+
+            {showNotification && (
+                <NotificationDialog
+                    title={notification.title}
+                    message={notification.message}
+                    onClose={() => setShowNotification(false)}
                 />
             )}
 

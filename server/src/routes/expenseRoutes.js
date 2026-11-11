@@ -5,6 +5,7 @@ import {
     getExpenseById,
     createExpense,
     updateExpense,
+      deleteExpense,
 } from "../controllers/expenseController.js";
 
 import { authenticateToken } from "../middleware/authMiddleware.js";
@@ -43,6 +44,13 @@ router.patch(
     "/:id",
     requirePermission("accountant", "edit"),
     updateExpense
+);
+
+// DELETE expense
+router.delete(
+    "/:id",
+    requirePermission("accountant", "delete"),
+    deleteExpense
 );
 
 export default router;

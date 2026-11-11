@@ -32,12 +32,15 @@ import streamRoutes from "./routes/streamRoutes.js";
 import subjectCombinationRoutes from "./routes/subjectCombinationRoutes.js";
 import resultRoutes from "./routes/resultRoutes.js";
 import resultSettingsRoutes from "./routes/resultSettingsRoutes.js";
+import eventRoutes from "./routes/eventRoutes.js";
+import recentActivityRoutes from "./routes/recentActivityRoutes.js";
 
 
 const app = express();
 
 app.use( cors({
         origin: "http://localhost:5173",
+         credentials: true,
         methods: ["GET", "POST", "PATCH", "PUT", "DELETE", "OPTIONS"],
         allowedHeaders: ["Content-Type", "Authorization"],
     }));
@@ -62,6 +65,8 @@ app.use("/api/streams", streamRoutes);
 app.use("/api/subjects", subjectRoutes);
 app.use("/api/results", resultRoutes);
 app.use("/api/result-settings", resultSettingsRoutes);
+app.use("/api/events", eventRoutes);
+app.use("/api/recent-activities", recentActivityRoutes);
 app.use("/api/teachers", teacherRoutes);
 app.use("/api/staff", staffRoutes);
 app.use("/api/fee-structures", feeStructureRoutes);

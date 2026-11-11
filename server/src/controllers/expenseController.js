@@ -9,6 +9,7 @@ export const getExpenses = async (req, res) => {
             `
             SELECT
                 e.id,
+                 e.title,
                 e.expense_category_id,
                 e.expense_category_name,
                 e.amount,
@@ -49,6 +50,7 @@ export const getExpenseById = async (req, res) => {
             `
             SELECT
                 e.id,
+                 e.title,
                 e.expense_category_id,
                 e.expense_category_name,
                 e.amount,
@@ -91,6 +93,7 @@ export const createExpense = async (req, res) => {
     const userId = req.user.userId;
 
     const {
+         title,
         expenseCategoryId,
         amount,
         expenseDate,
@@ -98,6 +101,18 @@ export const createExpense = async (req, res) => {
         reference,
         description,
     } = req.body;
+
+    if (!title || typeof title !== "string" || !title.trim()) {
+    return res.status(400).json({
+        message: "Expense title is required.",
+    });
+    }
+
+    if (title.trim().length > 150) {
+        return res.status(400).json({
+            message: "Expense title cannot exceed 150 characters.",
+        });
+    }
 
     if (!expenseCategoryId) {
         return res.status(400).json({
@@ -209,6 +224,7 @@ export const createExpense = async (req, res) => {
             `
             INSERT INTO expenses (
                 school_id,
+                title,
                 expense_category_id,
                 expense_category_name,
                 amount,
@@ -227,10 +243,12 @@ export const createExpense = async (req, res) => {
                 $6,
                 $7,
                 $8,
-                $9
+                $9,
+                $10
             )
             RETURNING
                 id,
+                title,
                 expense_category_id,
                 expense_category_name,
                 amount,
@@ -244,6 +262,7 @@ export const createExpense = async (req, res) => {
             `,
             [
                 schoolId,
+                title.trim(),
                 expenseCategoryId,
                 category.name,
                 numericAmount,
@@ -271,6 +290,7 @@ export const updateExpense = async (req, res) => {
     const { id } = req.params;
 
     const {
+         title,
         expenseCategoryId,
         amount,
         expenseDate,
@@ -284,6 +304,7 @@ export const updateExpense = async (req, res) => {
             `
             SELECT
                 id,
+               title,
                 expense_category_id,
                 amount,
                 expense_date,
@@ -304,6 +325,25 @@ export const updateExpense = async (req, res) => {
         }
 
         const existingExpense = existingResult.rows[0];
+
+        const updatedTitle =
+            title !== undefined
+                ? typeof title === "string"
+                    ? title.trim()
+                    : ""
+                : existingExpense.title;
+
+        if (!updatedTitle) {
+            return res.status(400).json({
+                message: "Expense title is required.",
+            });
+        }
+
+        if (updatedTitle.length > 150) {
+            return res.status(400).json({
+                message: "Expense title cannot exceed 150 characters.",
+            });
+        }
 
         const updatedCategoryId =
             expenseCategoryId !== undefined
@@ -404,18 +444,20 @@ export const updateExpense = async (req, res) => {
             `
             UPDATE expenses
             SET
-                expense_category_id = $1,
-                expense_category_name = $2,
-                amount = $3,
-                expense_date = $4,
-                payment_method = $5,
-                reference = $6,
-                description = $7,
+                title = $1,
+                expense_category_id = $2,
+                expense_category_name = $3,
+                amount = $4,
+                expense_date = $5,
+                payment_method = $6,
+                reference = $7,
+                description = $8,
                 updated_at = NOW()
-            WHERE id = $8
-              AND school_id = $9
+            WHERE id = $9
+            AND school_id = $10
             RETURNING
                 id,
+                title,
                 expense_category_id,
                 expense_category_name,
                 amount,
@@ -428,6 +470,7 @@ export const updateExpense = async (req, res) => {
                 updated_at;
             `,
             [
+                updatedTitle,
                 updatedCategoryId,
                 category.name,
                 updatedAmount,
@@ -446,6 +489,42 @@ export const updateExpense = async (req, res) => {
 
         return res.status(500).json({
             message: "Failed to update expense.",
+        });
+    }
+};
+
+
+// DELETE expense
+export const deleteExpense = async (req, res) => {
+    const schoolId = req.schoolId;
+    const { id } = req.params;
+
+    try {
+        const result = await pool.query(
+            `
+            DELETE FROM expenses
+            WHERE id = $1
+              AND school_id = $2
+            RETURNING id;
+            `,
+            [id, schoolId]
+        );
+
+        if (result.rows.length === 0) {
+            return res.status(404).json({
+                message: "Expense not found.",
+            });
+        }
+
+        return res.status(200).json({
+            message: "Expense deleted successfully.",
+            id: result.rows[0].id,
+        });
+    } catch (error) {
+        console.error("Delete expense error:", error);
+
+        return res.status(500).json({
+            message: "Failed to delete expense.",
         });
     }
 };

@@ -5,6 +5,8 @@ const SectionTable = ({
     sections,
     classes,
     teachers,
+     canEdit,
+    canDelete,
     onEdit,
     onDelete
 }) => {
@@ -35,7 +37,7 @@ const SectionTable = ({
 
                             const teacher = teachers.find(
                                 (teacher) =>
-                                    teacher.id === section.classTeacherId
+                                    teacher.schoolStaffId === section.classTeacherId
                             );
 
                             return (
@@ -64,23 +66,27 @@ const SectionTable = ({
         {section.capacity || "—"}
     </td>
 
-    <td data-label="Actions">
-        <div className="section-table__actions">
+   <td data-label="Actions">
+    <div className="section-table__actions">
+        {canEdit && (
             <button
                 className="section-table__edit"
                 onClick={() => onEdit(section)}
             >
                 Edit
             </button>
+        )}
 
+        {canDelete && (
             <button
                 className="section-table__delete"
                 onClick={() => onDelete(section.id)}
             >
                 Delete
             </button>
-        </div>
-    </td>
+        )}
+    </div>
+</td>
 </tr>
                             );
                         })

@@ -13,6 +13,9 @@ const TeacherModal = ({onClose, onAddTeacher, editingTeacher}) => {
         gender:""
     });
 
+    const [isSubmitting, setIsSubmitting] = useState(false);
+    const [submitError, setSubmitError] = useState("");
+
     const handleChange = (e) => {
         const {name, value} = e.target;
 
@@ -23,12 +26,20 @@ const TeacherModal = ({onClose, onAddTeacher, editingTeacher}) => {
     }
 
 
-    const handleSubmit = (e)  =>  {
-        e.preventDefault();
+    const handleSubmit = async (e) => {
+    e.preventDefault();
 
-        onAddTeacher(teacher)
+    setIsSubmitting(true);
+    setSubmitError("");
+
+    try {
+        await onAddTeacher(teacher);
+    } catch (error) {
+        setSubmitError(error.message || "Failed to save teacher.");
+    } finally {
+        setIsSubmitting(false);
     }
-
+};
 
   return (
     <div className='teacher-modal__overlay'>
@@ -36,7 +47,7 @@ const TeacherModal = ({onClose, onAddTeacher, editingTeacher}) => {
 
             <div className="teacher-modal__header">
                 <h2>{editingTeacher ? "Edit Teacher" : "Add Teacher"}</h2>
-                <button onClick={onClose}>x</button>
+                <button onClick={onClose} disabled={isSubmitting}>x</button>
             </div>
 
             <form action="" onSubmit={handleSubmit}>
@@ -131,8 +142,18 @@ const TeacherModal = ({onClose, onAddTeacher, editingTeacher}) => {
 
 
 
-                <button type='submit'>
-                    Add Teacher
+                {submitError && (
+                    <p className="teacher-modal__error" role="alert">
+                        {submitError}
+                    </p>
+                )}
+
+                <button type="submit" disabled={isSubmitting}>
+                    {isSubmitting
+                        ? "Saving..."
+                        : editingTeacher
+                            ? "Save Changes"
+                            : "Add Teacher"}
                 </button>
             </form>
 

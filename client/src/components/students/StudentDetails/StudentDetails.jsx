@@ -13,6 +13,7 @@ const StudentDetails = ({
   onClose,
   onEdit,
   canEdit,
+  canViewFinancialAccounts,
 }) => {
 
         const [selectedPayment, setSelectedPayment] = useState(null);
@@ -24,6 +25,21 @@ const StudentDetails = ({
         const studentFinancialAccounts = financialAccounts.filter(
           (account) => account.studentId === student.id
         );
+
+        const selectedFinancialAccount = selectedPayment
+          ? studentFinancialAccounts.find(
+              (account) =>
+                account.id === selectedPayment.financialAccountId
+            )
+          : null;
+
+        const selectedAccountPayments = selectedPayment
+          ? studentPayments.filter(
+              (payment) =>
+                payment.financialAccountId ===
+                selectedPayment.financialAccountId
+            )
+          : [];
 
         const totalFees = studentFinancialAccounts.reduce(
           (total, account) => total + account.totalDue,
@@ -84,7 +100,7 @@ const StudentDetails = ({
         </div>
 
 
-
+    {canViewFinancialAccounts && (
         <section className="student-details__financial">
             <h3>Financial Summary</h3>
 
@@ -166,9 +182,10 @@ const StudentDetails = ({
                 </div>
               </>
             )}
-          </section>
+        </section>
+)}
 
-
+      {canViewFinancialAccounts && (
           <section className="student-details__history">
             <h3>Payment History</h3>
 
@@ -217,7 +234,8 @@ const StudentDetails = ({
               No payments recorded for this student.
             </p>
           )}
-        </section>       
+        </section>
+)}      
 
        { canEdit && (
         <div className="student-details__actions">
@@ -230,10 +248,13 @@ const StudentDetails = ({
         )} 
       </div>
 
-      {selectedPayment && (
+      {canViewFinancialAccounts && selectedPayment && (
         <PaymentReceipt
             payment={selectedPayment}
             student={student}
+             variant="student-details"
+            financialAccount={selectedFinancialAccount}
+            accountPayments={selectedAccountPayments}
             onClose={() => setSelectedPayment(null)}
         />
 )}

@@ -3,6 +3,10 @@ import {
     createStudentFinancialAccountForTerm,
 } from "../services/studentFinancialAccountService.js";
 
+import {
+    generateFinancialAccountsForCurrentTerm,
+} from "../services/financialRolloverService.js";
+
 export const createStudentFinancialAccount = async (
     req,
     res
@@ -150,6 +154,84 @@ export const createStudentFinancialAccount = async (
     }
 };
 
+export const getStudentFinancialAccounts = async (req, res) => {
+    try {
+        const { schoolId } = req;
+
+        const result = await pool.query(
+            `
+            SELECT
+                sfa.id,
+                sfa.school_id,
+                sfa.student_id,
+                sfa.enrollment_id,
+                sfa.academic_session_id,
+                sfa.term_id,
+                sfa.fee_structure_id,
+                sfa.total_due,
+                sfa.total_paid,
+                sfa.status,
+                sfa.created_at,
+                sfa.updated_at,
+
+                s.admission_no,
+                s.first_name,
+                s.middle_name,
+                s.last_name,
+
+                a.name AS academic_session_name,
+                t.name AS term_name,
+                fs.name AS fee_structure_name,
+                c.name AS class_name,
+                al.name AS academic_level_name
+
+            FROM student_financial_accounts sfa
+
+            JOIN students s
+                ON s.id = sfa.student_id
+
+            JOIN academic_sessions a
+                ON a.id = sfa.academic_session_id
+
+            JOIN terms t
+                ON t.id = sfa.term_id
+
+            JOIN fee_structures fs
+                ON fs.id = sfa.fee_structure_id
+
+            JOIN student_enrollments se
+                ON se.id = sfa.enrollment_id
+
+            JOIN classes c
+                ON c.id = se.class_id
+
+            JOIN academic_levels al
+                ON al.id = c.academic_level_id
+
+            WHERE sfa.school_id = $1
+
+            ORDER BY
+                sfa.created_at DESC;
+            `,
+            [schoolId]
+        );
+
+        return res.status(200).json({
+            financialAccounts: result.rows,
+        });
+    } catch (error) {
+        console.error(
+            "Failed to fetch student financial accounts:",
+            error.message
+        );
+
+        return res.status(500).json({
+            message:
+                "Failed to fetch student financial accounts.",
+        });
+    }
+};
+
 export const getStudentFinancialAccountById = async (
     req,
     res
@@ -187,7 +269,24 @@ export const getStudentFinancialAccountById = async (
 
                 c.name AS class_name,
 
-                al.name AS academic_level_name
+                al.name AS academic_level_name,
+
+                COALESCE(
+                    (
+                        SELECT json_agg(
+                            json_build_object(
+                                'id', fsi.id,
+                                'name', fsi.name,
+                                'amount', fsi.amount,
+                                'display_order', fsi.display_order
+                            )
+                            ORDER BY fsi.display_order ASC
+                        )
+                        FROM fee_structure_items fsi
+                        WHERE fsi.fee_structure_id = sfa.fee_structure_id
+                    ),
+                    '[]'::json
+                ) AS items
 
             FROM student_financial_accounts sfa
 
@@ -238,5 +337,115 @@ export const getStudentFinancialAccountById = async (
             message:
                 "Failed to fetch student financial account.",
         });
+    }
+};
+
+
+export const getStudentPaymentStatuses = async (req, res) => {
+    try {
+        const { schoolId } = req;
+
+        const result = await pool.query(
+            `
+            SELECT
+                student_id,
+                enrollment_id,
+                term_id,
+                status
+            FROM student_financial_accounts
+            WHERE school_id = $1
+            ORDER BY created_at DESC;
+            `,
+            [schoolId]
+        );
+
+        return res.status(200).json({
+            paymentStatuses: result.rows,
+        });
+    } catch (error) {
+        console.error(
+            "Failed to fetch student payment statuses:",
+            error.message
+        );
+
+        return res.status(500).json({
+            message:
+                "Failed to fetch student payment statuses.",
+        });
+    }
+};
+
+export const generateCurrentTermFinancialAccounts = async (req, res) => {
+    const client = await pool.connect();
+    let transactionStarted = false;
+
+    try {
+        const { schoolId } = req;
+
+        await client.query("BEGIN");
+        transactionStarted = true;
+
+        const result =
+            await generateFinancialAccountsForCurrentTerm(
+                client,
+                { schoolId }
+            );
+
+        if (!result.processed) {
+            await client.query("ROLLBACK");
+            transactionStarted = false;
+
+            return res.status(409).json({
+                message: result.reason,
+                result,
+            });
+        }
+
+        await client.query("COMMIT");
+        transactionStarted = false;
+
+        return res.status(200).json({
+            message:
+                "Current-term financial account generation completed successfully.",
+            result,
+        });
+    } catch (error) {
+        if (transactionStarted) {
+            await client.query("ROLLBACK");
+        }
+
+        console.error(
+            "Failed to generate current-term financial accounts:",
+            error.message
+        );
+
+        const knownErrors = [
+            "Enrollment not found for the selected student and school.",
+            "Term not found for the student's academic session.",
+            "No active fee structure exists for the student's academic level and selected term.",
+            "Multiple active fee structures exist for this academic level, session, and term. Resolve the conflict before generating financial accounts.",
+            "The active fee structure has no fee items. Add fee items before generating financial accounts.",
+        ];
+
+        if (knownErrors.includes(error.message)) {
+            const status =
+                error.message ===
+                "Enrollment not found for the selected student and school." ||
+                error.message ===
+                "Term not found for the student's academic session."
+                    ? 404
+                    : 409;
+
+            return res.status(status).json({
+                message: error.message,
+            });
+        }
+
+        return res.status(500).json({
+            message:
+                "Failed to generate current-term financial accounts.",
+        });
+    } finally {
+        client.release();
     }
 };

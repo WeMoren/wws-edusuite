@@ -5,7 +5,10 @@ import {
 } from "../controllers/schoolProfileController.js";
 import { authenticateToken } from "../middleware/authMiddleware.js";
 import { requireSchoolContext } from "../middleware/schoolMiddleware.js";
-import { requirePermission } from "../middleware/permissionMiddleware.js";
+import {
+    requirePermission,
+    requireAnyPermission,
+} from "../middleware/permissionMiddleware.js";
 
 const router = express.Router();
 
@@ -14,7 +17,10 @@ router.use(requireSchoolContext);
 
 router.get(
     "/",
-    requirePermission("settings", "view"),
+    requireAnyPermission(
+    { resource: "settings", action: "view" },
+    { resource: "result_document_settings", action: "view" }
+),
     getSchoolProfile
 );
 

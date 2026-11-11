@@ -17,7 +17,7 @@
 
 .accountant-page__summary {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(5, minmax(0, 1fr));
   gap: 1rem;
 }
 
@@ -30,6 +30,74 @@
 @media (max-width: 600px) {
   .accountant-page__summary {
     grid-template-columns: 1fr;
+  }
+}
+
+.accountant-page__level-breakdown {
+  margin-top: 2rem;
+  padding: 1.5rem;
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+}
+
+.accountant-page__table-wrapper {
+  width: 100%;
+  overflow-x: auto;
+}
+
+.accountant-page__table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+  white-space: nowrap;
+}
+
+.accountant-page__table th,
+.accountant-page__table td {
+  padding: 0.9rem 1rem;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.accountant-page__table th {
+  color: #6b7280;
+  font-size: 0.85rem;
+  font-weight: 600;
+  background: #f9fafb;
+}
+
+.accountant-page__table td {
+  color: #374151;
+  font-size: 0.9rem;
+}
+
+.accountant-page__table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.accountant-page__missing-fee {
+  display: block;
+  margin-top: 0.25rem;
+  color: #dc2626;
+  font-size: 0.75rem;
+}
+
+.accountant-page__empty {
+  padding: 1rem;
+  color: #6b7280;
+  text-align: center;
+  background: #f9fafb;
+  border-radius: 8px;
+}
+
+@media (max-width: 600px) {
+  .accountant-page__level-breakdown {
+    padding: 1rem;
+  }
+
+  .accountant-page__table th,
+  .accountant-page__table td {
+    padding: 0.75rem;
   }
 }
 
@@ -58,6 +126,75 @@
   max-width: 700px;
 }
 
+.accountant-page__account-generation {
+  margin-top: 1.5rem;
+  padding: 1.25rem;
+  border: 1px solid #dbe3ef;
+  border-radius: 10px;
+  background: #f8fafc;
+}
+
+.accountant-page__account-generation .accountant-page__section-header {
+  margin-bottom: 1rem;
+}
+
+.accountant-page__account-generation label {
+  display: block;
+  margin-bottom: 0.5rem;
+  font-weight: 600;
+  color: #334155;
+}
+
+.accountant-page__account-generation select {
+  width: 100%;
+  max-width: 520px;
+  padding: 0.75rem;
+  border: 1px solid #cbd5e1;
+  border-radius: 6px;
+  background: #fff;
+  color: #1e293b;
+  font: inherit;
+}
+
+.accountant-page__account-generation-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin-top: 1.25rem;
+}
+
+.accountant-page__account-generation-actions button {
+  padding: 0.7rem 1.1rem;
+  border: 1px solid #2563eb;
+  border-radius: 6px;
+  background: #2563eb;
+  color: #fff;
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.accountant-page__account-generation-actions button:last-child {
+  border-color: #cbd5e1;
+  background: #fff;
+  color: #334155;
+}
+
+.accountant-page__account-generation-actions button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.accountant-page__account-generation p[role="alert"] {
+  margin-top: 0.75rem;
+  color: #dc2626;
+}
+
+.accountant-page__account-generation p[role="status"] {
+  margin-top: 0.75rem;
+  color: #15803d;
+}
+
 @media (max-width: 600px) {
   .accountant-page__actions-grid {
     grid-template-columns: 1fr;
@@ -72,6 +209,32 @@
   margin-top: 2rem;
 }
 
+
+.accountant-page__expenses-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.accountant-page__expenses-header .accountant-page__section-header {
+  margin-bottom: 0;
+}
+
+.accountant-page__manage-categories {
+  border: 1px solid #2563eb;
+  border-radius: 7px;
+  padding: 0.65rem 1rem;
+  background: #fff;
+  color: #2563eb;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.accountant-page__manage-categories:hover {
+  background: #eff6ff;
+}
 
 @media (max-width: 600px) {
   .accountant-page {
@@ -88,6 +251,11 @@
 
   .accountant-page__section-header h2 {
     font-size: 1.25rem;
+  }
+
+  .accountant-page__expenses-header {
+    align-items: flex-start;
+    flex-direction: column;
   }
 
   .accountant-page__actions,
@@ -121,3 +289,149 @@
   }
 }
 
+
+
+.accountant-page__students {
+  margin-top: 2rem;
+}
+
+.student-account-search {
+  display: flex;
+  gap: 1rem;
+  margin-bottom: 1rem;
+  flex-wrap: wrap;
+}
+
+.student-account-search input,
+.student-account-search select {
+  padding: 0.75rem;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  min-width: 220px;
+  flex: 1;
+}
+
+.student-account-table-wrapper {
+  width: 100%;
+  overflow-x: auto;
+}
+
+.student-account-table {
+  width: 100%;
+  border-collapse: collapse;
+  white-space: nowrap;
+}
+
+.student-account-table th,
+.student-account-table td {
+  padding: 0.85rem;
+  text-align: left;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.student-account-table th {
+  background: #f9fafb;
+  font-weight: 600;
+}
+
+.student-account-pagination {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+  padding: 1rem 0;
+  border-top: 1px solid #e5e7eb;
+}
+
+.student-account-pagination__summary {
+  margin: 0;
+  color: #64748b;
+  font-size: 0.9rem;
+}
+
+.student-account-pagination__controls {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.student-account-pagination__controls label {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: #475569;
+  font-size: 0.9rem;
+}
+
+.student-account-pagination__controls select {
+  padding: 0.5rem;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  background: #fff;
+}
+
+.student-account-pagination__controls button {
+  padding: 0.5rem 0.85rem;
+  border: 1px solid #2563eb;
+  border-radius: 6px;
+  background: #2563eb;
+  color: #fff;
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+
+.student-account-pagination__controls button:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+.student-account-pagination__controls button:hover:not(:disabled) {
+  background: #1d4ed8;
+  border-color: #1d4ed8;
+}
+
+.student-account-pagination__controls span {
+  color: #475569;
+  
+  font-size: 0.9rem;
+}
+
+@media (max-width: 600px) {
+  .student-account-search {
+    flex-direction: column;
+  }
+
+  .student-account-search input,
+  .student-account-search select {
+    width: 100%;
+    min-width: 0;
+  }
+}
+
+/* Student payment status badges */
+.payment-status {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.35rem 0.75rem;
+  border-radius: 999px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.payment-status--paid {
+  color: #166534;
+  background: #dcfce7;
+}
+
+.payment-status--partially_paid {
+  color: #92400e;
+  background: #fef3c7;
+}
+
+.payment-status--unpaid {
+  color: #991b1b;
+  background: #fee2e2;
+}

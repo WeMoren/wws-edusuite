@@ -1,7 +1,13 @@
+
 import React from "react";
 import "./TransactionTable.css";
 
-const TransactionTable = ({ payments, onEdit, onDelete, onReceipt }) => {
+const TransactionTable = ({
+  payments,
+  onEdit,
+  onReceipt,
+  canCorrectPayments = false,
+}) => {
   return (
     <div className="transaction-table-wrapper">
       <table className="transaction-table">
@@ -63,21 +69,15 @@ const TransactionTable = ({ payments, onEdit, onDelete, onReceipt }) => {
                       Receipt
                     </button>
 
-                    <button
-                      type="button"
-                      className="transaction-table__edit"
-                      onClick={() => onEdit(payment)}
-                    >
-                      Edit
-                    </button>
-
-                    <button
-                      type="button"
-                      className="transaction-table__delete"
-                      onClick={() => onDelete(payment)}
-                    >
-                      Delete
-                    </button>
+                    {canCorrectPayments && (
+                      <button
+                        type="button"
+                        className="transaction-table__edit"
+                        onClick={() => onEdit(payment)}
+                      >
+                        Correct
+                      </button>
+                    )}
                   </div>
                 </td>
               </tr>

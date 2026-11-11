@@ -1,4 +1,5 @@
 import pool from "../config/db.js";
+import { recordActivity } from "../services/activityLogService.js";
 
 import {
     createStudentFinancialAccountForCurrentTerm,
@@ -217,7 +218,7 @@ export const createEnrollment = async (req, res) => {
          */
         const studentResult = await client.query(
             `
-            SELECT id
+            SELECT id, admission_no
             FROM students
             WHERE id = $1
               AND school_id = $2;
@@ -230,6 +231,7 @@ export const createEnrollment = async (req, res) => {
                 message: "Student not found.",
             });
         }
+        const studentAdmissionNo = studentResult.rows[0].admission_no;
 
         /*
          * Validate academic session belongs to this school.
@@ -482,7 +484,7 @@ if (subjectCombinationId) {
             ]
         );
 
-                const financialAccountResult =
+        const financialAccountResult =
             await createStudentFinancialAccountForCurrentTerm(
                 client,
                 {
@@ -491,6 +493,14 @@ if (subjectCombinationId) {
                     enrollmentId: result.rows[0].id,
                 }
             );
+
+        await recordActivity({
+            schoolId,
+            userId: req.user.userId,
+            action: "student_enrolled",
+            description: `Enrolled student with admission number "${studentAdmissionNo}".`,
+            client,
+        });
 
         await client.query("COMMIT");
         transactionStarted = false;

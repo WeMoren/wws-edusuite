@@ -1,4 +1,7 @@
 import pool from "../config/db.js";
+import {
+    acquireFinancialScopeLock,
+} from "../utils/financialLock.js";
 
 export const getFeeStructures = async (req, res) => {
     try {
@@ -333,6 +336,17 @@ export const createFeeStructure = async (req, res) => {
 
         await client.query("BEGIN");
 
+
+        await acquireFinancialScopeLock(
+            client,
+            {
+                schoolId,
+                academicSessionId,
+                termId,
+                academicLevelId,
+            }
+        );
+
         const structureResult = await client.query(
             `
             INSERT INTO fee_structures (
@@ -457,6 +471,10 @@ export const updateFeeStructure = async (req, res) => {
             `
             SELECT
                 id,
+                school_id,
+                academic_session_id,
+                term_id,
+                academic_level_id,
                 name,
                 is_current
             FROM fee_structures
@@ -472,43 +490,9 @@ export const updateFeeStructure = async (req, res) => {
             });
         }
 
-        /*
-         * Once financial accounts reference a fee
-         * structure, its financial definition becomes
-         * historical and must not be silently changed.
-         */
-        const accountResult = await pool.query(
-            `
-            SELECT id
-            FROM student_financial_accounts
-            WHERE fee_structure_id = $1
-            LIMIT 1;
-            `,
-            [id]
-        );
 
-        if (accountResult.rows.length > 0) {
-            return res.status(409).json({
-                message:
-                    "Fee structure cannot be modified because financial accounts already reference it. Create a new fee structure instead.",
-            });
-        }
 
-        const existing =
-            existingResult.rows[0];
 
-        const nextName =
-            name ?? existing.name;
-
-        const nextIsCurrent =
-            isCurrent ?? existing.is_current;
-
-        if (typeof nextIsCurrent !== "boolean") {
-            return res.status(400).json({
-                message:
-                    "isCurrent must be a boolean.",
-            });
-        }
 
         if (items !== undefined) {
             if (
@@ -584,8 +568,82 @@ export const updateFeeStructure = async (req, res) => {
 
         const client = await pool.connect();
 
-        try {
+         try {
             await client.query("BEGIN");
+
+            await acquireFinancialScopeLock(
+                client,
+                {
+                    schoolId,
+                    academicSessionId:
+                        existingResult.rows[0].academic_session_id,
+                    termId:
+                        existingResult.rows[0].term_id,
+                    academicLevelId:
+                        existingResult.rows[0].academic_level_id,
+                }
+            );
+
+            const lockedResult =
+                await client.query(
+                    `
+                    SELECT
+                        id,
+                        name,
+                        is_current
+                    FROM fee_structures
+                    WHERE id = $1
+                      AND school_id = $2
+                    FOR UPDATE;
+                    `,
+                    [id, schoolId]
+                );
+
+            if (lockedResult.rows.length === 0) {
+                await client.query("ROLLBACK");
+
+                return res.status(404).json({
+                    message: "Fee structure not found.",
+                });
+            }
+
+            const accountResult =
+                await client.query(
+                    `
+                    SELECT id
+                    FROM student_financial_accounts
+                    WHERE fee_structure_id = $1
+                    LIMIT 1;
+                    `,
+                    [id]
+                );
+
+            if (accountResult.rows.length > 0) {
+                await client.query("ROLLBACK");
+
+                return res.status(409).json({
+                    message:
+                        "Fee structure cannot be modified because financial accounts already reference it. Create a new fee structure instead.",
+                });
+            }
+
+            const existing =
+                lockedResult.rows[0];
+
+            const nextName =
+                name ?? existing.name;
+
+            const nextIsCurrent =
+                isCurrent ?? existing.is_current;
+
+            if (typeof nextIsCurrent !== "boolean") {
+                await client.query("ROLLBACK");
+
+                return res.status(400).json({
+                    message:
+                        "isCurrent must be a boolean.",
+                });
+            }
 
             const structureResult =
                 await client.query(
@@ -709,12 +767,62 @@ export const updateFeeStructure = async (req, res) => {
     }
 };
 
+
+
 export const deleteFeeStructure = async (req, res) => {
+    let client;
+    let transactionStarted = false;
+
     try {
         const { schoolId } = req;
         const { id } = req.params;
 
-        const result = await pool.query(
+        client = await pool.connect();
+
+        await client.query("BEGIN");
+         transactionStarted = true;
+
+        const existingResult =
+            await client.query(
+                `
+                SELECT
+                    id,
+                    academic_session_id,
+                    term_id,
+                    academic_level_id
+                FROM fee_structures
+                WHERE id = $1
+                  AND school_id = $2;
+                `,
+                [id, schoolId]
+            );
+
+        if (existingResult.rows.length === 0) {
+            await client.query("ROLLBACK");
+            transactionStarted = false;
+
+            return res.status(404).json({
+                message: "Fee structure not found.",
+            });
+        }
+
+        const existing =
+            existingResult.rows[0];
+
+        await acquireFinancialScopeLock(
+            client,
+            {
+                schoolId,
+                academicSessionId:
+                    existing.academic_session_id,
+                termId:
+                    existing.term_id,
+                academicLevelId:
+                    existing.academic_level_id,
+            }
+        );
+
+        const result = await client.query(
             `
             DELETE FROM fee_structures
             WHERE id = $1
@@ -725,16 +833,26 @@ export const deleteFeeStructure = async (req, res) => {
         );
 
         if (result.rows.length === 0) {
+            await client.query("ROLLBACK");
+               transactionStarted = false;
+
             return res.status(404).json({
                 message: "Fee structure not found.",
             });
         }
+
+        await client.query("COMMIT");
+           transactionStarted = false;
 
         return res.status(200).json({
             message:
                 "Fee structure deleted successfully.",
         });
     } catch (error) {
+        if (transactionStarted) {
+            await client.query("ROLLBACK");
+        }
+
         if (error.code === "23503") {
             return res.status(409).json({
                 message:
@@ -751,5 +869,9 @@ export const deleteFeeStructure = async (req, res) => {
             message:
                 "Failed to delete fee structure.",
         });
+    } finally {
+        if (client) {
+            client.release();
+        }
     }
 };

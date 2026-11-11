@@ -60,7 +60,8 @@ export const getPaymentReceipt = async (req, res) => {
             FROM payment_receipts pr
 
             WHERE pr.payment_id = $1
-              AND pr.school_id = $2;
+              AND pr.school_id = $2
+             AND pr.status = 'current';
             `,
             [paymentId, schoolId]
         );

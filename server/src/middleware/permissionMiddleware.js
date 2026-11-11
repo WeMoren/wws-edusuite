@@ -60,3 +60,75 @@ export const requirePermission = (resource, action) => {
         }
     };
 };
+
+
+export const requireAnyPermission = (...permissions) => {
+    return async (req, res, next) => {
+        try {
+            const user = req.user || {};
+
+            const userRoles = Array.isArray(user.roles)
+                ? user.roles
+                : user.role
+                    ? [user.role]
+                    : [];
+
+            if (userRoles.includes("Principal")) {
+                return next();
+            }
+
+            const roleIds = Array.isArray(user.roleIds)
+                ? user.roleIds
+                : user.roleId
+                    ? [user.roleId]
+                    : [];
+
+            if (roleIds.length === 0) {
+                return res.status(403).json({
+                    message: "User role not found.",
+                });
+            }
+
+            const resources = permissions.map(
+                (permission) => permission.resource
+            );
+
+            const actions = permissions.map(
+                (permission) => permission.action
+            );
+
+            const result = await pool.query(
+                `
+                SELECT 1
+                FROM role_permissions rp
+                JOIN permissions p
+                    ON p.id = rp.permission_id
+                WHERE rp.role_id = ANY($1::uuid[])
+                  AND EXISTS (
+                      SELECT 1
+                      FROM unnest($2::text[], $3::text[])
+                          AS required(resource, action)
+                      WHERE required.resource = p.resource
+                        AND required.action = p.action
+                  )
+                LIMIT 1;
+                `,
+                [roleIds, resources, actions]
+            );
+
+            if (result.rows.length === 0) {
+                return res.status(403).json({
+                    message: "You do not have permission to perform this action.",
+                });
+            }
+
+            return next();
+        } catch (error) {
+            console.error("Permission check failed:", error.message);
+
+            return res.status(500).json({
+                message: "Permission check failed.",
+            });
+        }
+    };
+};

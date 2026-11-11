@@ -1,10 +1,8 @@
+
 import React, { useEffect, useState } from "react";
 import "./ClassModal.css";
 
-import academicSessions from "../../../data/academicSessions";
-import academicLevels from "../../../data/academicLevels";
 
-const sections = ["A", "B", "C", "D", "E"];
 
 const initialClass = {
   academicSessionId: "",
@@ -16,20 +14,30 @@ const ClassModal = ({
   onClose,
   onAddClass,
   editingClass,
+  academicSessions,
+  academicLevels,
 }) => {
   const [classData, setClassData] = useState(initialClass);
 
   useEffect(() => {
     if (editingClass) {
+      const selectedLevel = academicLevels.find(
+        (level) => level.id === editingClass.academicLevelId
+      );
+
+      const section = selectedLevel
+        ? editingClass.name.replace(selectedLevel.name, "")
+        : "";
+
       setClassData({
         academicSessionId: editingClass.academicSessionId,
         academicLevelId: editingClass.academicLevelId,
-        section: editingClass.section,
+        section,
       });
     } else {
       setClassData(initialClass);
     }
-  }, [editingClass]);
+  }, [editingClass, academicLevels]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -40,19 +48,24 @@ const ClassModal = ({
     }));
   };
 
+  const selectedLevel = academicLevels.find(
+    (level) => level.id === classData.academicLevelId
+  );
+
+  const className = selectedLevel
+    ? `${selectedLevel.name}${classData.section}`
+    : "";
+
   const handleSubmit = (e) => {
     e.preventDefault();
 
-    const selectedLevel = academicLevels.find(
-      (level) => level.id === Number(classData.academicLevelId)
-    );
-
-    const className = `${selectedLevel.name}${classData.section}`;
+    if (!selectedLevel || !classData.academicSessionId) {
+      return;
+    }
 
     onAddClass({
-      ...classData,
-      academicSessionId: Number(classData.academicSessionId),
-      academicLevelId: Number(classData.academicLevelId),
+      academicSessionId: classData.academicSessionId,
+      academicLevelId: classData.academicLevelId,
       name: className,
     });
   };
@@ -80,7 +93,6 @@ const ClassModal = ({
         </div>
 
         <form onSubmit={handleSubmit}>
-
           {/* Academic Session */}
 
           <div className="class-form__group">
@@ -109,7 +121,6 @@ const ClassModal = ({
               ))}
             </select>
           </div>
-
 
           {/* Academic Level */}
 
@@ -140,63 +151,37 @@ const ClassModal = ({
             </select>
           </div>
 
+          {/* Class Name Suffix */}
 
-          {/* Section */}
-
+          
           <div className="class-form__group">
             <label htmlFor="section">
-              Section
+              Class Name Suffix
             </label>
 
-            <select
+            <input
               id="section"
+              type="text"
               name="section"
               value={classData.section}
               onChange={handleChange}
+              placeholder="e.g. A, B, Gold, Blue"
               required
-            >
-              <option value="">
-                Select section
-              </option>
-
-              {sections.map((section) => (
-                <option
-                  key={section}
-                  value={section}
-                >
-                  Section {section}
-                </option>
-              ))}
-            </select>
+            />
           </div>
 
 
-          {/* Preview */}
+          {/* Class Name Preview */}
 
-          {classData.academicLevelId &&
-            classData.section && (
-              <p>
-                Class name:{" "}
-                <strong>
-                  {
-                    academicLevels.find(
-                      (level) =>
-                        level.id ===
-                        Number(classData.academicLevelId)
-                    )?.name
-                  }
-                  {classData.section}
-                </strong>
-              </p>
-            )}
-
+          {selectedLevel && classData.section && (
+            <p>
+              Class name: <strong>{className}</strong>
+            </p>
+          )}
 
           <button type="submit">
-            {editingClass
-              ? "Save Changes"
-              : "Add Class"}
+            {editingClass ? "Save Changes" : "Add Class"}
           </button>
-
         </form>
       </div>
     </div>

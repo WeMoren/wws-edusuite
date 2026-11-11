@@ -1,20 +1,29 @@
 import React, {useEffect, useState } from 'react'
 import { Outlet } from 'react-router-dom';
 import { useAuth } from "../auth/AuthContext";
+import { hasPermission } from "../auth/permissions";
 import Header from '../components/layout/Header/Header'
 import Sidebar from '../components/layout/Sidebar/Sidebar'
 import "../components/layout/Layout.css";
-import initialParents from "../data/parents";
-import initialTeachers from "../data/teachers";
 import initialActiveAcademicLevels from "../data/activeAcademicLevels";
-import initialRecentActivities from "../data/recentActivity";
-import initialUpcomingEvents from "../data/upcomingEvents";
 import initialResults from "../data/results";
 
 
 const DashboardLayout = () => {
 
-    const { authToken } = useAuth();
+    const { authToken, currentUser } = useAuth();
+
+const userRoles = Array.isArray(currentUser?.roles)
+    ? currentUser.roles
+    : [currentUser?.role];
+
+const canViewFinancialAccounts = userRoles.some((role) =>
+    hasPermission(role, "accountant", "view")
+);
+
+const canViewStudentPaymentStatus = userRoles.some((role) =>
+    hasPermission(role, "students", "view")
+);
     const API_BASE_URL = "http://localhost:5000/api";
 
 
@@ -29,13 +38,100 @@ const DashboardLayout = () => {
   const [studentsLoading, setStudentsLoading] = useState(false);
   const [studentsError, setStudentsError] = useState("");
 
-    const [teachers, setTeachers] = useState(() => {
-      const savedTeachers = localStorage.getItem("teachers");
+    const [teachers, setTeachers] = useState([]);
 
-      return savedTeachers
-        ? JSON.parse(savedTeachers)
-        : initialTeachers;
-  });
+
+    const [staffCount, setStaffCount] = useState(0);
+
+useEffect(() => {
+    if (!authToken) {
+        setStaffCount(0);
+        return;
+    }
+
+    const controller = new AbortController();
+
+    const loadStaffCount = async () => {
+        try {
+            const response = await fetch(`${API_BASE_URL}/staff/count`, {
+                headers: {
+                    Authorization: `Bearer ${authToken}`,
+                },
+                signal: controller.signal,
+            });
+
+            const data = await response.json().catch(() => ({}));
+
+            if (!response.ok) {
+                throw new Error(data.message || "Failed to load staff count.");
+            }
+
+            setStaffCount(Number(data.count) || 0);
+        } catch (error) {
+            if (error.name !== "AbortError") {
+                console.error("Failed to load dashboard staff count:", error);
+                setStaffCount(0);
+            }
+        }
+    };
+
+    loadStaffCount();
+
+    return () => controller.abort();
+}, [authToken]);
+
+
+    useEffect(() => {
+    if (!authToken) {
+        setTeachers([]);
+        return;
+    }
+
+    const controller = new AbortController();
+
+    const loadTeachers = async () => {
+        try {
+            const response = await fetch(`${API_BASE_URL}/teachers`, {
+                headers: {
+                    Authorization: `Bearer ${authToken}`,
+                },
+                signal: controller.signal,
+            });
+
+            const data = await response.json().catch(() => ({}));
+
+            if (!response.ok) {
+                throw new Error(data.message || "Failed to load teachers.");
+            }
+
+            setTeachers(
+                (Array.isArray(data.teachers) ? data.teachers : []).map(
+                    (teacher) => ({
+                        id: teacher.id,
+                       schoolStaffId: teacher.school_staff_id,
+                        staffId: teacher.staff_id,
+                        firstName: teacher.first_name,
+                        lastName: teacher.last_name,
+                        email: teacher.email,
+                        phoneNum: teacher.phone || "",
+                        subject: teacher.subject,
+                        gender: teacher.gender,
+                        status: teacher.status,
+                    })
+                )
+            );
+        } catch (error) {
+            if (error.name !== "AbortError") {
+                console.error("Failed to load dashboard teachers:", error);
+                setTeachers([]);
+            }
+        }
+    };
+
+    loadTeachers();
+
+    return () => controller.abort();
+}, [authToken]);
 
 
     const [classes, setClasses] = useState([]);
@@ -175,11 +271,14 @@ useEffect(() => {
 
       setSections(
         (sectionsData.sections || []).map((section) => ({
-          id: section.id,
-          classId: section.class_id,
-          name: section.name,
+            id: section.id,
+            classId: section.class_id,
+            name: section.name,
+            classTeacherId: section.class_teacher_id || "",
+            room: section.room || "",
+            capacity: section.capacity ?? "",
         }))
-      );
+    );
 
     } catch (error) {
       if (error.name !== "AbortError") {
@@ -310,9 +409,8 @@ useEffect(() => {
   return () => controller.abort();
 }, [authToken]);
 
-
 useEffect(() => {
-  if (!authToken) {
+  if (!authToken || !canViewFinancialAccounts) {
     setPayments([]);
     return;
   }
@@ -373,12 +471,12 @@ useEffect(() => {
   loadPayments();
 
   return () => controller.abort();
-}, [authToken]);
+}, [authToken, canViewFinancialAccounts]);
 
 
 
 useEffect(() => {
-  if (!authToken) {
+  if (!authToken || (!canViewFinancialAccounts && !canViewStudentPaymentStatus)) {
     setFinancialAccounts([]);
     setFinancialAccountsError("");
     setFinancialAccountsLoading(false);
@@ -387,13 +485,17 @@ useEffect(() => {
 
   const controller = new AbortController();
 
+  const accountEndpoint = canViewFinancialAccounts
+    ? "/student-financial-accounts"
+    : "/student-financial-accounts/payment-statuses";
+
   const loadFinancialAccounts = async () => {
     setFinancialAccountsLoading(true);
     setFinancialAccountsError("");
 
     try {
       const response = await fetch(
-        `${API_BASE_URL}/student-financial-accounts`,
+        `${API_BASE_URL}${accountEndpoint}`,
         {
           headers: {
             Authorization: `Bearer ${authToken}`,
@@ -410,26 +512,37 @@ useEffect(() => {
         );
       }
 
-      const mappedAccounts = (data.financialAccounts || []).map((account) => ({
-        id: account.id,
-        studentId: account.student_id,
-        enrollmentId: account.enrollment_id,
-        academicSessionId: account.academic_session_id,
-        academicSessionName: account.academic_session_name,
-        termId: account.term_id,
-        termName: account.term_name,
-        feeStructureId: account.fee_structure_id,
-        feeStructureName: account.fee_structure_name,
-        className: account.class_name,
-        academicLevelName: account.academic_level_name,
-        totalDue: Number(account.total_due),
-        totalPaid: Number(account.total_paid),
-        status: account.status,
-        outstanding: Math.max(
-          Number(account.total_due) - Number(account.total_paid),
-          0
-        ),
-      }));
+      let mappedAccounts = [];
+
+      if (canViewFinancialAccounts) {
+        mappedAccounts = (data.financialAccounts || []).map((account) => ({
+          id: account.id,
+          studentId: account.student_id,
+          enrollmentId: account.enrollment_id,
+          academicSessionId: account.academic_session_id,
+          academicSessionName: account.academic_session_name,
+          termId: account.term_id,
+          termName: account.term_name,
+          feeStructureId: account.fee_structure_id,
+          feeStructureName: account.fee_structure_name,
+          className: account.class_name,
+          academicLevelName: account.academic_level_name,
+          totalDue: Number(account.total_due),
+          totalPaid: Number(account.total_paid),
+          status: account.status,
+          outstanding: Math.max(
+            Number(account.total_due) - Number(account.total_paid),
+            0
+          ),
+        }));
+      } else {
+        mappedAccounts = (data.paymentStatuses || []).map((account) => ({
+          studentId: account.student_id,
+          enrollmentId: account.enrollment_id,
+          termId: account.term_id,
+          status: account.status,
+        }));
+      }
 
       if (!controller.signal.aborted) {
         setFinancialAccounts(mappedAccounts);
@@ -452,7 +565,11 @@ useEffect(() => {
   loadFinancialAccounts();
 
   return () => controller.abort();
-}, [authToken]);
+}, [
+  authToken,
+  canViewFinancialAccounts,
+  canViewStudentPaymentStatus,
+]);
 
 
 
@@ -720,85 +837,234 @@ useEffect(() => {
 }, [authToken]);
 
 
-/* Recent activity and persistence */
+        /* Recent activities from backend */
 
-     const [recentActivities, setRecentActivities] = useState(() => {
-        const savedActivities = localStorage.getItem("recentActivities");
+const [recentActivities, setRecentActivities] = useState([]);
 
-        if (!savedActivities) {
-            return initialRecentActivities;
-        }
-
-        try {
-            return JSON.parse(savedActivities);
-        } catch (error) {
-            console.error("Failed to load recent activities:", error);
-
-            localStorage.removeItem("recentActivities");
-
-            return initialRecentActivities;
-        }
-    });
-
-    /* Persist recent activities to localStorage whenever it changes */
-    useEffect(() => {
-        localStorage.setItem("recentActivities", JSON.stringify(recentActivities));
-
-        }, [recentActivities]);
-
-  const [parents, setParents] = useState(() => {
-     const savedParents = localStorage.getItem("parents");
-
-      return savedParents
-        ? JSON.parse(savedParents)
-        : initialParents;
-});
-
-
-
-/* Upcoming events and persistence */
-
-const [upcomingEvents, setUpcomingEvents] = useState(() => {
-    const savedEvents = localStorage.getItem("upcomingEvents");
-
-    if (!savedEvents) {
-        return initialUpcomingEvents;
+const refreshRecentActivities = async (signal) => {
+    if (!authToken) {
+        setRecentActivities([]);
+        return;
     }
 
     try {
-        return JSON.parse(savedEvents);
-      setClasses(
-        (classesData.classes || []).map((schoolClass) => ({
-          id: schoolClass.id,
-          academicSessionId: schoolClass.academic_session_id,
-          academicLevelId: schoolClass.academic_level_id,
-          name: schoolClass.name,
-        }))
-      );
+        const response = await fetch(
+            `${API_BASE_URL}/recent-activities`,
+            {
+                headers: {
+                    Authorization: `Bearer ${authToken}`,
+                },
+                signal,
+            }
+        );
 
-      setSections(
-        (sectionsData.sections || []).map((section) => ({
-          id: section.id,
-          classId: section.class_id,
-          name: section.name,
-        }))
-      );
+        const data = await response.json().catch(() => []);
 
+        if (!response.ok) {
+            throw new Error(
+                data.message || "Failed to load recent activities."
+            );
+        }
+
+        setRecentActivities(
+            Array.isArray(data) ? data : []
+        );
     } catch (error) {
-        console.error("Failed to load upcoming events:", error);
+        if (error.name !== "AbortError") {
+            console.error(
+                "Failed to load recent activities:",
+                error
+            );
 
-        localStorage.removeItem("upcomingEvents");
-
-        return initialUpcomingEvents;
+            setRecentActivities([]);
+        }
     }
-});
+};
 
 useEffect(() => {
-    localStorage.setItem(
-        "upcomingEvents",
-        JSON.stringify(upcomingEvents)
+    const controller = new AbortController();
+
+    refreshRecentActivities(controller.signal);
+
+    return () => controller.abort();
+}, [authToken]);
+
+
+        const [parents, setParents] = useState([]);
+              useEffect(() => {
+          if (!authToken) {
+              setParents([]);
+              return;
+          }
+
+          const controller = new AbortController();
+
+           const loadParents = async () => {
+            try {
+                const response = await fetch(`${API_BASE_URL}/parents`, {
+                    headers: {
+                        Authorization: `Bearer ${authToken}`,
+                    },
+                    signal: controller.signal,
+                });
+
+                const data = await response.json().catch(() => ({}));
+
+                if (!response.ok) {
+                    throw new Error(data.message || "Failed to load parents.");
+                }
+
+                setParents(
+                    Array.isArray(data.parents) ? data.parents : []
+                );
+            } catch (error) {
+                if (error.name !== "AbortError") {
+                    console.error("Failed to load dashboard parents:", error);
+                    setParents([]);
+        
+                  }
+      }
+    };
+
+    loadParents();
+
+    return () => controller.abort();
+}, [authToken]);
+
+
+    /* Upcoming events from backend */
+const [upcomingEvents, setUpcomingEvents] = useState([]);
+
+useEffect(() => {
+    if (!authToken) {
+        setUpcomingEvents([]);
+        return;
+    }
+
+    const controller = new AbortController();
+
+    const loadUpcomingEvents = async () => {
+        try {
+            const response = await fetch(`${API_BASE_URL}/events`, {
+                headers: {
+                    Authorization: `Bearer ${authToken}`,
+                },
+                signal: controller.signal,
+            });
+
+            const data = await response.json().catch(() => []);
+
+            if (!response.ok) {
+                throw new Error(
+                    data.message || "Failed to load upcoming events."
+                );
+            }
+
+            setUpcomingEvents(
+                Array.isArray(data) ? data : []
+            );
+        } catch (error) {
+            if (error.name !== "AbortError") {
+                console.error(
+                    "Failed to load upcoming events:",
+                    error
+                );
+
+                setUpcomingEvents([]);
+            }
+        }
+    };
+
+    loadUpcomingEvents();
+
+    return () => controller.abort();
+}, [authToken]);
+
+
+  
+/* Upcoming Events backend operations */
+
+const createEvent = async (eventData) => {
+    const response = await fetch(`${API_BASE_URL}/events`, {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${authToken}`,
+        },
+        body: JSON.stringify(eventData),
+    });
+
+    const data = await response.json().catch(() => ({}));
+
+    if (!response.ok) {
+        throw new Error(data.message || "Failed to create event.");
+    }
+
+    if (!data.event) {
+        throw new Error("The server did not return the created event.");
+    }
+
+    setUpcomingEvents((previousEvents) => [
+        ...previousEvents,
+        data.event,
+    ]);
+
+    return data.event;
+};
+
+const updateEvent = async (eventId, eventData) => {
+    const response = await fetch(
+        `${API_BASE_URL}/events/${eventId}`,
+        {
+            method: "PATCH",
+            headers: {
+                "Content-Type": "application/json",
+                Authorization: `Bearer ${authToken}`,
+            },
+            body: JSON.stringify(eventData),
+        }
     );
-}, [upcomingEvents]);
+
+    const data = await response.json().catch(() => ({}));
+
+    if (!response.ok) {
+        throw new Error(data.message || "Failed to update event.");
+    }
+
+    if (!data.event) {
+        throw new Error("The server did not return the updated event.");
+    }
+
+    setUpcomingEvents((previousEvents) =>
+        previousEvents.map((event) =>
+            event.id === eventId ? data.event : event
+        )
+    );
+
+    return data.event;
+};
+
+const deleteEvent = async (eventId) => {
+    const response = await fetch(
+        `${API_BASE_URL}/events/${eventId}`,
+        {
+            method: "DELETE",
+            headers: {
+                Authorization: `Bearer ${authToken}`,
+            },
+        }
+    );
+
+    const data = await response.json().catch(() => ({}));
+
+    if (!response.ok) {
+        throw new Error(data.message || "Failed to delete event.");
+    }
+
+    setUpcomingEvents((previousEvents) =>
+        previousEvents.filter((event) => event.id !== eventId)
+    );
+};
 
 
 
@@ -847,6 +1113,7 @@ return (
                         payments,
                         setPayments,
                         financialAccounts,
+                        setFinancialAccounts,
                         financialAccountsLoading,
                         financialAccountsError,
                         enrollments,
@@ -857,6 +1124,7 @@ return (
                         studentsError,
                         teachers,
                         setTeachers,
+                        staffCount,
                         parents,
                         setParents,
                         classes,
@@ -883,8 +1151,11 @@ return (
                         setAttendance,
                         recentActivities,
                         setRecentActivities,
+                        refreshRecentActivities,
                         upcomingEvents,
-                        setUpcomingEvents,
+                        createEvent,
+                        updateEvent,
+                        deleteEvent,
                         subjects,
                         setSubjects,
                         results,

@@ -44,6 +44,8 @@ const SchoolFees = () => {
     const [form, setForm] = useState(EMPTY_FORM);
     const [editingId, setEditingId] = useState(null);
     const [searchTerm, setSearchTerm] = useState("");
+    const [structuresPage, setStructuresPage] = useState(1);
+    const [structuresPageSize, setStructuresPageSize] = useState(25);
 
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
@@ -142,6 +144,31 @@ const SchoolFees = () => {
             )
         );
     }, [feeStructures, searchTerm]);
+
+        const totalStructurePages = Math.max(
+        1,
+        Math.ceil(filteredStructures.length / structuresPageSize)
+    );
+
+    const currentStructuresPage = Math.min(
+        structuresPage,
+        totalStructurePages
+    );
+
+    const paginatedStructures = filteredStructures.slice(
+        (currentStructuresPage - 1) * structuresPageSize,
+        currentStructuresPage * structuresPageSize
+    );
+
+    const structuresStart =
+        filteredStructures.length === 0
+            ? 0
+            : (currentStructuresPage - 1) * structuresPageSize + 1;
+
+    const structuresEnd = Math.min(
+        currentStructuresPage * structuresPageSize,
+        filteredStructures.length
+    );
 
     const updateField = (event) => {
         const { name, value, type, checked } = event.target;
@@ -636,7 +663,10 @@ const SchoolFees = () => {
                         className="school-fees__search"
                         type="search"
                         value={searchTerm}
-                        onChange={(event) => setSearchTerm(event.target.value)}
+                        onChange={(event) => {
+                            setSearchTerm(event.target.value);
+                            setStructuresPage(1);
+                        }}
                         placeholder="Search structures…"
                         aria-label="Search fee structures"
                     />
@@ -674,6 +704,7 @@ const SchoolFees = () => {
                         </p>
                     </div>
                 ) : (
+                      <>
                     <div className="school-fees__table-wrap">
                         <table className="school-fees__table">
                             <thead>
@@ -689,7 +720,7 @@ const SchoolFees = () => {
                             </thead>
 
                             <tbody>
-                                {filteredStructures.map((structure) => (
+                             {paginatedStructures.map((structure) => (
                                     <tr key={structure.id}>
                                         <td>
                                             <strong>{structure.name}</strong>
@@ -746,6 +777,57 @@ const SchoolFees = () => {
                             </tbody>
                         </table>
                     </div>
+
+                     <div className="school-fees__pagination">
+                        <p className="school-fees__pagination-summary">
+                            Showing {structuresStart}–{structuresEnd} of{" "}
+                            {filteredStructures.length} structures
+                        </p>
+
+                        <div className="school-fees__pagination-controls">
+                            <label>
+                                Rows per page
+                                <select
+                                    value={structuresPageSize}
+                                    onChange={(event) => {
+                                        setStructuresPageSize(Number(event.target.value));
+                                        setStructuresPage(1);
+                                    }}
+                                >
+                                    <option value={25}>25</option>
+                                    <option value={50}>50</option>
+                                    <option value={100}>100</option>
+                                </select>
+                            </label>
+
+                            <button
+                                type="button"
+                                disabled={currentStructuresPage === 1}
+                                onClick={() =>
+                                    setStructuresPage((page) => Math.max(page - 1, 1))
+                                }
+                            >
+                                Previous
+                            </button>
+
+                            <span>
+                                Page {currentStructuresPage} of {totalStructurePages}
+                            </span>
+
+                            <button
+                                type="button"
+                                disabled={currentStructuresPage === totalStructurePages}
+                                onClick={() =>
+                                    setStructuresPage((page) =>
+                                        Math.min(page + 1, totalStructurePages)
+                                    )
+                                }
+                            >
+                                Next
+                            </button>
+                        </div>
+                    </div>
+                    </>
                 )}
             </section>
 

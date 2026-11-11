@@ -46,19 +46,34 @@
   font-weight: 600;
 }
 
-.transaction-table__method--cash {
+  .transaction-table__method--cash {
   background: #dcfce7;
   color: #15803d;
 }
 
-.transaction-table__method--bank-transfer {
+.transaction-table__method--transfer {
   background: #dbeafe;
   color: #1d4ed8;
 }
 
-.transaction-table__method--card {
+.transaction-table__method--pos {
   background: #fef3c7;
   color: #b45309;
+}
+
+.transaction-table__method--cheque {
+  background: #f3e8ff;
+  color: #7e22ce;
+}
+
+.transaction-table__method--ussd {
+  background: #ccfbf1;
+  color: #0f766e;
+}
+
+.transaction-table__method--other {
+  background: #f1f5f9;
+  color: #475569;
 }
 
 .transaction-table__actions {
@@ -279,25 +294,11 @@
     width: 100%;
   }
 
-.transaction-table__method--card{
-  font-size: .5rem;
-  padding: .3rem;
-}
-
-  .transaction-table__method--bank-transfer {
-    font-size: .5rem;
-    padding: .5rem;
-  }
-
-
-}
-
+   }
 
 @media (max-width: 600px){
   .transaction-table__method--bank-transfer {
     font-size: .2rem;
     padding: .3rem;
   }
-
- 
 }

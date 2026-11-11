@@ -1,4 +1,7 @@
 import pool from "../config/db.js";
+import {
+    generateFinancialAccountsForCurrentTerm,
+} from "../services/financialRolloverService.js";
 
 export const getTerms = async (req, res) => {
     try {
@@ -104,6 +107,7 @@ export const getTermById = async (req, res) => {
 
 export const createTerm = async (req, res) => {
     const client = await pool.connect();
+    let transactionStarted = false;
 
     try {
         const { schoolId } = req;
@@ -155,27 +159,36 @@ export const createTerm = async (req, res) => {
         }
 
         /*
-         * Validate that the academic session belongs
-         * to this school.
-         */
+        * Start a transaction before validating the academic
+        * session so its current status remains consistent
+        * throughout term creation and financial generation.
+        */
+       await client.query("BEGIN");
+          transactionStarted = true;
         const sessionResult = await client.query(
             `
-            SELECT id
+            SELECT
+            id,
+            is_current
             FROM academic_sessions
             WHERE id = $1
-              AND school_id = $2;
+              AND school_id = $2
+            FOR SHARE;
             `,
             [academicSessionId, schoolId]
         );
 
         if (sessionResult.rows.length === 0) {
+              await client.query("ROLLBACK");
+              transactionStarted = false;
+
             return res.status(404).json({
                 message:
                     "Academic session not found.",
             });
         }
 
-        await client.query("BEGIN");
+
 
         const result = await client.query(
             `
@@ -212,14 +225,38 @@ export const createTerm = async (req, res) => {
             ]
         );
 
+
+       let financialGeneration = null;
+
+        if (
+            isCurrent &&
+            sessionResult.rows[0].is_current
+        ) {
+            financialGeneration =
+                await generateFinancialAccountsForCurrentTerm(
+                    client,
+                    { schoolId }
+                );
+
+            if (!financialGeneration.processed) {
+                throw new Error(
+                    financialGeneration.reason
+                );
+            }
+        }
+
         await client.query("COMMIT");
+        transactionStarted = false;
 
         return res.status(201).json({
             message: "Term created successfully.",
             term: result.rows[0],
+             financialGeneration,
         });
     } catch (error) {
-        await client.query("ROLLBACK");
+            if (transactionStarted) {
+            await client.query("ROLLBACK");
+        }
 
         if (error.code === "23505") {
             return res.status(409).json({
@@ -241,7 +278,11 @@ export const createTerm = async (req, res) => {
     }
 };
 
+
 export const updateTerm = async (req, res) => {
+    const client = await pool.connect();
+    let transactionStarted = false;
+
     try {
         const { schoolId } = req;
         const { id } = req.params;
@@ -254,15 +295,17 @@ export const updateTerm = async (req, res) => {
             isCurrent,
         } = req.body;
 
-        const existingResult = await pool.query(
+        await client.query("BEGIN");
+        transactionStarted = true;
+
+        /*
+         * Identify the academic session before locking
+         * records. The session is locked before the term
+         * to maintain a consistent lock order.
+         */
+        const termLookup = await client.query(
             `
-            SELECT
-                id,
-                name,
-                display_order,
-                start_date,
-                end_date,
-                is_current
+            SELECT academic_session_id
             FROM terms
             WHERE id = $1
               AND school_id = $2;
@@ -270,14 +313,72 @@ export const updateTerm = async (req, res) => {
             [id, schoolId]
         );
 
-        if (existingResult.rows.length === 0) {
+        if (termLookup.rows.length === 0) {
+            await client.query("ROLLBACK");
+            transactionStarted = false;
+
             return res.status(404).json({
                 message: "Term not found.",
             });
         }
 
-        const existing =
-            existingResult.rows[0];
+        const academicSessionId =
+            termLookup.rows[0].academic_session_id;
+
+        const sessionResult = await client.query(
+            `
+            SELECT
+                id,
+                is_current
+            FROM academic_sessions
+            WHERE id = $1
+              AND school_id = $2
+            FOR SHARE;
+            `,
+            [academicSessionId, schoolId]
+        );
+
+        if (sessionResult.rows.length === 0) {
+            await client.query("ROLLBACK");
+            transactionStarted = false;
+
+            return res.status(404).json({
+                message: "Academic session not found.",
+            });
+        }
+
+        /*
+         * Lock and re-read the term after acquiring
+         * the academic session lock.
+         */
+        const existingResult = await client.query(
+            `
+            SELECT
+                id,
+                academic_session_id,
+                name,
+                display_order,
+                start_date,
+                end_date,
+                is_current
+            FROM terms
+            WHERE id = $1
+              AND school_id = $2
+            FOR UPDATE;
+            `,
+            [id, schoolId]
+        );
+
+        if (existingResult.rows.length === 0) {
+            await client.query("ROLLBACK");
+            transactionStarted = false;
+
+            return res.status(404).json({
+                message: "Term not found.",
+            });
+        }
+
+        const existing = existingResult.rows[0];
 
         const nextName =
             name ?? existing.name;
@@ -298,6 +399,9 @@ export const updateTerm = async (req, res) => {
             !Number.isInteger(nextDisplayOrder) ||
             nextDisplayOrder <= 0
         ) {
+            await client.query("ROLLBACK");
+            transactionStarted = false;
+
             return res.status(400).json({
                 message:
                     "Display order must be a positive integer.",
@@ -305,6 +409,9 @@ export const updateTerm = async (req, res) => {
         }
 
         if (typeof nextIsCurrent !== "boolean") {
+            await client.query("ROLLBACK");
+            transactionStarted = false;
+
             return res.status(400).json({
                 message:
                     "isCurrent must be a boolean.",
@@ -312,13 +419,16 @@ export const updateTerm = async (req, res) => {
         }
 
         if (nextEndDate < nextStartDate) {
+            await client.query("ROLLBACK");
+            transactionStarted = false;
+
             return res.status(400).json({
                 message:
                     "End date cannot be earlier than start date.",
             });
         }
 
-        const result = await pool.query(
+        const result = await client.query(
             `
             UPDATE terms
             SET
@@ -353,11 +463,39 @@ export const updateTerm = async (req, res) => {
             ]
         );
 
+        let financialGeneration = null;
+
+        if (
+            !existing.is_current &&
+            nextIsCurrent &&
+            sessionResult.rows[0].is_current
+        ) {
+            financialGeneration =
+                await generateFinancialAccountsForCurrentTerm(
+                    client,
+                    { schoolId }
+                );
+
+            if (!financialGeneration.processed) {
+                throw new Error(
+                    financialGeneration.reason
+                );
+            }
+        }
+
+        await client.query("COMMIT");
+        transactionStarted = false;
+
         return res.status(200).json({
             message: "Term updated successfully.",
             term: result.rows[0],
+            financialGeneration,
         });
     } catch (error) {
+        if (transactionStarted) {
+            await client.query("ROLLBACK");
+        }
+
         if (error.code === "23505") {
             return res.status(409).json({
                 message:
@@ -373,8 +511,11 @@ export const updateTerm = async (req, res) => {
         return res.status(500).json({
             message: "Failed to update term.",
         });
+    } finally {
+        client.release();
     }
 };
+
 
 export const deleteTerm = async (req, res) => {
     try {

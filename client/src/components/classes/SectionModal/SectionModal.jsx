@@ -1,9 +1,10 @@
+
+
 import React, { useEffect, useState } from "react";
 
 import "./SectionModal.css";
-import teachers from "../../../data/teachers";
 
-const sectionNames = ["A", "B", "C", "D", "E"];
+
 
 const initialSection = {
     classId: "",
@@ -17,14 +18,20 @@ const SectionModal = ({
     onClose,
     onAddSection,
     editingSection,
-    classes
+    classes,
+    teachers
 }) => {
-   
     const [sectionData, setSectionData] = useState(initialSection);
 
     useEffect(() => {
         if (editingSection) {
-            setSectionData(editingSection);
+            setSectionData({
+                ...initialSection,
+                ...editingSection,
+                classId: editingSection.classId || "",
+                classTeacherId: editingSection.classTeacherId || "",
+                capacity: editingSection.capacity ?? ""
+            });
         } else {
             setSectionData(initialSection);
         }
@@ -35,19 +42,23 @@ const SectionModal = ({
 
         setSectionData((prev) => ({
             ...prev,
-           [name]:
-                    name === "classId" ||
-                    name === "classTeacherId" ||
-                    name === "capacity"
-                        ? Number(value)
-                        : value
+            [name]:
+                name === "capacity"
+                    ? value === "" ? "" : Number(value)
+                    : value
         }));
     };
 
     const handleSubmit = (e) => {
         e.preventDefault();
 
-        onAddSection(sectionData);
+        onAddSection({
+            ...sectionData,
+            classTeacherId: sectionData.classTeacherId || null,
+            capacity: sectionData.capacity === ""
+                ? null
+                : Number(sectionData.capacity)
+        });
     };
 
     return (
@@ -59,12 +70,9 @@ const SectionModal = ({
                 className="section-modal"
                 onClick={(e) => e.stopPropagation()}
             >
-
                 <div className="section-modal__header">
                     <h2>
-                        {editingSection
-                            ? "Edit Section"
-                            : "Add Section"}
+                        {editingSection ? "Edit Section" : "Add Section"}
                     </h2>
 
                     <button
@@ -75,11 +83,8 @@ const SectionModal = ({
                     </button>
                 </div>
 
-
                 <form onSubmit={handleSubmit}>
-
                     {/* Class */}
-
                     <div className="section-form__group">
                         <label htmlFor="classId">
                             Class
@@ -107,39 +112,25 @@ const SectionModal = ({
                         </select>
                     </div>
 
-
                     {/* Section */}
-
+                                        
                     <div className="section-form__group">
                         <label htmlFor="name">
                             Section
                         </label>
 
-                        <select
+                        <input
                             id="name"
+                            type="text"
                             name="name"
                             value={sectionData.name}
                             onChange={handleChange}
+                            placeholder="e.g. A, B, Gold, Blue"
                             required
-                        >
-                            <option value="">
-                                Select section
-                            </option>
-
-                            {sectionNames.map((sectionName) => (
-                                <option
-                                    key={sectionName}
-                                    value={sectionName}
-                                >
-                                    {sectionName}
-                                </option>
-                            ))}
-                        </select>
+                        />
                     </div>
 
-
                     {/* Class Teacher */}
-
                     <div className="section-form__group">
                         <label htmlFor="classTeacherId">
                             Class Teacher
@@ -158,8 +149,8 @@ const SectionModal = ({
 
                             {teachers.map((teacher) => (
                                 <option
-                                    key={teacher.id}
-                                    value={teacher.id}
+                                    key={teacher.schoolStaffId}
+                                    value={teacher.schoolStaffId}
                                 >
                                     {teacher.firstName}{" "}
                                     {teacher.lastName}
@@ -168,9 +159,7 @@ const SectionModal = ({
                         </select>
                     </div>
 
-
                     {/* Room */}
-
                     <div className="section-form__group">
                         <label htmlFor="room">
                             Room
@@ -187,9 +176,7 @@ const SectionModal = ({
                         />
                     </div>
 
-
                     {/* Capacity */}
-
                     <div className="section-form__group">
                         <label htmlFor="capacity">
                             Capacity
@@ -207,15 +194,10 @@ const SectionModal = ({
                         />
                     </div>
 
-
                     <button type="submit">
-                        {editingSection
-                            ? "Save Changes"
-                            : "Add Section"}
+                        {editingSection ? "Save Changes" : "Add Section"}
                     </button>
-
                 </form>
-
             </div>
         </div>
     );

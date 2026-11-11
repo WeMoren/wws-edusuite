@@ -31,21 +31,32 @@ const Students = () => {
             setStudents,
             payments,
             financialAccounts,
+            setFinancialAccounts,
             financialAccountsLoading,
             financialAccountsError,
             enrollments,
             setEnrollments,
             academicLevels,
             academicSessions,
+            academicTerms,
             sections,
             classes,
              streams,
             streamLevels,
             subjectCombinations,
-            setRecentActivities,
+            refreshRecentActivities,
          } = useOutletContext();
 
 
+         const currentAcademicSession = academicSessions.find(
+                (session) => session.isCurrent
+                );
+
+                const currentAcademicTerm = academicTerms.find(
+                (term) =>
+                    term.isCurrent &&
+                    term.academicSessionId === currentAcademicSession?.id
+            );
 
 
         useEffect(() => {
@@ -71,6 +82,18 @@ const { currentUser, authToken } = useAuth();
     currentUser?.role,
     "students",
     "delete"
+    );
+
+        const userRoles = Array.isArray(currentUser?.roles)
+        ? currentUser.roles
+        : [currentUser?.role];
+
+    const canViewFinancialAccounts = userRoles.some((role) =>
+        hasPermission(role, "accountant", "view")
+    );
+
+    const canViewStudentPaymentStatus = userRoles.some((role) =>
+        hasPermission(role, "students", "view")
     );
 
 
@@ -135,7 +158,10 @@ const { currentUser, authToken } = useAuth();
         {canCreateStudent && (
             <button
                 className="students-page__button"
-                onClick={() => setShowModal(true)}
+                onClick={() => {
+                    setEditingStudent(null);
+                    setShowModal(true);
+                }}
             >
                 + Add Student
             </button>
@@ -181,10 +207,15 @@ const { currentUser, authToken } = useAuth();
             students ={currentStudents}
             payments={payments}
             enrollments={enrollments}
+            financialAccounts={financialAccounts}
+            financialAccountsLoading={financialAccountsLoading}
+            currentAcademicSessionId={currentAcademicSession?.id}
+            currentAcademicTermId={currentAcademicTerm?.id}
             academicLevels={academicLevels}
             sections={sections}
             classes={classes}
             canEdit={canEditStudent}
+            canViewFinancialAccounts={canViewFinancialAccounts}
             canDelete={canDeleteStudent}
             onEdit={(students)  =>  {
                 if(!canEditStudent){
@@ -220,6 +251,7 @@ const { currentUser, authToken } = useAuth();
                 financialAccountsLoading={financialAccountsLoading}
                 financialAccountsError={financialAccountsError}
                 canEdit={canEditStudent}
+                canViewFinancialAccounts={canViewFinancialAccounts}
                 onEdit={(student) => {
                     if(!canEditStudent){
                         return;
@@ -304,7 +336,10 @@ const { currentUser, authToken } = useAuth();
 
         {showModal && (
             <StudentModal
-                onClose={() => setShowModal(false) }
+                onClose={() => {
+                        setShowModal(false);
+                        setEditingStudent(null);
+                    }}
                 studentToEdit={editingStudent}
                 academicSessions={academicSessions}
                 academicLevels={academicLevels}
@@ -315,7 +350,7 @@ const { currentUser, authToken } = useAuth();
                 streamLevels={streamLevels}
                 subjectCombinations={subjectCombinations}
 
-onAddStudent={async (studentData, enrollmentData, studentToEdit) => {
+    onAddStudent={async (studentData, enrollmentData, studentToEdit) => {
     const request = async (url, options = {}) => {
         const response = await fetch(`${API_BASE_URL}${url}`, {
             ...options,
@@ -335,57 +370,106 @@ onAddStudent={async (studentData, enrollmentData, studentToEdit) => {
         return data;
     };
 
-    const refreshStudentsAndEnrollments = async () => {
-        const [studentsData, enrollmentsData] = await Promise.all([
+
+       const refreshStudentsAndEnrollments = async () => {
+    const accountEndpoint = canViewFinancialAccounts
+        ? "/student-financial-accounts"
+        : canViewStudentPaymentStatus
+            ? "/student-financial-accounts/payment-statuses"
+            : null;
+
+    const [studentsData, enrollmentsData, accountsData] =
+        await Promise.all([
             request("/students"),
             request("/enrollments"),
+            accountEndpoint
+                ? request(accountEndpoint)
+                : Promise.resolve({}),
         ]);
 
-        setStudents(
-            (studentsData.students || []).map((student) => ({
-                id: student.id,
-                schoolId: student.school_id,
-                admissionNo: student.admission_no,
-                firstName: student.first_name,
-                middleName: student.middle_name,
-                lastName: student.last_name,
-                gender: student.gender,
-                dateOfBirth: student.date_of_birth,
-                phone: student.phone,
-                email: student.email,
-                address: student.address,
-                status: student.status,
-                createdAt: student.created_at,
-                updatedAt: student.updated_at,
-            }))
-        );
+    setStudents(
+        (studentsData.students || []).map((student) => ({
+            id: student.id,
+            schoolId: student.school_id,
+            admissionNo: student.admission_no,
+            firstName: student.first_name,
+            middleName: student.middle_name,
+            lastName: student.last_name,
+            gender: student.gender,
+            dateOfBirth: student.date_of_birth,
+            phone: student.phone,
+            email: student.email,
+            address: student.address,
+            status: student.status,
+            createdAt: student.created_at,
+            updatedAt: student.updated_at,
+        }))
+    );
 
-        setEnrollments(
-            (enrollmentsData.enrollments || []).map((enrollment) => ({
-                id: enrollment.id,
-                schoolId: enrollment.school_id,
-                studentId: enrollment.student_id,
-                academicSessionId: enrollment.academic_session_id,
-                academicLevelId: enrollment.academic_level_id,
-                classId: enrollment.class_id,
-                sectionId: enrollment.section_id,
-                streamId: enrollment.stream_id,
-                combinationId: enrollment.subject_combination_id,
-                subjectCombinationId: enrollment.subject_combination_id,
-                status: enrollment.status,
-                enrolledAt: enrollment.enrolled_at,
-                admissionNo: enrollment.admission_no,
-                firstName: enrollment.first_name,
-                middleName: enrollment.middle_name,
-                lastName: enrollment.last_name,
-                academicSessionName: enrollment.academic_session_name,
-                className: enrollment.class_name,
-                sectionName: enrollment.section_name,
-                streamName: enrollment.stream_name,
-                combinationName: enrollment.subject_combination_name,
-            }))
+    setEnrollments(
+        (enrollmentsData.enrollments || []).map((enrollment) => ({
+            id: enrollment.id,
+            schoolId: enrollment.school_id,
+            studentId: enrollment.student_id,
+            academicSessionId: enrollment.academic_session_id,
+            academicLevelId: enrollment.academic_level_id,
+            classId: enrollment.class_id,
+            sectionId: enrollment.section_id,
+            streamId: enrollment.stream_id,
+            combinationId: enrollment.subject_combination_id,
+            subjectCombinationId: enrollment.subject_combination_id,
+            status: enrollment.status,
+            enrolledAt: enrollment.enrolled_at,
+            admissionNo: enrollment.admission_no,
+            firstName: enrollment.first_name,
+            middleName: enrollment.middle_name,
+            lastName: enrollment.last_name,
+            academicSessionName: enrollment.academic_session_name,
+            className: enrollment.class_name,
+            sectionName: enrollment.section_name,
+            streamName: enrollment.stream_name,
+            combinationName: enrollment.subject_combination_name,
+        }))
+    );
+
+    let mappedAccounts = [];
+
+    if (canViewFinancialAccounts) {
+        mappedAccounts = (accountsData.financialAccounts || []).map(
+            (account) => ({
+                id: account.id,
+                studentId: account.student_id,
+                enrollmentId: account.enrollment_id,
+                academicSessionId: account.academic_session_id,
+                academicSessionName: account.academic_session_name,
+                termId: account.term_id,
+                termName: account.term_name,
+                feeStructureId: account.fee_structure_id,
+                feeStructureName: account.fee_structure_name,
+                className: account.class_name,
+                academicLevelName: account.academic_level_name,
+                totalDue: Number(account.total_due),
+                totalPaid: Number(account.total_paid),
+                status: account.status,
+                outstanding: Math.max(
+                    Number(account.total_due) - Number(account.total_paid),
+                    0
+                ),
+            })
         );
-    };
+    } else if (canViewStudentPaymentStatus) {
+        mappedAccounts = (accountsData.paymentStatuses || []).map(
+            (account) => ({
+                studentId: account.student_id,
+                enrollmentId: account.enrollment_id,
+                termId: account.term_id,
+                status: account.status,
+            })
+        );
+    }
+
+    setFinancialAccounts(mappedAccounts);
+};
 
     const enrollmentPayload = {
         academicSessionId: enrollmentData.academicSessionId,
@@ -411,6 +495,8 @@ onAddStudent={async (studentData, enrollmentData, studentToEdit) => {
             body: JSON.stringify(studentData),
         });
 
+        await refreshRecentActivities();
+
         try {
             await request(`/enrollments/${existingEnrollment.id}`, {
                 method: "PATCH",
@@ -425,19 +511,16 @@ onAddStudent={async (studentData, enrollmentData, studentToEdit) => {
 
         await refreshStudentsAndEnrollments();
 
-        setRecentActivities((previous) => [
-            {
-                id: Date.now(),
-                activity: "Student details updated",
-                createdAt: new Date().toISOString(),
-            },
-            ...previous,
-        ]);
+        await refreshRecentActivities();
+
+       
     } else {
         const result = await request("/students", {
             method: "POST",
             body: JSON.stringify(studentData),
         });
+
+        await refreshRecentActivities();
 
         try {
             await request("/enrollments", {
@@ -456,14 +539,8 @@ onAddStudent={async (studentData, enrollmentData, studentToEdit) => {
 
         await refreshStudentsAndEnrollments();
 
-        setRecentActivities((previous) => [
-            {
-                id: Date.now(),
-                activity: "New student added",
-                createdAt: new Date().toISOString(),
-            },
-            ...previous,
-        ]);
+        await refreshRecentActivities();
+
     }
 
     setShowModal(false);

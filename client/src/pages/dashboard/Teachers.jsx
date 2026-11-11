@@ -1,16 +1,16 @@
-import React,  {useEffect, useState}  from 'react';
+import React,  {useState}  from 'react';
 import { useOutletContext } from "react-router-dom";
-import initialTeachers from '../../data/teachers';
 import TeacherTable from '../../components/teachers/TeacherTable';
 import "./Teachers.css";
 import TeacherModal from '../../components/teachers/TeacherModal/TeacherModal';
 import ConfirmDialog from "../../components/common/ConfirmDialog/ConfirmDialog";
 import { useAuth } from "../../auth/AuthContext";
 import { hasPermission } from "../../auth/permissions";
+const API_BASE_URL = "http://localhost:5000/api";
 
 const Teachers = () => {
 
-    const { currentUser } = useAuth();
+    const { currentUser, authToken } = useAuth();
 
     const canCreateTeacher = hasPermission(
         currentUser?.role,
@@ -38,13 +38,15 @@ const Teachers = () => {
     const [subjectFilter, setSubjectFilter] = useState("");
     const [genderFilter, setGenderFilter] = useState("");
     const [currentPage, setCurrentPage] = useState(1);
+    const [isDeletingTeacher, setIsDeletingTeacher] = useState(false);
+const [deleteTeacherError, setDeleteTeacherError] = useState("");
     const teachersPerPage = 5;
 
 
     const { 
             teachers, 
             setTeachers,
-            setRecentActivities,
+             refreshRecentActivities,
         } = useOutletContext();
 
 
@@ -82,10 +84,50 @@ const filteredTeachers = teachers.filter((teacher) => {
         startIndex + teachersPerPage
 );
 
-    useEffect(() => {
-        localStorage.setItem("teachers", JSON.stringify(teachers))
-    }, [teachers]
-)
+
+
+const handleEditTeacher = async (teacher) => {
+    if (!canEditTeacher) {
+        return;
+    }
+
+    try {
+        const response = await fetch(
+            `${API_BASE_URL}/teachers/${teacher.id}`,
+            {
+                headers: {
+                    Authorization: `Bearer ${authToken}`,
+                },
+            }
+        );
+
+        const data = await response.json().catch(() => ({}));
+
+        if (!response.ok) {
+            throw new Error(
+                data.message || "Failed to fetch teacher details."
+            );
+        }
+
+        const fetchedTeacher = data.teacher;
+
+        setEditingTeacher({
+            id: fetchedTeacher.id,
+            staffId: fetchedTeacher.staff_id || "",
+            firstName: fetchedTeacher.first_name || "",
+            lastName: fetchedTeacher.last_name || "",
+            email: fetchedTeacher.email || "",
+            phoneNum: fetchedTeacher.phone || "",
+            subject: fetchedTeacher.subject || "",
+            gender: fetchedTeacher.gender || "",
+            status: fetchedTeacher.status || "",
+        });
+
+        setShowModal(true);
+    } catch (error) {
+        console.error("Failed to load teacher details:", error);
+    }
+};
 
 
   return (
@@ -138,14 +180,7 @@ const filteredTeachers = teachers.filter((teacher) => {
             teachers={currentTeachers}
              canEdit={canEditTeacher}
              canDelete={canDeleteTeacher}
-            onEdit={(teacher) => {
-                 if (!canEditTeacher) {
-                    return;
-                }
-
-                setEditingTeacher(teacher);
-                setShowModal(true)
-            }}
+            onEdit={handleEditTeacher}
 
             onDelete={(teacherId) => {
                  if (!canDeleteTeacher) {
@@ -184,27 +219,63 @@ const filteredTeachers = teachers.filter((teacher) => {
             </div>
           )}      
 
-          {teacherToDelete && (
-                 <ConfirmDialog
-                    title="Delete Teacher"
-                    message={`Are you sure you want to delete ${teacherToDelete.firstName} ${teacherToDelete.lastName}?`}
-                    onCancel={() => setTeacherToDelete(null)}
-                    onConfirm={() => {
-                            if (!canDeleteTeacher) {
-                                return;
-                            }
+         {teacherToDelete && (
+            <ConfirmDialog
+            title="Delete Teacher"
+            message={`Are you sure you want to delete ${teacherToDelete.firstName} ${teacherToDelete.lastName}?`}
+            loading={isDeletingTeacher}
+            error={deleteTeacherError}
+            onCancel={() => {
+                setTeacherToDelete(null);
+                setDeleteTeacherError("");
+            }}
+            onConfirm={async () => {
+                if (!canDeleteTeacher || isDeletingTeacher) {
+                    return;
+                }
+
+                setIsDeletingTeacher(true);
+                setDeleteTeacherError("");
+
+                try {
+                    const response = await fetch(
+                        `${API_BASE_URL}/teachers/${teacherToDelete.id}`,
+                        {
+                            method: "DELETE",
+                            headers: {
+                                Authorization: `Bearer ${authToken}`,
+                            },
+                        }
+                    );
+
+                    const data = await response.json().catch(() => ({}));
+
+                    if (!response.ok) {
+                        throw new Error(
+                            data.message || "Failed to delete teacher."
+                        );
+                    }
 
                     setTeachers((prevTeachers) =>
                         prevTeachers.filter(
-                        (teacher) => teacher.id !== teacherToDelete.id
-                )
-      );
+                            (teacher) => teacher.id !== teacherToDelete.id
+                        )
+                    );
 
-      setTeacherToDelete(null);
-    }}
-  />
-)}
+                    await refreshRecentActivities();
 
+                    setTeacherToDelete(null);
+                } catch (error) {
+                    console.error("Failed to delete teacher:", error);
+                    setDeleteTeacherError(
+                        error.message || "Failed to delete teacher."
+                    );
+                } finally {
+                    setIsDeletingTeacher(false);
+                }
+            }}
+        />
+        )}
 
         {showModal && (
              <TeacherModal
@@ -215,40 +286,71 @@ const filteredTeachers = teachers.filter((teacher) => {
 
                 editingTeacher={editingTeacher}
 
-                onAddTeacher={(teacherData) => {
-                    if(editingTeacher) {
-                        setTeachers((prevTeachers) => 
-                            prevTeachers.map((teacher) => 
-                                teacher.id === editingTeacher.id
-                                ? {...teacherData, id: editingTeacher.id}
-                                : teacher
-                            )
-                        )
+                onAddTeacher={async (teacherData) => {
+                    try {
+                        const isEditing = Boolean(editingTeacher);
 
-                        setEditingTeacher(null);
-                        setShowModal(false)
-                    } else { 
-                     setTeachers((prevTeachers) =>[
-                    ...prevTeachers,
-                    {
-                        ...teacherData,
-                        id:prevTeachers.length > 0 
-                        ? Math.max(
-                            ...prevTeachers.map((teacher) => teacher.id)
-                        ) + 1 : 1
-                    }
-                        
-                   ]);
+                        const response = await fetch(
+                            isEditing
+                                ? `${API_BASE_URL}/teachers/${editingTeacher.id}`
+                                : `${API_BASE_URL}/teachers`,
+                            {
+                                method: isEditing ? "PATCH" : "POST",
+                                headers: {
+                                    "Content-Type": "application/json",
+                                    Authorization: `Bearer ${authToken}`,
+                                },
+                                body: JSON.stringify(teacherData),
+                            }
+                        );
 
-                        setRecentActivities((prevActivities) =>  [
-                           {id:Date.now(),
-                            activity: "Teacher account created",
-                            createdAt: new Date().toISOString(),
-                           },
-                           ...prevActivities,
-                        ]);
+                        const data = await response.json().catch(() => ({}));
 
-                    setShowModal(false)
+                        if (!response.ok) {
+                            throw new Error(
+                                data.message || "Failed to save teacher."
+                            );
+                        }
+
+                        const savedTeacher = data.teacher;
+
+                        const updatedTeacher = {
+                            id: savedTeacher.id,
+                            staffId: savedTeacher.staff_id,
+                            firstName: savedTeacher.first_name,
+                            lastName: savedTeacher.last_name,
+                            email: savedTeacher.email || "",
+                            phoneNum: savedTeacher.phone || "",
+                            subject: savedTeacher.subject,
+                            gender: savedTeacher.gender || "",
+                            status: savedTeacher.status,
+                        };
+
+                        if (isEditing) {
+                            setTeachers((prevTeachers) =>
+                                prevTeachers.map((teacher) =>
+                                    teacher.id === updatedTeacher.id
+                                        ? updatedTeacher
+                                        : teacher
+                                )
+                            );
+
+                            setEditingTeacher(null);
+                        } else {
+                            setTeachers((prevTeachers) => [
+                                ...prevTeachers,
+                                updatedTeacher,
+                            ]);
+
+                           
+                        }
+
+                     await refreshRecentActivities();
+
+                        setShowModal(false);
+                    } catch (error) {
+                        console.error("Failed to save teacher:", error);
+                           throw error;
                     }
                 }}
              />

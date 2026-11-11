@@ -1,3 +1,4 @@
+
 import React, { useState } from "react";
 import { useOutletContext } from "react-router-dom";
 import "./Events.css";
@@ -9,11 +10,44 @@ const Events = () => {
     const [showEventModal, setShowEventModal] = useState(false);
     const [editingEvent, setEditingEvent] = useState(null);
     const [deletingEvent, setDeletingEvent] = useState(null);
+    const [isDeleting, setIsDeleting] = useState(false);
+    const [deleteError, setDeleteError] = useState("");
 
     const {
         upcomingEvents,
-        setUpcomingEvents,
+        createEvent,
+        updateEvent,
+        deleteEvent,
     } = useOutletContext();
+
+    const handleSaveEvent = async (eventData) => {
+        if (editingEvent) {
+            await updateEvent(editingEvent.id, eventData);
+            return;
+        }
+
+        await createEvent(eventData);
+    };
+
+    const handleDeleteEvent = async () => {
+        if (!deletingEvent) {
+            return;
+        }
+
+        setIsDeleting(true);
+        setDeleteError("");
+
+        try {
+            await deleteEvent(deletingEvent.id);
+            setDeletingEvent(null);
+        } catch (error) {
+            setDeleteError(
+                error.message || "Failed to delete the event. Please try again."
+            );
+        } finally {
+            setIsDeleting(false);
+        }
+    };
 
     return (
         <div className="events-page">
@@ -25,7 +59,10 @@ const Events = () => {
 
                 <button
                     type="button"
-                    onClick={() => setShowEventModal(true)}
+                    onClick={() => {
+                        setEditingEvent(null);
+                        setShowEventModal(true);
+                    }}
                 >
                     + Add Event
                 </button>
@@ -46,27 +83,27 @@ const Events = () => {
                                     date={event.date}
                                 />
 
-                              <div className="events-page__actions">
-                                  <button
-                                    type="button"
-                                    onClick={() => {
-                                        setEditingEvent(event);
-                                        setShowEventModal(true);
-                                    }}
-                                >
-                                    Edit
-                                </button>
+                                <div className="events-page__actions">
+                                    <button
+                                        type="button"
+                                        onClick={() => {
+                                            setEditingEvent(event);
+                                            setShowEventModal(true);
+                                        }}
+                                    >
+                                        Edit
+                                    </button>
 
-                                <button
-                                    type="button"
-                                    onClick={() => {
-                                        setDeletingEvent(event);
-                                    }}
-                                >
-                                    Delete
-                                </button>
-                              </div>
-
+                                    <button
+                                        type="button"
+                                        onClick={() => {
+                                            setDeleteError("");
+                                            setDeletingEvent(event);
+                                        }}
+                                    >
+                                        Delete
+                                    </button>
+                                </div>
                             </div>
                         ))}
                     </div>
@@ -82,56 +119,28 @@ const Events = () => {
                         setShowEventModal(false);
                         setEditingEvent(null);
                     }}
-                    onAddEvent={(eventData) => {
-                        setUpcomingEvents((prevEvents) => {
-                            if (editingEvent) {
-                                return prevEvents.map((event) =>
-                                    event.id === editingEvent.id
-                                        ? eventData
-                                        : event
-                                );
-                            }
-
-                            return [
-                                ...prevEvents,
-                                {
-                                    ...eventData,
-                                    id:
-                                        prevEvents.length > 0
-                                            ? Math.max(
-                                                ...prevEvents.map(
-                                                    (event) => event.id
-                                                )
-                                            ) + 1
-                                            : 1,
-                                },
-                            ];
-                        });
-
-                        setShowEventModal(false);
-                        setEditingEvent(null);
-                    }}
+                    onAddEvent={handleSaveEvent}
                 />
             )}
 
-
-
             {deletingEvent && (
-             <ConfirmDialog
-                title="Delete Event"
-                message={`Are you sure you want to delete "${deletingEvent.title}"?`}
-                onCancel={() => setDeletingEvent(null)}
-                onConfirm={() => {
-                    setUpcomingEvents((prevEvents) =>
-                        prevEvents.filter(
-                            (event) => event.id !== deletingEvent.id
-                        )
-                    );
-
-                    setDeletingEvent(null);
+                <ConfirmDialog
+                    title="Delete Event"
+                    message={
+                        deleteError
+                            ? `Deletion failed: ${deleteError}`
+                            : `Are you sure you want to delete "${deletingEvent.title}"?`
+                    }
+                    onCancel={() => {
+                        if (!isDeleting) {
+                            setDeletingEvent(null);
+                            setDeleteError("");
+                        }
                     }}
-             />
-    )}
+                    onConfirm={handleDeleteEvent}
+                    loading={isDeleting}
+                />
+            )}
         </div>
     );
 };

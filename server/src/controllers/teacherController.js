@@ -1,5 +1,5 @@
 import pool from "../config/db.js";
-import { hashPassword } from "../utils/password.js";
+import { recordActivity } from "../services/activityLogService.js";
 
 const validGenders = [
     "Male",
@@ -20,24 +20,22 @@ export const getTeachers = async (req, res) => {
             SELECT
                 t.id,
                 t.school_id,
-                t.user_id,
-                t.staff_id,
-                u.first_name,
-                u.last_name,
-                u.email,
-                u.status,
+                t.staff_id AS school_staff_id,
+                s.staff_id,
+                s.first_name,
+                s.last_name,
+                s.email,
+                s.phone,
+                s.gender,
+                s.status,
                 t.subject,
-                t.gender,
                 t.created_at,
                 t.updated_at
-
             FROM teachers t
-
-            JOIN users u
-                ON u.id = t.user_id
-
+            JOIN school_staff s
+                ON s.id = t.staff_id
+               AND s.school_id = t.school_id
             WHERE t.school_id = $1
-
             ORDER BY t.created_at DESC;
             `,
             [schoolId]
@@ -68,22 +66,21 @@ export const getTeacherById = async (req, res) => {
             SELECT
                 t.id,
                 t.school_id,
-                t.user_id,
-                t.staff_id,
-                u.first_name,
-                u.last_name,
-                u.email,
-                u.status,
+                t.staff_id AS school_staff_id,
+                s.staff_id,
+                s.first_name,
+                s.last_name,
+                s.email,
+                s.phone,
+                s.gender,
+                s.status,
                 t.subject,
-                t.gender,
                 t.created_at,
                 t.updated_at
-
             FROM teachers t
-
-            JOIN users u
-                ON u.id = t.user_id
-
+            JOIN school_staff s
+                ON s.id = t.staff_id
+               AND s.school_id = t.school_id
             WHERE t.id = $1
               AND t.school_id = $2;
             `,
@@ -111,214 +108,253 @@ export const getTeacherById = async (req, res) => {
     }
 };
 
+
+
 export const createTeacher = async (req, res) => {
+    const {
+        staffId,
+        firstName,
+        lastName,
+        email,
+        phoneNum,
+        subject,
+        gender,
+    } = req.body;
+
+    const normalizedStaffId =
+        typeof staffId === "string" ? staffId.trim() : "";
+
+    const normalizedFirstName =
+        typeof firstName === "string" ? firstName.trim() : "";
+
+    const normalizedLastName =
+        typeof lastName === "string" ? lastName.trim() : "";
+
+    const normalizedSubject =
+        typeof subject === "string" ? subject.trim() : "";
+
+    const normalizedEmail =
+        email === undefined || email === null || email.trim?.() === ""
+            ? null
+            : typeof email === "string"
+                ? email.trim().toLowerCase()
+                : false;
+
+    const normalizedPhone =
+        phoneNum === undefined || phoneNum === null
+            ? null
+            : typeof phoneNum === "string"
+                ? phoneNum.trim() || null
+                : false;
+
+    if (
+        !normalizedStaffId ||
+        !normalizedFirstName ||
+        !normalizedLastName ||
+        !normalizedSubject
+    ) {
+        return res.status(400).json({
+            message: "Staff ID, first name, last name and subject are required.",
+        });
+    }
+
+    if (normalizedEmail === false) {
+        return res.status(400).json({
+            message: "Please provide a valid email address.",
+        });
+    }
+
+    if (
+        normalizedEmail &&
+        (
+            normalizedEmail.length > 255 ||
+            !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalizedEmail)
+        )
+    ) {
+        return res.status(400).json({
+            message: "Please provide a valid email address.",
+        });
+    }
+
+    if (
+        normalizedPhone === false ||
+        (normalizedPhone && normalizedPhone.length > 30)
+    ) {
+        return res.status(400).json({
+            message: "Phone number must not exceed 30 characters.",
+        });
+    }
+
+    if (
+        gender !== undefined &&
+        gender !== null &&
+        gender !== "" &&
+        !validGenders.includes(gender)
+    ) {
+        return res.status(400).json({
+            message: "Invalid gender. Choose Male or Female.",
+        });
+    }
+
+    const normalizedGender = gender || null;
+
     const client = await pool.connect();
+    let transactionStarted = false;
 
     try {
-        const { schoolId } = req;
-
-        const {
-            staffId,
-            firstName,
-            lastName,
-            email,
-            password,
-            subject,
-            gender,
-        } = req.body;
-
-        if (
-            !staffId ||
-            !firstName ||
-            !lastName ||
-            !email ||
-            !password ||
-            !subject ||
-            !gender
-        ) {
-            return res.status(400).json({
-                message: "All teacher fields are required.",
-            });
-        }
-
-        if (!validGenders.includes(gender)) {
-            return res.status(400).json({
-                message: "Invalid teacher gender.",
-            });
-        }
-
         await client.query("BEGIN");
+        transactionStarted = true;
 
-        /*
-         * Check whether the Staff ID already exists
-         * within this school.
-         */
-        const staffIdResult = await client.query(
+        // Reuse an existing staff identity when the Staff ID already exists.
+        const existingStaffResult = await client.query(
             `
-            SELECT id
-            FROM teachers
-            WHERE school_id = $1
-              AND staff_id = $2;
+                SELECT
+                    id,
+                    staff_id,
+                    first_name,
+                    last_name,
+                    email,
+                    phone,
+                    gender,
+                    status
+                FROM school_staff
+                WHERE school_id = $1
+                  AND staff_id = $2
+                FOR UPDATE
             `,
-            [schoolId, staffId]
+            [req.schoolId, normalizedStaffId]
         );
 
-        if (staffIdResult.rows.length > 0) {
+        let schoolStaffId;
+
+        if (existingStaffResult.rows.length > 0) {
+            schoolStaffId = existingStaffResult.rows[0].id;
+        } else {
+            // Create a staff identity without creating a login account.
+            const newStaffResult = await client.query(
+                `
+                    INSERT INTO school_staff (
+                        school_id,
+                        staff_id,
+                        first_name,
+                        last_name,
+                        gender,
+                        email,
+                        phone
+                    )
+                    VALUES ($1, $2, $3, $4, $5, $6, $7)
+                    RETURNING id
+                `,
+                [
+                    req.schoolId,
+                    normalizedStaffId,
+                    normalizedFirstName,
+                    normalizedLastName,
+                    normalizedGender,
+                    normalizedEmail,
+                    normalizedPhone,
+                ]
+            );
+
+            schoolStaffId = newStaffResult.rows[0].id;
+        }
+
+        // A staff identity can have only one teacher profile per school.
+        const existingTeacherResult = await client.query(
+            `
+                SELECT id
+                FROM teachers
+                WHERE school_id = $1
+                  AND staff_id = $2
+            `,
+            [req.schoolId, schoolStaffId]
+        );
+
+        if (existingTeacherResult.rows.length > 0) {
             await client.query("ROLLBACK");
+            transactionStarted = false;
 
             return res.status(409).json({
-                message: "Staff ID already exists.",
+                message: "This staff member already has a teacher profile.",
             });
         }
 
-        /*
-         * Check whether the email already exists
-         * within this school.
-         */
-        const emailResult = await client.query(
+        const newTeacherResult = await client.query(
             `
-            SELECT id
-            FROM users
-            WHERE school_id = $1
-              AND email = $2;
-            `,
-            [schoolId, email]
-        );
-
-        if (emailResult.rows.length > 0) {
-            await client.query("ROLLBACK");
-
-            return res.status(409).json({
-                message: "Email already exists.",
-            });
-        }
-
-        const passwordHash = await hashPassword(password);
-
-        /*
-         * Create the user account.
-         */
-        const userResult = await client.query(
-            `
-            INSERT INTO users (
-                school_id,
-                first_name,
-                last_name,
-                email,
-                password_hash
-            )
-            VALUES ($1, $2, $3, $4, $5)
-            RETURNING
-                id,
-                school_id,
-                first_name,
-                last_name,
-                email,
-                status,
-                created_at;
+                INSERT INTO teachers (
+                    school_id,
+                    staff_id,
+                    subject
+                )
+                VALUES ($1, $2, $3)
+                RETURNING id
             `,
             [
-                schoolId,
-                firstName,
-                lastName,
-                email,
-                passwordHash,
+                req.schoolId,
+                schoolStaffId,
+                normalizedSubject,
             ]
         );
 
-        const user = userResult.rows[0];
-
-        /*
-         * Find the existing Teacher role.
-         */
-        const roleResult = await client.query(
-            `
-            SELECT id
-            FROM roles
-            WHERE name = 'Teacher';
-            `
-        );
-
-        if (roleResult.rows.length === 0) {
-            throw new Error("Teacher role not found.");
-        }
-
-        const teacherRoleId = roleResult.rows[0].id;
-
-        /*
-         * Assign Teacher role to the user.
-         */
-        await client.query(
-            `
-            INSERT INTO user_roles (
-                user_id,
-                role_id
-            )
-            VALUES ($1, $2);
-            `,
-            [user.id, teacherRoleId]
-        );
-
-        /*
-         * Create the teacher profile.
-         */
         const teacherResult = await client.query(
             `
-            INSERT INTO teachers (
-                school_id,
-                user_id,
-                staff_id,
-                subject,
-                gender
-            )
-            VALUES ($1, $2, $3, $4, $5)
-            RETURNING
-                id,
-                school_id,
-                user_id,
-                staff_id,
-                subject,
-                gender,
-                created_at,
-                updated_at;
+                SELECT
+                    t.id,
+                    t.school_id,
+                    t.staff_id AS school_staff_id,
+                    s.staff_id,
+                    s.first_name,
+                    s.last_name,
+                    s.email,
+                    s.phone,
+                    s.gender,
+                    s.status,
+                    t.subject,
+                    t.created_at,
+                    t.updated_at
+                FROM teachers t
+                JOIN school_staff s
+                    ON s.id = t.staff_id
+                   AND s.school_id = t.school_id
+                WHERE t.id = $1
+                  AND t.school_id = $2
             `,
             [
-                schoolId,
-                user.id,
-                staffId,
-                subject,
-                gender,
+                newTeacherResult.rows[0].id,
+                req.schoolId,
             ]
         );
 
-        const teacher = teacherResult.rows[0];
+        const createdTeacher = teacherResult.rows[0];
+
+        await recordActivity({
+            schoolId: req.schoolId,
+            userId: req.user.userId,
+            action: "teacher_created",
+            description: `Created teacher record for "${createdTeacher.first_name} ${createdTeacher.last_name}" (Staff ID: ${createdTeacher.staff_id}).`,
+            client,
+        });
 
         await client.query("COMMIT");
+        transactionStarted = false;
 
         return res.status(201).json({
             message: "Teacher created successfully.",
-            teacher: {
-                ...teacher,
-                firstName: user.first_name,
-                lastName: user.last_name,
-                email: user.email,
-                status: user.status,
-            },
+            teacher: teacherResult.rows[0],
         });
     } catch (error) {
-        await client.query("ROLLBACK");
+        if (transactionStarted) {
+            await client.query("ROLLBACK");
+        }
+
+        console.error("Create teacher error:", error);
 
         if (error.code === "23505") {
             return res.status(409).json({
                 message:
-                    "Teacher, Staff ID, or email already exists.",
+                    "A staff record with this Staff ID or email already exists.",
             });
         }
-
-        console.error(
-            "Failed to create teacher:",
-            error.message
-        );
 
         return res.status(500).json({
             message: "Failed to create teacher.",
@@ -329,252 +365,290 @@ export const createTeacher = async (req, res) => {
 };
 
 export const updateTeacher = async (req, res) => {
+    const {
+        staffId,
+        firstName,
+        lastName,
+        email,
+        phoneNum,
+        subject,
+        gender,
+        status,
+    } = req.body;
+
     const client = await pool.connect();
+    let transactionStarted = false;
 
     try {
-        const { schoolId } = req;
-        const { id } = req.params;
+        await client.query("BEGIN");
+        transactionStarted = true;
 
-        const {
-            staffId,
-            firstName,
-            lastName,
-            email,
-            password,
-            subject,
-            gender,
-            status,
-        } = req.body;
-
-        if (
-            gender !== undefined &&
-            !validGenders.includes(gender)
-        ) {
-            return res.status(400).json({
-                message: "Invalid teacher gender.",
-            });
-        }
-
-        if (
-            status !== undefined &&
-            !validStatuses.includes(status)
-        ) {
-            return res.status(400).json({
-                message: "Invalid teacher status.",
-            });
-        }
-
+        // Fetch and lock the teacher profile and its shared staff identity.
         const existingResult = await client.query(
             `
-            SELECT
-                t.user_id,
-                t.staff_id,
-                t.subject,
-                t.gender,
-                u.first_name,
-                u.last_name,
-                u.email,
-                u.status
-            FROM teachers t
-            JOIN users u
-                ON u.id = t.user_id
-            WHERE t.id = $1
-              AND t.school_id = $2;
+                SELECT
+                    t.id,
+                    t.staff_id AS school_staff_id,
+                    t.subject,
+                    s.staff_id,
+                    s.first_name,
+                    s.last_name,
+                    s.email,
+                    s.phone,
+                    s.gender,
+                    s.status
+                FROM teachers t
+                JOIN school_staff s
+                    ON s.id = t.staff_id
+                   AND s.school_id = t.school_id
+                WHERE t.id = $1
+                  AND t.school_id = $2
+                FOR UPDATE OF t, s
             `,
-            [id, schoolId]
+            [req.params.id, req.schoolId]
         );
 
         if (existingResult.rows.length === 0) {
+            await client.query("ROLLBACK");
+            transactionStarted = false;
+
             return res.status(404).json({
                 message: "Teacher not found.",
             });
         }
 
-        const existing = existingResult.rows[0];
+        const existingTeacher = existingResult.rows[0];
 
+        // Preserve existing values when a field is omitted.
         const nextStaffId =
-            staffId ?? existing.staff_id;
+            staffId === undefined
+                ? existingTeacher.staff_id
+                : typeof staffId === "string"
+                    ? staffId.trim()
+                    : "";
 
         const nextFirstName =
-            firstName ?? existing.first_name;
+            firstName === undefined
+                ? existingTeacher.first_name
+                : typeof firstName === "string"
+                    ? firstName.trim()
+                    : "";
 
         const nextLastName =
-            lastName ?? existing.last_name;
-
-        const nextEmail =
-            email ?? existing.email;
+            lastName === undefined
+                ? existingTeacher.last_name
+                : typeof lastName === "string"
+                    ? lastName.trim()
+                    : "";
 
         const nextSubject =
-            subject ?? existing.subject;
+            subject === undefined
+                ? existingTeacher.subject
+                : typeof subject === "string"
+                    ? subject.trim()
+                    : "";
+
+        const nextEmail =
+            email === undefined
+                ? existingTeacher.email
+                : email === null || email === ""
+                    ? null
+                    : typeof email === "string"
+                        ? email.trim().toLowerCase() || null
+                        : false;
+
+        const nextPhone =
+            phoneNum === undefined
+                ? existingTeacher.phone
+                : phoneNum === null
+                    ? null
+                    : typeof phoneNum === "string"
+                        ? phoneNum.trim() || null
+                        : false;
 
         const nextGender =
-            gender ?? existing.gender;
+            gender === undefined
+                ? existingTeacher.gender
+                : gender === ""
+                    ? null
+                    : gender;
 
         const nextStatus =
-            status ?? existing.status;
+            status === undefined
+                ? existingTeacher.status
+                : status;
 
-        /*
-         * Check Staff ID uniqueness within this school.
-         */
-        const staffIdResult = await client.query(
-            `
-            SELECT id
-            FROM teachers
-            WHERE school_id = $1
-              AND staff_id = $2
-              AND id <> $3;
-            `,
-            [
-                schoolId,
-                nextStaffId,
-                id,
-            ]
-        );
+        if (
+            !nextStaffId ||
+            !nextFirstName ||
+            !nextLastName ||
+            !nextSubject
+        ) {
+            await client.query("ROLLBACK");
+            transactionStarted = false;
 
-        if (staffIdResult.rows.length > 0) {
-            return res.status(409).json({
-                message: "Staff ID already exists.",
+            return res.status(400).json({
+                message:
+                    "Staff ID, first name, last name and subject are required.",
             });
         }
 
-        /*
-         * Check email uniqueness within this school.
-         */
-        const emailResult = await client.query(
+        if (
+            nextEmail === false ||
+            (
+                nextEmail &&
+                (
+                    nextEmail.length > 255 ||
+                    !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(nextEmail)
+                )
+            )
+        ) {
+            await client.query("ROLLBACK");
+            transactionStarted = false;
+
+            return res.status(400).json({
+                message: "Please provide a valid email address.",
+            });
+        }
+
+        if (
+            nextPhone === false ||
+            (nextPhone && nextPhone.length > 30)
+        ) {
+            await client.query("ROLLBACK");
+            transactionStarted = false;
+
+            return res.status(400).json({
+                message: "Phone number must not exceed 30 characters.",
+            });
+        }
+
+        if (
+            nextGender !== null &&
+            !validGenders.includes(nextGender)
+        ) {
+            await client.query("ROLLBACK");
+            transactionStarted = false;
+
+            return res.status(400).json({
+                message: "Invalid gender. Choose Male or Female.",
+            });
+        }
+
+        if (!validStatuses.includes(nextStatus)) {
+            await client.query("ROLLBACK");
+            transactionStarted = false;
+
+            return res.status(400).json({
+                message: "Invalid status. Choose active or inactive.",
+            });
+        }
+
+        // Update the shared staff identity.
+        await client.query(
             `
-            SELECT id
-            FROM users
-            WHERE school_id = $1
-              AND email = $2
-              AND id <> $3;
+                UPDATE school_staff
+                SET
+                    staff_id = $1,
+                    first_name = $2,
+                    last_name = $3,
+                    email = $4,
+                    phone = $5,
+                    gender = $6,
+                    status = $7,
+                    updated_at = NOW()
+                WHERE id = $8
+                  AND school_id = $9
             `,
             [
-                schoolId,
+                nextStaffId,
+                nextFirstName,
+                nextLastName,
                 nextEmail,
-                existing.user_id,
+                nextPhone,
+                nextGender,
+                nextStatus,
+                existingTeacher.school_staff_id,
+                req.schoolId,
             ]
         );
 
-        if (emailResult.rows.length > 0) {
-            return res.status(409).json({
-                message: "Email already exists.",
-            });
-        }
-
-        await client.query("BEGIN");
-
-        /*
-         * Update user account information.
-         */
-        if (password !== undefined) {
-            const passwordHash =
-                await hashPassword(password);
-
-            await client.query(
-                `
-                UPDATE users
-                SET
-                    first_name = $1,
-                    last_name = $2,
-                    email = $3,
-                    password_hash = $4,
-                    status = $5,
-                    updated_at = NOW()
-                WHERE id = $6
-                  AND school_id = $7;
-                `,
-                [
-                    nextFirstName,
-                    nextLastName,
-                    nextEmail,
-                    passwordHash,
-                    nextStatus,
-                    existing.user_id,
-                    schoolId,
-                ]
-            );
-        } else {
-            await client.query(
-                `
-                UPDATE users
-                SET
-                    first_name = $1,
-                    last_name = $2,
-                    email = $3,
-                    status = $4,
-                    updated_at = NOW()
-                WHERE id = $5
-                  AND school_id = $6;
-                `,
-                [
-                    nextFirstName,
-                    nextLastName,
-                    nextEmail,
-                    nextStatus,
-                    existing.user_id,
-                    schoolId,
-                ]
-            );
-        }
-
-        /*
-         * Update teacher-specific information.
-         */
-        const teacherResult = await client.query(
+        // Update the teacher's teaching information.
+        await client.query(
             `
-            UPDATE teachers
-            SET
-                staff_id = $1,
-                subject = $2,
-                gender = $3,
-                updated_at = NOW()
-            WHERE id = $4
-              AND school_id = $5
-            RETURNING
-                id,
-                school_id,
-                user_id,
-                staff_id,
-                subject,
-                gender,
-                created_at,
-                updated_at;
+                UPDATE teachers
+                SET
+                    subject = $1,
+                    updated_at = NOW()
+                WHERE id = $2
+                  AND school_id = $3
             `,
             [
-                nextStaffId,
                 nextSubject,
-                nextGender,
-                id,
-                schoolId,
+                req.params.id,
+                req.schoolId,
             ]
         );
+
+        // Return the updated teacher using the same shape as GET.
+        const updatedResult = await client.query(
+            `
+                SELECT
+                    t.id,
+                    t.school_id,
+                    t.staff_id AS school_staff_id,
+                    s.staff_id,
+                    s.first_name,
+                    s.last_name,
+                    s.email,
+                    s.phone,
+                    s.gender,
+                    s.status,
+                    t.subject,
+                    t.created_at,
+                    t.updated_at
+                FROM teachers t
+                JOIN school_staff s
+                    ON s.id = t.staff_id
+                   AND s.school_id = t.school_id
+                WHERE t.id = $1
+                  AND t.school_id = $2
+            `,
+            [req.params.id, req.schoolId]
+        );
+
+
+       const updatedTeacher = updatedResult.rows[0];
+
+        await recordActivity({
+            schoolId: req.schoolId,
+            userId: req.user.userId,
+            action: "teacher_updated",
+            description: `Updated teacher record for "${updatedTeacher.first_name} ${updatedTeacher.last_name}" (Staff ID: ${updatedTeacher.staff_id}).`,
+            client,
+        });
 
         await client.query("COMMIT");
+        transactionStarted = false;
 
         return res.status(200).json({
             message: "Teacher updated successfully.",
-            teacher: {
-                ...teacherResult.rows[0],
-                firstName: nextFirstName,
-                lastName: nextLastName,
-                email: nextEmail,
-                status: nextStatus,
-            },
+            teacher: updatedTeacher,
         });
+
     } catch (error) {
-        await client.query("ROLLBACK");
+        if (transactionStarted) {
+            await client.query("ROLLBACK");
+        }
+
+        console.error("Update teacher error:", error);
 
         if (error.code === "23505") {
             return res.status(409).json({
                 message:
-                    "Teacher, Staff ID, or email already exists.",
+                    "A staff record with this Staff ID or email already exists.",
             });
         }
-
-        console.error(
-            "Failed to update teacher:",
-            error.message
-        );
 
         return res.status(500).json({
             message: "Failed to update teacher.",
@@ -584,57 +658,75 @@ export const updateTeacher = async (req, res) => {
     }
 };
 
+
+
 export const deleteTeacher = async (req, res) => {
     const client = await pool.connect();
+    let transactionStarted = false;
 
     try {
         const { schoolId } = req;
         const { id } = req.params;
 
+        await client.query("BEGIN");
+        transactionStarted = true;
+
         const teacherResult = await client.query(
             `
-            SELECT user_id
-            FROM teachers
+            SELECT
+                t.id,
+                s.first_name,
+                s.last_name,
+                s.staff_id
+            FROM teachers t
+            JOIN school_staff s
+                ON s.id = t.staff_id
+               AND s.school_id = t.school_id
+            WHERE t.id = $1
+              AND t.school_id = $2
+            FOR UPDATE OF t;
+            `,
+            [id, schoolId]
+        );
+
+        if (teacherResult.rows.length === 0) {
+            await client.query("ROLLBACK");
+            transactionStarted = false;
+
+            return res.status(404).json({
+                message: "Teacher not found.",
+            });
+        }
+
+        const teacher = teacherResult.rows[0];
+
+        await client.query(
+            `
+            DELETE FROM teachers
             WHERE id = $1
               AND school_id = $2;
             `,
             [id, schoolId]
         );
 
-        if (teacherResult.rows.length === 0) {
-            return res.status(404).json({
-                message: "Teacher not found.",
-            });
-        }
-
-        const userId = teacherResult.rows[0].user_id;
-
-        await client.query("BEGIN");
-
-        /*
-         * Deleting the user cascades to:
-         * - user_roles
-         * - teacher profile
-         *
-         * Sections reference users with ON DELETE SET NULL,
-         * so an assigned class teacher is safely unassigned.
-         */
-        await client.query(
-            `
-            DELETE FROM users
-            WHERE id = $1
-              AND school_id = $2;
-            `,
-            [userId, schoolId]
-        );
+        await recordActivity({
+            schoolId,
+            userId: req.user.userId,
+            action: "teacher_deleted",
+            description: `Deleted teacher record for "${teacher.first_name} ${teacher.last_name}" (Staff ID: ${teacher.staff_id}).`,
+            client,
+        });
 
         await client.query("COMMIT");
+        transactionStarted = false;
 
         return res.status(200).json({
             message: "Teacher deleted successfully.",
         });
     } catch (error) {
-        await client.query("ROLLBACK");
+        if (transactionStarted) {
+            await client.query("ROLLBACK");
+        }
 
         console.error(
             "Failed to delete teacher:",

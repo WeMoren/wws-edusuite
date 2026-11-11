@@ -102,7 +102,7 @@ const sidebarMenu = [
     label: "Events",
     path: "/dashboard/events",
     icon: "📅",
-    roles: ["Principal", "Head Teacher"],
+    roles: ["Principal", "School Admin", "Head Teacher"],
   },
   {
     id: 16,

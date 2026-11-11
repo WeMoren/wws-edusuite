@@ -1,20 +1,25 @@
+
 import React from 'react';
 import "./StudentTable.css";
-import classFees from "../../data/classFees";
 
 const StudentTable = ({
   students,
-  payments,
   enrollments,
+  financialAccounts,
+  financialAccountsLoading,
+  currentAcademicTermId,
+  currentAcademicSessionId,
   academicLevels,
   sections,
   classes,
   onEdit,
   onDelete,
-  onView, 
+  onView,
   canEdit,
   canDelete,
 }) => {
+
+
 
   return (
     <div className='student-table'>
@@ -37,119 +42,123 @@ const StudentTable = ({
         <tbody>
           {students.length > 0 ? (
             students.map((student) => {
-
-              const studentPayments = payments.filter(
-                (payment) => payment.studentId === student.id
+              const enrollment = enrollments.find(
+                (enrollment) =>
+                  enrollment.studentId === student.id &&
+                  enrollment.academicSessionId === currentAcademicSessionId &&
+                  enrollment.status === "active"
               );
-
-
-               const enrollment = enrollments.find(
-                (enrollment) => enrollment.studentId === student.id
-              );
-
 
               const section = sections.find(
-                  (section) => section.id === enrollment?.sectionId
+                (section) => section.id === enrollment?.sectionId
               );
 
               const classItem = classes.find(
-                  (classItem) =>
-                      classItem.id ===
-                      (section?.classId ?? enrollment?.classId)
+                (classItem) =>
+                  classItem.id ===
+                  (section?.classId ?? enrollment?.classId)
               );
 
               const academicLevel = academicLevels.find(
-                  (level) =>
-                      level.id ===
-                      (
-                          classItem?.academicLevelId ??
-                          enrollment?.academicLevelId
-                      )
-              );
-              
-
-              const totalPaid = studentPayments.reduce(
-                (total, payment) => total + payment.amount,
-                0
+                (level) =>
+                  level.id ===
+                  (
+                    classItem?.academicLevelId ??
+                    enrollment?.academicLevelId
+                  )
               );
 
-              const totalFees = classFees[student.class] || 0;
+              const financialAccount = financialAccounts.find(
+                (account) =>
+                  account.studentId === student.id &&
+                  account.enrollmentId === enrollment?.id &&
+                  account.termId === currentAcademicTermId
+              );
 
-              let paymentStatus = "Outstanding";
+              const paymentStatus = financialAccountsLoading
+                ? "Loading..."
+                : !currentAcademicTermId
+                  ? "No Current Term"
+                  : financialAccount?.status === "paid"
+                    ? "Fully Paid"
+                    : financialAccount?.status === "partially_paid"
+                      ? "Partially Paid"
+                      : financialAccount?.status === "unpaid"
+                        ? "Unpaid"
+                        : "Not Generated";
 
-              if (totalPaid > 0 && totalPaid >= totalFees) {
-                paymentStatus = "Paid";
-              } else if (totalPaid > 0) {
-                paymentStatus = "Partially Paid";
-              }
+              const statusClass = financialAccount?.status || "unavailable";
 
               return (
                 <tr key={student.id}>
                   <td data-label="Admission No.">{student.admissionNo}</td>
 
-<td data-label="First Name">
-  <button
-    className="student-table__name"
-    title="Click to view student detail."
-    onClick={() =>
-       onView({
-        ...student,
-    class: classItem?.name || "-",
-  })
-}
-  >
-    {student.firstName}
-  </button>
-</td>
+                  <td data-label="First Name">
+                    <button
+                      className="student-table__name"
+                      title="Click to view student detail."
+                      onClick={() =>
+                        onView({
+                          ...student,
+                          class: classItem?.name || "-",
+                        })
+                      }
+                    >
+                      {student.firstName}
+                    </button>
+                  </td>
 
-<td data-label="Middle Name">{student.middleName || "-"}</td>
+                  <td data-label="Middle Name">
+                    {student.middleName || "-"}
+                  </td>
 
-<td data-label="Last Name">{student.lastName}</td>
+                  <td data-label="Last Name">{student.lastName}</td>
 
-<td data-label="Academic Level">{academicLevel?.name || "-"}</td>
+                  <td data-label="Academic Level">
+                    {academicLevel?.name || "-"}
+                  </td>
 
-<td data-label="Class">{classItem?.name || "-"}</td>
+                  <td data-label="Class">{classItem?.name || "-"}</td>
 
-<td data-label="Section">{section?.name || "-"}</td>
+                  <td data-label="Section">{section?.name || "-"}</td>
 
-<td data-label="Gender">{student.gender}</td>
+                  <td data-label="Gender">{student.gender}</td>
 
-<td data-label="Payment Status">
-  <span
-    className={`student-table__payment-status student-table__payment-status--${paymentStatus
-      .toLowerCase()
-      .replace(/\s+/g, "-")}`}
-  >
-    {paymentStatus}
-  </span>
-</td>
+                  <td data-label="Payment Status">
+                    <span
+                      className={`student-table__payment-status student-table__payment-status--${statusClass}`}
+                    >
+                      {paymentStatus}
+                    </span>
+                  </td>
 
-<td data-label="Actions">
-  <div className="student-table__actions">
+                  <td data-label="Actions">
+                    <div className="student-table__actions">
+                      {canEdit && (
+                        <button
+                          className="student-table__edit"
+                          onClick={() => onEdit(student)}
+                        >
+                          Edit
+                        </button>
+                      )}
 
-   { canEdit && (<button
-      className="student-table__edit"
-      onClick={() => onEdit(student)}
-    >
-      Edit
-    </button>
-   )}
-
-    {canDelete && (<button
-      className="student-table__delete"
-      onClick={() => onDelete(student.id)}
-    >
-      Delete
-    </button>
-    )}
-  </div>
-</td>
+                      {canDelete && (
+                        <button
+                          className="student-table__delete"
+                          onClick={() => onDelete(student.id)}
+                        >
+                          Delete
+                        </button>
+                      )}
+                    </div>
+                  </td>
                 </tr>
               );
             })
           ) : (
             <tr>
-              <td colSpan="9" className="student-table__empty">
+              <td colSpan="10" className="student-table__empty">
                 No students found.
               </td>
             </tr>

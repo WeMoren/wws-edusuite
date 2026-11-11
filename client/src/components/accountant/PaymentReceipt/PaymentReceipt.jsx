@@ -4,7 +4,14 @@ import jsPDF from "jspdf";
 import "./PaymentReceipt.css";
 import { Download } from "lucide-react";
 
-const PaymentReceipt = ({ payment, student, onClose }) => {
+  const PaymentReceipt = ({
+  payment,
+  student,
+  onClose,
+  variant = "default",
+  financialAccount = null,
+  accountPayments = [],
+}) => {
 
     const { authToken } = useAuth();
 
@@ -14,6 +21,13 @@ const PaymentReceipt = ({ payment, student, onClose }) => {
   const [documentAuthorization, setDocumentAuthorization] = useState(null);
   const [documentSettingsLoading, setDocumentSettingsLoading] = useState(true);
   const [documentSettingsLoaded, setDocumentSettingsLoaded] = useState(false);
+
+    const [receiptAccount, setReceiptAccount] = useState(null);
+    const [receiptAccountLoading, setReceiptAccountLoading] =
+      useState(false);
+    const [receiptAccountError, setReceiptAccountError] =
+     useState("");
+
 
     const getStudentFullName = (student) =>
     [
@@ -27,6 +41,83 @@ const PaymentReceipt = ({ payment, student, onClose }) => {
       )
       .map((name) => name.trim())
       .join(" ");
+
+
+     useEffect(() => {
+  if (variant !== "student-details") {
+    setReceiptAccount(null);
+    setReceiptAccountLoading(false);
+    setReceiptAccountError("");
+    return;
+  }
+
+  if (!financialAccount?.id) {
+    setReceiptAccount(null);
+    setReceiptAccountLoading(false);
+    setReceiptAccountError(
+      "No financial account is associated with this payment."
+    );
+    return;
+  }
+
+  let cancelled = false;
+
+  const loadReceiptAccount = async () => {
+    setReceiptAccount(null);
+    setReceiptAccountLoading(true);
+    setReceiptAccountError("");
+
+    try {
+      if (!authToken) {
+        throw new Error(
+          "Your session has expired. Please log in again."
+        );
+      }
+
+      const response = await fetch(
+        `${API_BASE_URL}/student-financial-accounts/${financialAccount.id}`,
+        {
+          headers: {
+            Authorization: `Bearer ${authToken}`,
+          },
+        }
+      );
+
+      const data = await response.json().catch(() => ({}));
+
+      if (!response.ok) {
+        throw new Error(
+          data.message ||
+            "Failed to load financial account details."
+        );
+      }
+
+      if (!data.financialAccount) {
+        throw new Error(
+          "Financial account details were not returned by the server."
+        );
+      }
+
+      if (!cancelled) {
+        setReceiptAccount(data.financialAccount);
+      }
+    } catch (error) {
+      if (!cancelled) {
+        setReceiptAccountError(error.message);
+      }
+    } finally {
+      if (!cancelled) {
+        setReceiptAccountLoading(false);
+      }
+    }
+  };
+
+  loadReceiptAccount();
+
+  return () => {
+    cancelled = true;
+  };
+}, [variant, financialAccount?.id, authToken]);
 
 
   useEffect(() => {
@@ -149,12 +240,20 @@ const PaymentReceipt = ({ payment, student, onClose }) => {
   const handleDownloadReceipt = () => {
 
 
-    if (
-      documentSettingsLoading ||
-      !documentSettingsLoaded ||
-      !schoolProfile ||
-      !documentAuthorization
-    ) {
+ if (
+  documentSettingsLoading ||
+  !documentSettingsLoaded ||
+  !schoolProfile ||
+  !documentAuthorization ||
+  (
+    variant === "student-details" &&
+    (
+      receiptAccountLoading ||
+      receiptAccountError ||
+      !receiptAccount
+    )
+  )
+) {
       console.error(
         "Receipt download blocked: current school document settings are unavailable."
       );
@@ -163,6 +262,7 @@ const PaymentReceipt = ({ payment, student, onClose }) => {
 
 
     console.log("Receipt student:", student);
+
     const doc = new jsPDF();
 
 
@@ -247,80 +347,360 @@ const PaymentReceipt = ({ payment, student, onClose }) => {
 
     y += 14;
 
-   /* Receipt Details */
 
-    doc.setFontSize(11);
+    /* Receipt Details */
 
-    const labelX = 20;
-    const valueX = 190;
+    if (variant === "student-details") {
+      // Compact layout: two label/value pairs per row.
+            doc.setFontSize(9);
 
-    const addDetail = (label, value) => {
+      const drawDetailRow = (left, right = null) => {
+        const leftValue = left[1] == null ? "—" : String(left[1]);
+
+        doc.setFont("helvetica", "bold");
+        doc.text(left[0], 20, y);
+
+        doc.setFont("helvetica", "normal");
+        doc.text(leftValue, 62, y);
+
+        if (right) {
+          const rightValue =
+            right[1] == null ? "—" : String(right[1]);
+
+          doc.setFont("helvetica", "bold");
+          doc.text(right[0], 110, y);
+
+          doc.setFont("helvetica", "normal");
+          doc.text(rightValue, 153, y);
+        }
+
+        y += 9;
+      };
+
+      const paymentDate = new Date(payment.date).toLocaleDateString(
+        "en-GB",
+        {
+          day: "2-digit",
+          month: "2-digit",
+          year: "numeric",
+        }
+      );
+
+      // Give the long receipt reference its own row.
       doc.setFont("helvetica", "bold");
-      doc.text(label, labelX, y);
+      doc.text("Receipt No:", 20, y);
 
       doc.setFont("helvetica", "normal");
+      doc.text(String(receiptNumber), 62, y);
+
+      y += 9;
+
+      drawDetailRow(["Date:", paymentDate]);
+
+      drawDetailRow(
+        ["Student:", getStudentFullName(student)],
+        ["Gender:", student.gender || "—"]
+      );
+
+      drawDetailRow(
+        ["Admission No:", student.admissionNo],
+        ["Class:", student.class]
+      );
+
+      drawDetailRow(
+        ["Amount Paid:", `N${Number(payment.amount).toLocaleString()}`],
+        ["Payment Method:", payment.paymentMethod]
+      );
+
+      drawDetailRow(
+        ["Description:", payment.description || "—"]
+      );
+    } else {
+      // Preserve the original Accountant receipt layout.
+      doc.setFontSize(11);
+
+      const labelX = 20;
+      const valueX = 190;
+
+      const addDetail = (label, value) => {
+        doc.setFont("helvetica", "bold");
+        doc.text(label, labelX, y);
+
+        doc.setFont("helvetica", "normal");
+        doc.text(String(value), valueX, y, { align: "right" });
+
+        y += 9;
+      };
+
+      addDetail("Receipt No:", receiptNumber);
+
+      const paymentDate = new Date(payment.date).toLocaleDateString(
+        "en-GB",
+        {
+          day: "2-digit",
+          month: "2-digit",
+          year: "numeric",
+          hour: "2-digit",
+          minute: "2-digit",
+          hour12: true,
+        }
+      );
+
+      addDetail("Date:", paymentDate);
+      addDetail("Student:", getStudentFullName(student));
+      addDetail("Gender:", student.gender || "—");
+      addDetail("Admission No:", student.admissionNo);
+      addDetail("Class:", student.class);
+      addDetail(
+        "Amount Paid:",
+        `N${payment.amount.toLocaleString()}`
+      );
+      addDetail("Payment Method:", payment.paymentMethod);
+      addDetail("Description:", payment.description || "—");
+    }
+
+
+        /* --------------------------------
+       Student Details: Financial Account
+    -------------------------------- */
+
+    if (variant === "student-details") {
+          if (!receiptAccount) {
+        console.error(
+          "Receipt download blocked: financial account details are unavailable."
+        );
+        return;
+      }
+
+     const pageHeight = doc.internal.pageSize.getHeight();
+    const leftMargin = 20;
+    const rightMargin = 190;
+
+      const formatAmount = (amount) =>
+        `N${Number(amount || 0).toLocaleString("en-NG", {
+          minimumFractionDigits: 2,
+          maximumFractionDigits: 2,
+        })}`;
+
+      const ensureSpace = (requiredHeight) => {
+        if (y + requiredHeight > pageHeight - 20) {
+          doc.addPage();
+          y = 20;
+        }
+      };
+
+      const drawSectionHeading = (heading) => {
+        ensureSpace(18);
+
+        y += 5;
+
+        doc.setFont("helvetica", "bold");
+        doc.setFontSize(12);
+        doc.setTextColor(0, 0, 0);
+
+        doc.text(heading, leftMargin, y);
+
+        y += 5;
+
+        doc.setLineWidth(0.4);
+        doc.line(leftMargin, y, rightMargin, y);
+
+        y += 7;
+      };
+
+      const drawTableHeader = (columns) => {
+        doc.setFont("helvetica", "bold");
+        doc.setFontSize(9);
+
+        columns.forEach((column) => {
+          doc.text(
+            column.label,
+            column.x,
+            y,
+            column.align ? { align: column.align } : {}
+          );
+        });
+
+        y += 3;
+
+        doc.setLineWidth(0.3);
+        doc.line(leftMargin, y, rightMargin, y);
+
+        y += 6;
+      };
+
+      /* 1. Fee Items */
+
+      drawSectionHeading("FEE ITEMS");
+
+      const feeItems = Array.isArray(receiptAccount.items)
+        ? receiptAccount.items
+        : [];
+
+      const feeDescriptionX = leftMargin;
+      const feeAmountX = rightMargin;
+      const feeDescriptionWidth = 125;
+
+      drawTableHeader([
+        { label: "Description", x: feeDescriptionX },
+        { label: "Amount", x: feeAmountX, align: "right" },
+      ]);
+
+      if (feeItems.length === 0) {
+        ensureSpace(10);
+
+        doc.setFont("helvetica", "normal");
+        doc.setFontSize(9);
+        doc.text("No fee items available.", feeDescriptionX, y);
+
+        y += 8;
+      } else {
+        feeItems.forEach((item) => {
+          const descriptionLines = doc.splitTextToSize(
+            String(item.name || "Unnamed fee item"),
+            feeDescriptionWidth
+          );
+
+          const rowHeight = Math.max(
+            8,
+            descriptionLines.length * 4.5 + 3
+          );
+
+          ensureSpace(rowHeight + 2);
+
+          doc.setFont("helvetica", "normal");
+          doc.setFontSize(9);
+
+          doc.text(descriptionLines, feeDescriptionX, y);
+
+          doc.text(
+            formatAmount(item.amount),
+            feeAmountX,
+            y,
+            { align: "right" }
+          );
+
+          y += rowHeight;
+
+          doc.setLineWidth(0.2);
+          doc.setDrawColor(190, 190, 190);
+          doc.line(leftMargin, y, rightMargin, y);
+
+          y += 4;
+        });
+      }
+
+      ensureSpace(14);
+
+      y += 2;
+
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(10);
+
+      doc.text("TOTAL FEE", feeDescriptionX, y);
 
       doc.text(
-        String(value),
-        valueX,
+        formatAmount(receiptAccount.total_due),
+        feeAmountX,
         y,
         { align: "right" }
       );
 
-      y += 9;
-    };
+      y += 8;
 
-    addDetail("Receipt No:", receiptNumber);
+     /* 2. Account Breakdown */
 
-    const paymentDate = new Date(payment.date).toLocaleDateString(
-      "en-GB",
-      {
-        day: "2-digit",
-        month: "2-digit",
-        year: "numeric",
-        hour: "2-digit",
-        minute: "2-digit",
-        hour12: true,
-      }
-    );
+drawSectionHeading("ACCOUNT BREAKDOWN");
 
-    addDetail("Date:", paymentDate);
+const paymentStatusLabels = {
+  paid: "Fully Paid",
+  partially_paid: "Partially Paid",
+  unpaid: "Unpaid",
+};
 
-    addDetail(
-      "Student:",
-      getStudentFullName(student)
-    );
+const accountDetails = [
+  [
+    ["Academic Session:", receiptAccount.academic_session_name],
+    ["Term:", receiptAccount.term_name],
+  ],
+  [
+    ["Class:", receiptAccount.class_name],
+    ["Fee Structure:", receiptAccount.fee_structure_name],
+  ],
+  [
+    ["Total Due:", formatAmount(receiptAccount.total_due)],
+    ["Total Paid:", formatAmount(receiptAccount.total_paid)],
+  ],
+  [
+    [
+      "Outstanding:",
+      formatAmount(
+        receiptAccount.outstanding ??
+          (
+            Number(receiptAccount.total_due || 0) -
+            Number(receiptAccount.total_paid || 0)
+          )
+      ),
+    ],
+    [
+      "Payment Status:",
+      paymentStatusLabels[receiptAccount.status] ||
+        receiptAccount.status ||
+        "—",
+    ],
+  ],
+];
 
-    addDetail(
-      "Gender:",
-      student.gender || "—"
-    );
+accountDetails.forEach(([left, right]) => {
+  ensureSpace(10);
 
+  doc.setFontSize(9);
 
-    addDetail("Admission No:", student.admissionNo);
+  doc.setFont("helvetica", "bold");
+  doc.text(left[0], leftMargin, y);
 
-    addDetail("Class:", student.class);
+  doc.setFont("helvetica", "normal");
+  doc.text(String(left[1] ?? "—"), 62, y);
 
-    addDetail(
-      "Amount Paid:",
-      `N${payment.amount.toLocaleString()}`
-    );
+  doc.setFont("helvetica", "bold");
+  doc.text(right[0], 110, y);
 
-    addDetail(
-      "Payment Method:",
-      payment.paymentMethod
-    );
+  doc.setFont("helvetica", "normal");
+  doc.text(String(right[1] ?? "—"), 153, y);
 
-    addDetail(
-      "Description:",
-      payment.description || "—"
-    );
+  y += 10;
+});
+
+        y += 3;
+
+     // Separator before document authorisation.
+      doc.setDrawColor(180, 180, 180);
+      doc.setLineWidth(0.4);
+      doc.line(20, y + 2, 190, y + 2);
+      doc.setLineWidth(0.1);
+
+      y += 8;
+
+      doc.setDrawColor(0, 0, 0);
+      doc.setTextColor(0, 0, 0);
+
+    }
 
           /* --------------------------------
             Official signatures/stamps
         -------------------------------- */
 
-        y += 12;
+
+
+        if (
+            variant === "student-details" &&
+            y + 92 > doc.internal.pageSize.getHeight() - 20
+          ) {
+            doc.addPage();
+            y = 20;
+          }
+
+          y += 12;
 
         const signatureTopY = y;
 
@@ -458,33 +838,55 @@ const PaymentReceipt = ({ payment, student, onClose }) => {
           signatureTopY +
           68;
 
-        /* Footer */
 
-        doc.setFontSize(9);
+                /* PDF Footer - All Receipt Variants */
+
+        const totalPages = doc.internal.getNumberOfPages();
+        const pageWidth = doc.internal.pageSize.getWidth();
+        const pageHeight = doc.internal.pageSize.getHeight();
+
+        for (let pageNumber = 1; pageNumber <= totalPages; pageNumber++) {
+          doc.setPage(pageNumber);
+
+          const footerY = pageHeight - 10;
+
+          // Left: Page number
+          doc.setFont("helvetica", "normal");
+          doc.setFontSize(7);
+          doc.setTextColor(150, 150, 150);
+
+          doc.text(
+            `Page ${pageNumber} of ${totalPages}`,
+            20,
+            footerY
+          );
+
+          // Centre: Closing message
+          doc.setFontSize(8);
+          doc.setTextColor(0, 0, 0);
+
+          doc.text(
+            "Thank you for your payment.",
+            pageWidth / 2,
+            footerY,
+            { align: "center" }
+          );
+
+          // Right: WeMoren branding
+          doc.setFontSize(7);
+          doc.setTextColor(150, 150, 150);
+
+          doc.text(
+            "Powered by WeMoren Web Services",
+            pageWidth - 20,
+            footerY,
+            { align: "right" }
+          );
+        }
 
         doc.setTextColor(0, 0, 0);
 
-        doc.text(
-          "Thank you for your payment.",
-          105,
-          y,
-          { align: "center" }
-        );
-
-        y += 10;
-
-        doc.setFontSize(8);
-
-        doc.setTextColor(150, 150, 150);
-
-        doc.text(
-          "Powered by WeMoren Web Services",
-          105,
-          y,
-          { align: "center" }
-        );
-
-        doc.setTextColor(0, 0, 0);
+        doc.save(`${receiptNumber}.pdf`);
 
         doc.save(`${receiptNumber}.pdf`);
 
@@ -583,14 +985,36 @@ const PaymentReceipt = ({ payment, student, onClose }) => {
 
         <div className="payment-receipt__actions">
 
-          <button
-            type="button"
-            className="payment-receipt__print-button"
-            onClick={handleDownloadReceipt}
-          >
+            <button
+                type="button"
+                className="payment-receipt__print-button"
+                onClick={handleDownloadReceipt}
+                disabled={
+                  documentSettingsLoading ||
+                  !documentSettingsLoaded ||
+                  (
+                    variant === "student-details" &&
+                    (
+                      receiptAccountLoading ||
+                      !!receiptAccountError ||
+                      !receiptAccount
+                    )
+                  )
+                }
+              >
             <Download size={17} strokeWidth={2} />
             <span>Download Receipt</span>
           </button>
+
+          {variant === "student-details" && receiptAccountLoading && (
+              <p>Loading financial account details...</p>
+            )}
+
+            {variant === "student-details" && receiptAccountError && (
+              <p className="payment-receipt__error">
+                {receiptAccountError}
+              </p>
+            )}
 
           <button
             type="button"

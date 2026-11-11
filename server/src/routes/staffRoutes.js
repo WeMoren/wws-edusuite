@@ -3,6 +3,7 @@ import express from "express";
 
 import {
     getStaff,
+    getStaffCount,
     getStaffById,
     createStaff,
     updateStaff,
@@ -60,6 +61,14 @@ router.get(
     requireRole("Principal"),
     requirePermission("staff", "view"),
     getStaff
+);
+
+router.get(
+    "/count",
+    authenticateToken,
+    requireSchoolContext,
+    requirePermission("staff", "view"),
+    getStaffCount
 );
 
 router.get(

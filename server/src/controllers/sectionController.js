@@ -23,7 +23,10 @@ export const getSections = async (req, res) => {
 
                 al.name AS academic_level_name,
 
-                u.email AS class_teacher_email
+                s.first_name AS class_teacher_first_name,
+                s.last_name AS class_teacher_last_name,
+                s.email AS class_teacher_email,
+                s.phone AS class_teacher_phone
 
             FROM sections sec
 
@@ -36,8 +39,9 @@ export const getSections = async (req, res) => {
             JOIN academic_levels al
                 ON al.id = c.academic_level_id
 
-            LEFT JOIN users u
-                ON u.id = sec.class_teacher_id
+            LEFT JOIN school_staff s
+            ON s.id = sec.class_teacher_id
+            AND s.school_id = sec.school_id
 
             WHERE sec.school_id = $1
 
@@ -89,7 +93,10 @@ export const getSectionById = async (req, res) => {
 
                 al.name AS academic_level_name,
 
-                u.email AS class_teacher_email
+               s.first_name AS class_teacher_first_name,
+               s.last_name AS class_teacher_last_name,
+               s.email AS class_teacher_email,
+               s.phone AS class_teacher_phone
 
             FROM sections sec
 
@@ -102,8 +109,9 @@ export const getSectionById = async (req, res) => {
             JOIN academic_levels al
                 ON al.id = c.academic_level_id
 
-            LEFT JOIN users u
-                ON u.id = sec.class_teacher_id
+           LEFT JOIN school_staff s
+            ON s.id = sec.class_teacher_id
+            AND s.school_id = sec.school_id
 
             WHERE sec.id = $1
               AND sec.school_id = $2;
@@ -177,18 +185,16 @@ export const createSection = async (req, res) => {
             });
         }
 
-        if (classTeacherId) {
+                if (classTeacherId) {
             const teacherResult = await pool.query(
                 `
-                SELECT u.id
-                FROM users u
-                JOIN user_roles ur
-                    ON ur.user_id = u.id
-                JOIN roles r
-                    ON r.id = ur.role_id
-                WHERE u.id = $1
-                  AND u.school_id = $2
-                  AND r.name = 'Teacher';
+                SELECT s.id
+                FROM teachers t
+                JOIN school_staff s
+                    ON s.id = t.staff_id
+                   AND s.school_id = t.school_id
+                WHERE s.id = $1
+                  AND t.school_id = $2;
                 `,
                 [classTeacherId, schoolId]
             );
@@ -340,18 +346,16 @@ export const updateSection = async (req, res) => {
             });
         }
 
-        if (nextClassTeacherId) {
+               if (nextClassTeacherId) {
             const teacherResult = await pool.query(
                 `
-                SELECT u.id
-                FROM users u
-                JOIN user_roles ur
-                    ON ur.user_id = u.id
-                JOIN roles r
-                    ON r.id = ur.role_id
-                WHERE u.id = $1
-                  AND u.school_id = $2
-                  AND r.name = 'Teacher';
+                SELECT s.id
+                FROM teachers t
+                JOIN school_staff s
+                    ON s.id = t.staff_id
+                   AND s.school_id = t.school_id
+                WHERE s.id = $1
+                  AND t.school_id = $2;
                 `,
                 [nextClassTeacherId, schoolId]
             );

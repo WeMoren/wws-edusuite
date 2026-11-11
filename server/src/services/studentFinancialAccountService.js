@@ -1,3 +1,7 @@
+import {
+    acquireFinancialScopeLock,
+} from "../utils/financialLock.js";
+
 
 const getEnrollmentDetails = async (
     client,
@@ -162,6 +166,49 @@ export const createStudentFinancialAccountForTerm = async (
         );
     }
 
+      await acquireFinancialScopeLock(
+        client,
+        {
+            schoolId,
+            academicSessionId:
+                enrollment.academic_session_id,
+            termId,
+            academicLevelId:
+                enrollment.academic_level_id,
+        }
+    );
+
+        const existingResult = await client.query(
+        `
+        SELECT
+            id,
+            school_id,
+            student_id,
+            enrollment_id,
+            academic_session_id,
+            term_id,
+            fee_structure_id,
+            total_due,
+            total_paid,
+            status,
+            created_at,
+            updated_at
+        FROM student_financial_accounts
+        WHERE student_id = $1
+          AND enrollment_id = $2
+          AND term_id = $3
+          AND school_id = $4;
+        `,
+        [studentId, enrollmentId, termId, schoolId]
+    );
+
+    if (existingResult.rows.length > 0) {
+        return {
+            created: false,
+            financialAccount: existingResult.rows[0],
+        };
+    }
+
     const feeStructure = await findActiveFeeStructure(
         client,
         {
@@ -262,7 +309,8 @@ export const createStudentFinancialAccountForTerm = async (
             FROM student_financial_accounts
             WHERE student_id = $1
               AND enrollment_id = $2
-              AND term_id = $3;
+              AND term_id = $3
+              AND school_id = $4;
             `,
             [studentId, enrollmentId, termId, schoolId]
         );
@@ -347,6 +395,18 @@ export const createStudentFinancialAccountForCurrentTerm = async (
         };
     }
 
+    await acquireFinancialScopeLock(
+        client,
+        {
+            schoolId,
+            academicSessionId:
+                enrollment.academic_session_id,
+            termId: currentTermResult.rows[0].id,
+            academicLevelId:
+                enrollment.academic_level_id,
+        }
+    );
+
         const activeFeeStructure = await findActiveFeeStructure(
         client,
         {
@@ -382,6 +442,6 @@ export const createStudentFinancialAccountForCurrentTerm = async (
 
     return {
         ...result,
-        skipped: false,
+        skipped: result.skipped ?? false,
     };
 };

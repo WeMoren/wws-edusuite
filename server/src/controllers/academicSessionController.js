@@ -1,4 +1,7 @@
 import pool from "../config/db.js";
+import {
+    generateFinancialAccountsForCurrentTerm,
+} from "../services/financialRolloverService.js";
 
 export const getAcademicSessions = async (req, res) => {
     try {
@@ -187,8 +190,10 @@ export const createAcademicSession = async (req, res) => {
     }
 };
 
+
 export const updateAcademicSession = async (req, res) => {
     const client = await pool.connect();
+    let transactionStarted = false;
 
     try {
         const { schoolId } = req;
@@ -201,21 +206,29 @@ export const updateAcademicSession = async (req, res) => {
             isCurrent,
         } = req.body;
 
+        await client.query("BEGIN");
+        transactionStarted = true;
+
         const existingResult = await client.query(
             `
             SELECT
+                id,
                 name,
                 start_date,
                 end_date,
                 is_current
             FROM academic_sessions
             WHERE id = $1
-              AND school_id = $2;
+              AND school_id = $2
+            FOR UPDATE;
             `,
             [id, schoolId]
         );
 
         if (existingResult.rows.length === 0) {
+            await client.query("ROLLBACK");
+            transactionStarted = false;
+
             return res.status(404).json({
                 message: "Academic session not found.",
             });
@@ -224,24 +237,38 @@ export const updateAcademicSession = async (req, res) => {
         const existing = existingResult.rows[0];
 
         const nextName = name ?? existing.name;
+
         const nextStartDate =
             startDate ?? existing.start_date;
+
         const nextEndDate =
             endDate ?? existing.end_date;
+
         const nextIsCurrent =
             isCurrent ?? existing.is_current;
+
+        if (typeof nextIsCurrent !== "boolean") {
+            await client.query("ROLLBACK");
+            transactionStarted = false;
+
+            return res.status(400).json({
+                message:
+                    "isCurrent must be a boolean.",
+            });
+        }
 
         if (
             new Date(nextEndDate) <
             new Date(nextStartDate)
         ) {
+            await client.query("ROLLBACK");
+            transactionStarted = false;
+
             return res.status(400).json({
                 message:
                     "End date cannot be earlier than start date.",
             });
         }
-
-        await client.query("BEGIN");
 
         if (nextIsCurrent === true) {
             await client.query(
@@ -289,14 +316,50 @@ export const updateAcademicSession = async (req, res) => {
             ]
         );
 
+        let financialGeneration = null;
+
+        if (
+            !existing.is_current &&
+            nextIsCurrent
+        ) {
+            const currentTermResult = await client.query(
+                `
+                SELECT id
+                FROM terms
+                WHERE school_id = $1
+                  AND academic_session_id = $2
+                  AND is_current = TRUE;
+                `,
+                [schoolId, id]
+            );
+
+            if (currentTermResult.rows.length > 0) {
+                financialGeneration =
+                    await generateFinancialAccountsForCurrentTerm(
+                        client,
+                        { schoolId }
+                    );
+
+                if (!financialGeneration.processed) {
+                    throw new Error(
+                        financialGeneration.reason
+                    );
+                }
+            }
+        }
+
         await client.query("COMMIT");
+        transactionStarted = false;
 
         return res.status(200).json({
             message: "Academic session updated successfully.",
             session: result.rows[0],
+            financialGeneration,
         });
     } catch (error) {
-        await client.query("ROLLBACK");
+        if (transactionStarted) {
+            await client.query("ROLLBACK");
+        }
 
         if (error.code === "23505") {
             return res.status(409).json({
@@ -317,6 +380,7 @@ export const updateAcademicSession = async (req, res) => {
         client.release();
     }
 };
+
 
 export const deleteAcademicSession = async (req, res) => {
     try {

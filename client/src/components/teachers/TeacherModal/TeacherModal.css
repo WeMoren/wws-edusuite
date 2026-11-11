@@ -85,3 +85,20 @@
 .teacher-modal form > button:hover {
   opacity: 0.9;
 }
+
+
+.teacher-modal__error {
+  margin: 0 0 1rem;
+  padding: 0.75rem;
+  border: 1px solid #fecaca;
+  border-radius: 8px;
+  background: #fef2f2;
+  color: #b91c1c;
+  font-size: 0.9rem;
+}
+
+.teacher-modal form > button:disabled,
+.teacher-modal__header button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}

@@ -375,6 +375,69 @@
     overflow-x: auto;
 }
 
+.school-fees__pagination {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    flex-wrap: wrap;
+    padding: 1rem 0;
+    border-top: 1px solid #e5e7eb;
+}
+
+.school-fees__pagination-summary {
+    margin: 0;
+    color: #64748b;
+    font-size: 0.9rem;
+}
+
+.school-fees__pagination-controls {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+}
+
+.school-fees__pagination-controls label {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    color: #475569;
+    font-size: 0.9rem;
+}
+
+.school-fees__pagination-controls select {
+    padding: 0.5rem;
+    border: 1px solid #d1d5db;
+    border-radius: 6px;
+    background: #fff;
+}
+
+.school-fees__pagination-controls button {
+    padding: 0.5rem 0.85rem;
+    border: 1px solid #2563eb;
+    border-radius: 6px;
+    background: #2563eb;
+    color: #fff;
+    cursor: pointer;
+    transition: background 0.2s ease;
+}
+
+.school-fees__pagination-controls button:hover:not(:disabled) {
+    background: #1d4ed8;
+    border-color: #1d4ed8;
+}
+
+.school-fees__pagination-controls button:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.school-fees__pagination-controls span {
+    color: #475569;
+    font-size: 0.9rem;
+}
+
 .school-fees__table {
     width: 100%;
     border-collapse: collapse;

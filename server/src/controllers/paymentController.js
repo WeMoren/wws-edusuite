@@ -190,17 +190,42 @@ export const createPayment = async (req, res) => {
             });
         }
 
-        const parsedAmount = Number(amount);
+           const parsedAmount = Number(amount);
+            const parsedAmountInKobo = Math.round(parsedAmount * 100);
 
-        if (
-            !Number.isFinite(parsedAmount) ||
-            parsedAmount <= 0
-        ) {
-            return res.status(400).json({
-                message:
-                    "Payment amount must be greater than zero.",
-            });
-        }
+            const allowedPaymentMethods = [
+                "cash",
+                "transfer",
+                "pos",
+                "cheque",
+                "ussd",
+                "other",
+            ];
+
+            const validAmount =
+                Number.isFinite(parsedAmount) &&
+                parsedAmount > 0 &&
+                Number.isSafeInteger(parsedAmountInKobo) &&
+                Math.abs(parsedAmount * 100 - parsedAmountInKobo) < 1e-7;
+
+            const validDate =
+                typeof paymentDate === "string" &&
+                /^\d{4}-\d{2}-\d{2}$/.test(paymentDate) &&
+                !Number.isNaN(Date.parse(`${paymentDate}T00:00:00Z`)) &&
+                new Date(`${paymentDate}T00:00:00Z`)
+                    .toISOString()
+                    .startsWith(paymentDate);
+
+            const validMethod =
+                typeof paymentMethod === "string" &&
+                allowedPaymentMethods.includes(paymentMethod);
+
+            if (!validAmount || !validDate || !validMethod) {
+                return res.status(400).json({
+                    message:
+                        "A valid amount (maximum two decimal places), payment date, and payment method are required.",
+                });
+            }
 
         await client.query("BEGIN");
         transactionStarted = true;
@@ -243,21 +268,33 @@ export const createPayment = async (req, res) => {
 
         const account = accountResult.rows[0];
 
-        const totalDue = Number(account.total_due);
-        const totalPaid = Number(account.total_paid);
+        const totalDueInKobo = Math.round(
+            Number(account.total_due) * 100
+        );
 
-        const outstandingBalance =
-            totalDue - totalPaid;
+        const totalPaidInKobo = Math.round(
+            Number(account.total_paid) * 100
+        );
 
-        if (parsedAmount > outstandingBalance) {
-            await client.query("ROLLBACK");
-            transactionStarted = false;
+        const outstandingBalanceInKobo =
+            totalDueInKobo - totalPaidInKobo;
+
+        if (
+            totalPaidInKobo > totalDueInKobo ||
+            parsedAmountInKobo > outstandingBalanceInKobo
+        ) {
+                await client.query("ROLLBACK");
+             transactionStarted = false;
 
             return res.status(400).json({
                 message:
                     "Payment amount cannot exceed the outstanding balance.",
             });
         }
+
+        const totalDue = totalDueInKobo / 100;
+
+        const paymentAmount = parsedAmountInKobo / 100;
 
         const paymentResult = await client.query(
             `
@@ -298,7 +335,7 @@ export const createPayment = async (req, res) => {
                 schoolId,
                 studentId,
                 financialAccountId,
-                parsedAmount,
+                paymentAmount,
                 paymentDate,
                 paymentMethod,
                 reference || null,
@@ -308,16 +345,23 @@ export const createPayment = async (req, res) => {
 
         const payment = paymentResult.rows[0];
 
-        const newTotalPaid =
-            totalPaid + parsedAmount;
+        const newTotalPaidInKobo =  totalPaidInKobo + parsedAmountInKobo;
+
+        const newTotalPaid = newTotalPaidInKobo / 100;
+
+        const remainingBalanceInKobo =
+            totalDueInKobo - newTotalPaidInKobo;
+
+        const remainingBalance =
+            remainingBalanceInKobo / 100;
 
         let newStatus = "partially_paid";
 
-        if (newTotalPaid === totalDue) {
+        if (newTotalPaidInKobo === totalDueInKobo) {
             newStatus = "paid";
         }
 
-        if (newTotalPaid === 0) {
+        if (newTotalPaidInKobo === 0) {
             newStatus = "unpaid";
         }
 
@@ -421,19 +465,6 @@ export const createPayment = async (req, res) => {
 
         const receiptContext =
             receiptContextResult.rows[0];
-
-        const feeItemsResult = await client.query(
-            `
-            SELECT
-                name,
-                amount,
-                display_order
-            FROM fee_structure_items
-            WHERE fee_structure_id = $1
-            ORDER BY display_order ASC;
-            `,
-            [account.fee_structure_id]
-        );
 
         const receiptNumberResult = await client.query(
             `
@@ -575,9 +606,9 @@ export const createPayment = async (req, res) => {
                 financialAccountId,
 
                 totalDue,
-                parsedAmount,
+                paymentAmount,
                 newTotalPaid,
-                totalDue - newTotalPaid,
+                remainingBalance,
 
                 payment.payment_date,
                 payment.payment_method,
@@ -631,8 +662,7 @@ export const createPayment = async (req, res) => {
                 id: financialAccountId,
                 totalDue,
                 totalPaid: newTotalPaid,
-                outstandingBalance:
-                    totalDue - newTotalPaid,
+                outstandingBalance: remainingBalance,
                 status: newStatus,
             },
             receipt: {
@@ -642,8 +672,15 @@ export const createPayment = async (req, res) => {
         });
     } catch (error) {
         if (transactionStarted) {
-            await client.query("ROLLBACK");
-        }
+                try {
+                    await client.query("ROLLBACK");
+                } catch (rollbackError) {
+                    console.error(
+                        "Failed to roll back payment transaction:",
+                        rollbackError.message
+                    );
+                }
+            }
 
         if (error.code === "23503") {
             return res.status(400).json({
@@ -662,5 +699,595 @@ export const createPayment = async (req, res) => {
         });
     } finally {
         client.release();
+    }
+};
+export const updatePayment = async (req, res) => {
+    const client = await pool.connect();
+
+    let transactionStarted = false;
+
+    try {
+        const { schoolId } = req;
+        const { userId } = req.user;
+        const { id } = req.params;
+
+        const {
+            amount,
+            paymentDate,
+            paymentMethod,
+            reference,
+            description,
+            reason,
+        } = req.body;
+
+        const parsedAmount = Number(amount);
+            const parsedAmountInKobo = Math.round(parsedAmount * 100);
+
+            const allowedPaymentMethods = [
+                "cash",
+                "transfer",
+                "pos",
+                "cheque",
+                "ussd",
+                "other",
+            ];
+
+            const validAmount =
+                Number.isFinite(parsedAmount) &&
+                parsedAmount > 0 &&
+                Number.isSafeInteger(parsedAmountInKobo) &&
+                Math.abs(parsedAmount * 100 - parsedAmountInKobo) < 1e-7;
+
+            const validDate =
+                typeof paymentDate === "string" &&
+                /^\d{4}-\d{2}-\d{2}$/.test(paymentDate) &&
+                !Number.isNaN(Date.parse(`${paymentDate}T00:00:00Z`)) &&
+                new Date(`${paymentDate}T00:00:00Z`)
+                    .toISOString()
+                    .startsWith(paymentDate);
+
+            const validMethod =
+                typeof paymentMethod === "string" &&
+                allowedPaymentMethods.includes(paymentMethod);
+
+            const validReason =
+                typeof reason === "string" &&
+                reason.trim().length > 0;
+
+            if (
+                !validAmount ||
+                !validDate ||
+                !validMethod ||
+                !validReason
+            ) {
+                return res.status(400).json({
+                    message:
+                        "A valid amount (maximum two decimal places), payment date, payment method, and correction reason are required.",
+                });
+            }
+
+        await client.query("BEGIN");
+        transactionStarted = true;
+
+        // Lock the payment being corrected.
+        const paymentResult = await client.query(
+            `
+            SELECT
+                id,
+                school_id,
+                student_id,
+                financial_account_id,
+                amount,
+                payment_date,
+                payment_method,
+                reference,
+                description
+            FROM payments
+            WHERE id = $1
+              AND school_id = $2
+            FOR UPDATE;
+            `,
+            [id, schoolId]
+        );
+
+        if (paymentResult.rows.length === 0) {
+            await client.query("ROLLBACK");
+            transactionStarted = false;
+
+            return res.status(404).json({
+                message: "Payment not found.",
+            });
+        }
+
+        const oldPayment = paymentResult.rows[0];
+
+        // Lock the associated financial account.
+        const accountResult = await client.query(
+            `
+            SELECT
+                id,
+                total_due,
+                total_paid,
+                fee_structure_id
+            FROM student_financial_accounts
+            WHERE id = $1
+              AND school_id = $2
+              AND student_id = $3
+            FOR UPDATE;
+            `,
+            [
+                oldPayment.financial_account_id,
+                schoolId,
+                oldPayment.student_id,
+            ]
+        );
+
+        if (accountResult.rows.length === 0) {
+            throw new Error(
+                "The payment's financial account could not be found."
+            );
+        }
+
+        const account = accountResult.rows[0];
+
+        // Retrieve and lock the currently valid receipt.
+        const receiptResult = await client.query(
+            `
+            SELECT id
+            FROM payment_receipts
+            WHERE payment_id = $1
+              AND school_id = $2
+              AND status = 'current'
+            FOR UPDATE;
+            `,
+            [id, schoolId]
+        );
+
+        if (receiptResult.rows.length === 0) {
+            throw new Error(
+                "The current payment receipt could not be found."
+            );
+        }
+
+        const oldReceiptId = receiptResult.rows[0].id;
+
+        const totalDueInKobo = Math.round(
+            Number(account.total_due) * 100
+        );
+
+        const totalPaidInKobo = Math.round(
+            Number(account.total_paid) * 100
+        );
+
+        const oldAmountInKobo = Math.round(
+            Number(oldPayment.amount) * 100
+        );
+
+        const newTotalPaidInKobo =
+            totalPaidInKobo -
+            oldAmountInKobo +
+            parsedAmountInKobo;
+
+        if (newTotalPaidInKobo < 0) {
+            throw new Error(
+                "The resulting account balance is invalid."
+            );
+        }
+
+        if (newTotalPaidInKobo > totalDueInKobo) {
+            await client.query("ROLLBACK");
+            transactionStarted = false;
+
+            return res.status(400).json({
+                message:
+                    "The corrected payment would exceed the financial account's total due.",
+            });
+        }
+
+        const newTotalPaid = newTotalPaidInKobo / 100;
+        const outstandingBalance =
+            (totalDueInKobo - newTotalPaidInKobo) / 100;
+
+        let newStatus = "unpaid";
+
+        if (newTotalPaidInKobo > 0) {
+            newStatus =
+                newTotalPaidInKobo === totalDueInKobo
+                    ? "paid"
+                    : "partially_paid";
+        }
+
+        // Save the corrected payment.
+        const updatedPaymentResult = await client.query(
+            `
+            UPDATE payments
+            SET
+                amount = $1,
+                payment_date = $2,
+                payment_method = $3,
+                reference = $4,
+                description = $5,
+                updated_at = NOW()
+            WHERE id = $6
+              AND school_id = $7
+            RETURNING
+                id,
+                school_id,
+                student_id,
+                financial_account_id,
+                amount,
+                payment_date::text AS payment_date,
+                payment_method,
+                reference,
+                description,
+                created_at,
+                updated_at;
+            `,
+            [
+                parsedAmountInKobo / 100,
+                paymentDate,
+                paymentMethod,
+                reference || null,
+                description || null,
+                id,
+                schoolId,
+            ]
+        );
+
+        const payment = updatedPaymentResult.rows[0];
+
+        // Recalculate the financial account.
+        await client.query(
+            `
+            UPDATE student_financial_accounts
+            SET
+                total_paid = $1,
+                status = $2,
+                updated_at = NOW()
+            WHERE id = $3
+              AND school_id = $4;
+            `,
+            [
+                newTotalPaid,
+                newStatus,
+                account.id,
+                schoolId,
+            ]
+        );
+
+        const oldValues = {
+            amount: Number(oldPayment.amount),
+            paymentDate: oldPayment.payment_date,
+            paymentMethod: oldPayment.payment_method,
+            reference: oldPayment.reference,
+            description: oldPayment.description,
+        };
+
+        const newValues = {
+            amount: Number(payment.amount),
+            paymentDate: payment.payment_date,
+            paymentMethod: payment.payment_method,
+            reference: payment.reference,
+            description: payment.description,
+        };
+
+        // Record the correction before issuing the new receipt.
+        await client.query(
+            `
+            INSERT INTO payment_corrections (
+                school_id,
+                payment_id,
+                corrected_by,
+                correction_reason,
+                old_values,
+                new_values
+            )
+            VALUES ($1, $2, $3, $4, $5, $6);
+            `,
+            [
+                schoolId,
+                id,
+                userId,
+                reason.trim(),
+                oldValues,
+                newValues,
+            ]
+        );
+
+        // Preserve the original receipt as a historical record.
+        await client.query(
+            `
+            UPDATE payment_receipts
+            SET
+                status = 'superseded',
+                superseded_at = NOW(),
+                superseded_by = $1,
+                superseded_reason = $2
+            WHERE id = $3
+              AND school_id = $4;
+            `,
+            [
+                userId,
+                reason.trim(),
+                oldReceiptId,
+                schoolId,
+            ]
+        );
+
+        const receiptNumberResult = await client.query(
+            `
+            SELECT nextval(
+                'payment_receipt_number_seq'
+            ) AS receipt_number;
+            `
+        );
+
+        const receiptNumber = Number(
+            receiptNumberResult.rows[0].receipt_number
+        );
+
+        // Generate a new receipt from the original snapshot.
+        const newReceiptResult = await client.query(
+            `
+            INSERT INTO payment_receipts (
+                school_id,
+                payment_id,
+                receipt_number,
+
+                school_name,
+                school_email,
+                school_phone,
+                school_address,
+                school_logo_url,
+
+                student_id,
+                student_name,
+                admission_number,
+                gender,
+
+                academic_session_id,
+                academic_session_name,
+                term_id,
+                term_name,
+                academic_level_id,
+                academic_level_name,
+                class_id,
+                class_name,
+
+                financial_account_id,
+
+                total_due,
+                amount_paid,
+                total_paid_after_payment,
+                outstanding_balance_after_payment,
+
+                payment_date,
+                payment_method,
+                payment_reference,
+                payment_description,
+
+                principal_name,
+                principal_title,
+                principal_signature_url,
+                principal_stamp_url,
+
+                accounting_officer_name,
+                accounting_officer_title,
+                accounting_officer_signature_url,
+                accounting_officer_stamp_url
+            )
+            SELECT
+                school_id,
+                payment_id,
+                $2,
+
+                school_name,
+                school_email,
+                school_phone,
+                school_address,
+                school_logo_url,
+
+                student_id,
+                student_name,
+                admission_number,
+                gender,
+
+                academic_session_id,
+                academic_session_name,
+                term_id,
+                term_name,
+                academic_level_id,
+                academic_level_name,
+                class_id,
+                class_name,
+
+                financial_account_id,
+
+                total_due,
+                $3,
+                $4,
+                $5,
+
+                $6,
+                $7,
+                $8,
+                $9,
+
+                principal_name,
+                principal_title,
+                principal_signature_url,
+                principal_stamp_url,
+
+                accounting_officer_name,
+                accounting_officer_title,
+                accounting_officer_signature_url,
+                accounting_officer_stamp_url
+
+            FROM payment_receipts
+            WHERE id = $1
+            RETURNING id, receipt_number;
+            `,
+            [
+                oldReceiptId,
+                receiptNumber,
+                parsedAmountInKobo / 100,
+                newTotalPaid,
+                outstandingBalance,
+                payment.payment_date,
+                payment.payment_method,
+                payment.reference,
+                payment.description,
+            ]
+        );
+
+        if (newReceiptResult.rows.length === 0) {
+            throw new Error(
+                "Failed to generate the corrected receipt."
+            );
+        }
+
+        const newReceipt = newReceiptResult.rows[0];
+
+        // Carry forward the original fee-item snapshot.
+        await client.query(
+            `
+            INSERT INTO payment_receipt_items (
+                payment_receipt_id,
+                name,
+                amount,
+                display_order
+            )
+            SELECT
+                $1,
+                name,
+                amount,
+                display_order
+            FROM payment_receipt_items
+            WHERE payment_receipt_id = $2
+            ORDER BY display_order ASC;
+            `,
+            [newReceipt.id, oldReceiptId]
+        );
+
+        await client.query("COMMIT");
+        transactionStarted = false;
+
+        return res.status(200).json({
+            message: "Payment corrected successfully.",
+            payment,
+            financialAccount: {
+                id: account.id,
+                totalDue: totalDueInKobo / 100,
+                totalPaid: newTotalPaid,
+                outstandingBalance,
+                status: newStatus,
+            },
+            receipt: {
+                id: newReceipt.id,
+                receiptNumber: newReceipt.receipt_number,
+            },
+        });
+    } catch (error) {
+        if (transactionStarted) {
+            try {
+                await client.query("ROLLBACK");
+            } catch (rollbackError) {
+                console.error(
+                    "Failed to roll back payment correction:",
+                    rollbackError.message
+                );
+            }
+        }
+
+        console.error(
+            "Failed to correct payment:",
+            error.message
+        );
+
+        if (error.code === "23503") {
+            return res.status(400).json({
+                message:
+                    "The correction references an invalid record.",
+            });
+        }
+
+        if (error.code === "23514") {
+            return res.status(400).json({
+                message:
+                    "The corrected payment contains invalid values.",
+            });
+        }
+
+        return res.status(500).json({
+            message: "Failed to correct payment.",
+        });
+    } finally {
+        client.release();
+    }
+};
+
+export const getPaymentCorrectionHistory = async (req, res) => {
+    try {
+        const { schoolId } = req;
+        const { id } = req.params;
+
+        // Confirm that the payment belongs to this school.
+        const paymentResult = await pool.query(
+            `
+            SELECT id
+            FROM payments
+            WHERE id = $1
+              AND school_id = $2;
+            `,
+            [id, schoolId]
+        );
+
+        if (paymentResult.rows.length === 0) {
+            return res.status(404).json({
+                message: "Payment not found.",
+            });
+        }
+
+        const result = await pool.query(
+            `
+            SELECT
+                pc.id,
+                pc.payment_id,
+                pc.correction_reason,
+                pc.old_values,
+                pc.new_values,
+                pc.created_at,
+
+                u.id AS corrected_by_id,
+                u.first_name AS corrected_by_first_name,
+                u.last_name AS corrected_by_last_name
+
+            FROM payment_corrections pc
+
+            JOIN users u
+                ON u.id = pc.corrected_by
+               AND u.school_id = pc.school_id
+
+            WHERE pc.payment_id = $1
+              AND pc.school_id = $2
+
+            ORDER BY pc.created_at DESC;
+            `,
+            [id, schoolId]
+        );
+
+        return res.status(200).json({
+            paymentId: id,
+            corrections: result.rows,
+        });
+    } catch (error) {
+        console.error(
+            "Failed to fetch payment correction history:",
+            error.message
+        );
+
+        return res.status(500).json({
+            message: "Failed to fetch payment correction history.",
+        });
     }
 };

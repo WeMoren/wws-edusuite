@@ -246,7 +246,7 @@ const App = () => {
             path="events"
             element={
               <RoleRoute
-                allowedRoles={["Principal", "Head Teacher"]}
+                allowedRoles={["Principal", "School Admin", "Head Teacher"]}
               >
                 <Events />
               </RoleRoute>

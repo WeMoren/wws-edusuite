@@ -103,6 +103,46 @@ export const getStaff = async (req, res) => {
     }
 };
 
+
+export const getStaffCount = async (req, res) => {
+    try {
+        const { schoolId } = req;
+
+        const result = await pool.query(
+            `
+            SELECT COUNT(DISTINCT ss.id)::INTEGER AS count
+            FROM school_staff ss
+
+            INNER JOIN staff_position_assignments spa
+                ON spa.staff_id = ss.id
+               AND spa.school_id = ss.school_id
+               AND spa.status = 'active'
+
+            INNER JOIN staff_positions sp
+                ON sp.id = spa.position_id
+
+            WHERE ss.school_id = $1
+              AND ss.status = 'active'
+              AND sp.code NOT IN ('teacher', 'head_teacher');
+            `,
+            [schoolId]
+        );
+
+        return res.status(200).json({
+            count: result.rows[0].count,
+        });
+    } catch (error) {
+        console.error(
+            "Failed to fetch staff count:",
+            error.message
+        );
+
+        return res.status(500).json({
+            message: "Failed to fetch staff count.",
+        });
+    }
+};
+
 export const getStaffById = async (req, res) => {
     try {
         const { schoolId } = req;

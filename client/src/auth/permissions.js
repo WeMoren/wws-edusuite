@@ -23,15 +23,19 @@ const permissions = {
     settings: FULL_ACCESS,
     subscription: ["view", "create", "edit"],
     events: FULL_ACCESS,
+    recent_activities: ["view"],
     library: FULL_ACCESS,
     reception: FULL_ACCESS,
   },
 
   schoolAdmin: {
+    students: ["view", "create", "edit"],
     academicSetup: FULL_ACCESS,
     feeStructures: FULL_ACCESS,
     settings: FULL_ACCESS,
     subscription: ["view", "create", "edit"],
+    events: FULL_ACCESS,
+    recent_activities: ["view"]
   },
 
   examOfficer: {
@@ -39,9 +43,10 @@ const permissions = {
     teachers: ["view"],
     classes: ["view"],
     sections: ["view"],
-    academicSetup: ["view"],
+    academicSetup:  FULL_ACCESS,
     attendance: ["view"],
     results: ["view", "create", "edit", "download", "authorize"],
+    recent_activities: ["view"]
   },
 
   teacher: {
@@ -51,10 +56,13 @@ const permissions = {
     sections: ["view"],
     academicSetup: ["view"],
     attendance: ["view", "create", "edit"],
+    events: FULL_ACCESS,
+    recent_activities: ["view"],
   },
 
   accountant: {
     accountant: FULL_ACCESS,
+     recent_activities: ["view"],
   },
 };
 

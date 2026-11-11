@@ -1,14 +1,38 @@
 import React, { useState } from "react";
 import "./ExpenseModal.css";
 
+const getTodayDate = () => {
+  const today = new Date();
 
+  return new Date(
+    today.getTime() - today.getTimezoneOffset() * 60000
+  )
+    .toISOString()
+    .slice(0, 10);
+};
 
-
-const ExpenseModal = ({expense, onClose, onAddExpense }) => {
+const ExpenseModal = ({
+  expense,
+  categories = [],
+  error = "",
+  saving = false,
+  onClose,
+  onAddExpense,
+}) => {
   const [expenseData, setExpenseData] = useState({
     title: expense?.title || "",
-    amount: expense?.amount || "",
-    category: expense?.category || "Utilities",
+    amount: expense?.amount ?? "",
+    expenseCategoryId:
+      expense?.expenseCategoryId ||
+      expense?.expense_category_id ||
+      "",
+    expenseDate: (
+      expense?.date ||
+      expense?.expense_date ||
+      getTodayDate()
+    ).slice(0, 10),
+    paymentMethod: expense?.paymentMethod || "transfer",
+    reference: expense?.reference || "",
     description: expense?.description || "",
   });
 
@@ -26,22 +50,28 @@ const ExpenseModal = ({expense, onClose, onAddExpense }) => {
 
     onAddExpense({
       ...expenseData,
-      id:expense?.id,
+      id: expense?.id,
       amount: Number(expenseData.amount),
-      date: expense?.date  || new Date().toISOString(),
     });
   };
+
+  const existingCategoryIsInactive =
+    expense?.expenseCategoryId &&
+    !categories.some(
+      (category) => category.id === expense.expenseCategoryId
+    );
 
   return (
     <div className="expense-modal">
       <div className="expense-modal__content">
         <div className="expense-modal__header">
-          <h2> {expense ? "Edit Expense" : "Record Expense"}</h2>
+          <h2>{expense ? "Edit Expense" : "Record Expense"}</h2>
 
           <button
             type="button"
             className="expense-modal__close"
             onClick={onClose}
+            disabled={saving}
           >
             ×
           </button>
@@ -55,6 +85,7 @@ const ExpenseModal = ({expense, onClose, onAddExpense }) => {
               id="title"
               name="title"
               type="text"
+              maxLength="150"
               value={expenseData.title}
               onChange={handleChange}
               placeholder="e.g. Electricity Bill"
@@ -63,13 +94,14 @@ const ExpenseModal = ({expense, onClose, onAddExpense }) => {
           </div>
 
           <div className="expense-form__group">
-            <label htmlFor="amount">Amount</label>
+            <label htmlFor="amount">Amount (₦)</label>
 
             <input
               id="amount"
               name="amount"
               type="number"
-              min="0"
+              min="0.01"
+              step="0.01"
               value={expenseData.amount}
               onChange={handleChange}
               placeholder="Enter amount"
@@ -78,21 +110,77 @@ const ExpenseModal = ({expense, onClose, onAddExpense }) => {
           </div>
 
           <div className="expense-form__group">
-            <label htmlFor="category">Category</label>
+            <label htmlFor="expenseCategoryId">Category</label>
 
             <select
-              id="category"
-              name="category"
-              value={expenseData.category}
+              id="expenseCategoryId"
+              name="expenseCategoryId"
+              value={expenseData.expenseCategoryId}
               onChange={handleChange}
+              required
             >
-              <option value="Utilities">Utilities</option>
-              <option value="Supplies">Supplies</option>
-              <option value="Maintenance">Maintenance</option>
-              <option value="Salaries">Salaries</option>
-              <option value="Transport">Transport</option>
-              <option value="Other">Other</option>
+              <option value="">Select expense category</option>
+
+              {existingCategoryIsInactive && (
+                <option
+                  value={expenseData.expenseCategoryId}
+                  disabled
+                >
+                  {expense.category} (inactive)
+                </option>
+              )}
+
+              {categories.map((category) => (
+                <option key={category.id} value={category.id}>
+                  {category.name}
+                </option>
+              ))}
             </select>
+          </div>
+
+          <div className="expense-form__group">
+            <label htmlFor="expenseDate">Expense Date</label>
+
+            <input
+              id="expenseDate"
+              name="expenseDate"
+              type="date"
+              value={expenseData.expenseDate}
+              onChange={handleChange}
+              required
+            />
+          </div>
+
+          <div className="expense-form__group">
+            <label htmlFor="paymentMethod">Payment Method</label>
+
+            <select
+              id="paymentMethod"
+              name="paymentMethod"
+              value={expenseData.paymentMethod}
+              onChange={handleChange}
+              required
+            >
+              <option value="cash">Cash</option>
+              <option value="transfer">Bank Transfer</option>
+              <option value="pos">POS</option>
+              <option value="cheque">Cheque</option>
+              <option value="ussd">USSD</option>
+              <option value="other">Other</option>
+            </select>
+          </div>
+
+          <div className="expense-form__group">
+            <label htmlFor="reference">Payment Reference</label>
+
+            <input
+              id="reference"
+              name="reference"
+              type="text"
+              value={expenseData.reference}
+              onChange={handleChange}
+              placeholder="Optional transaction reference"
+            />
           </div>
 
           <div className="expense-form__group">
@@ -108,16 +196,27 @@ const ExpenseModal = ({expense, onClose, onAddExpense }) => {
             />
           </div>
 
+          {error && (
+            <p role="alert" style={{ color: "#dc2626" }}>
+              {error}
+            </p>
+          )}
+
           <div className="expense-modal__actions">
             <button
               type="button"
               onClick={onClose}
+              disabled={saving}
             >
               Cancel
             </button>
 
-            <button type="submit">
-                 {expense ? "Edit Expense" : "Record Expense"}
+            <button type="submit" disabled={saving}>
+              {saving
+                ? "Saving..."
+                : expense
+                  ? "Update Expense"
+                  : "Record Expense"}
             </button>
           </div>
         </form>

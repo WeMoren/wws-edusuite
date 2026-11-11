@@ -66,12 +66,13 @@ const { currentUser } = useAuth();
     const { 
             students, 
             teachers, 
+            staffCount,
             parents, 
             classes, 
             attendance,
             recentActivities,
             upcomingEvents,
-            setUpcomingEvents
+            createEvent,
         } = useOutletContext();
 
             const today = new Date().toISOString().split("T")[0];
@@ -129,8 +130,8 @@ const { currentUser } = useAuth();
                   value={`${attendancePercentage}%`}
               />
               <StatCard
-                  title="Staff"
-                  value="---"
+                  title=" Management Staff"
+                   value={staffCount}
               />
          </div>
           <div className="dashboard__info">
@@ -189,27 +190,12 @@ const { currentUser } = useAuth();
          </div>
         
 
-            {showEventModal && (
-    <EventModal
-        onClose={() => setShowEventModal(false)}
-        onAddEvent={(eventData) => {
-            setUpcomingEvents((prevEvents) => [
-                ...prevEvents,
-                {
-                    ...eventData,
-                    id:
-                        prevEvents.length > 0
-                            ? Math.max(
-                                ...prevEvents.map((event) => event.id)
-                            ) + 1
-                            : 1,
-                },
-            ]);
-
-            setShowEventModal(false);
-        }}
-    />
-)}
+           {showEventModal && (
+            <EventModal
+                onClose={() => setShowEventModal(false)}
+                onAddEvent={createEvent}
+            />
+        )}
 
       </div>
   )

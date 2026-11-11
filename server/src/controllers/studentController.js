@@ -1,4 +1,5 @@
 import pool from "../config/db.js";
+import { recordActivity } from "../services/activityLogService.js";
 
 export const getStudents = async (req, res) => {
     try {
@@ -189,9 +190,25 @@ export const createStudent = async (req, res) => {
             ]
         );
 
+        const createdStudent = result.rows[0];
+
+            try {
+                await recordActivity({
+                    schoolId,
+                    userId: req.user.userId,
+                    action: "student_created",
+                    description: `Created student record for admission number "${createdStudent.admission_no}".`,
+                });
+            } catch (activityError) {
+                console.error(
+                    "Failed to record student creation activity:",
+                    activityError.message
+                );
+            }
+
         return res.status(201).json({
             message: "Student created successfully.",
-            student: result.rows[0],
+            student: createdStudent,
         });
     } catch (error) {
         if (error.code === "23505") {
@@ -336,9 +353,25 @@ export const updateStudent = async (req, res) => {
             ]
         );
 
+        const updatedStudent = result.rows[0];
+
+            try {
+                await recordActivity({
+                    schoolId,
+                    userId: req.user.userId,
+                    action: "student_updated",
+                    description: `Updated student record for admission number "${updatedStudent.admission_no}".`,
+                });
+            } catch (activityError) {
+                console.error(
+                    "Failed to record student update activity:",
+                    activityError.message
+                );
+            }
+
         return res.status(200).json({
             message: "Student updated successfully.",
-            student: result.rows[0],
+            student: updatedStudent,
         });
     } catch (error) {
         if (error.code === "23505") {
