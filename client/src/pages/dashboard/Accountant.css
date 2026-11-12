@@ -16,6 +16,13 @@
   }
 }
 
+@media (max-width: 768px) {
+  .accountant-page__header p {
+     text-align: left;
+  }
+}
+
+
 
 .accountant-page__header p {
   margin-top: 0.4rem;
@@ -125,6 +132,13 @@
   }
  }
 
+ @media (max-width: 768px) {
+  .accountant-page__section-header p {
+     text-align: left;
+  }
+}
+
+
 .accountant-page__section-header h2 {
   margin: 0;
 }
@@ -218,10 +232,12 @@
 
 .accountant-page__transactions {
   margin-top: 2rem;
+  padding: 1rem;
 }
 
 .accountant-page__expenses {
   margin-top: 2rem;
+  padding: 1rem;
 }
 
 
@@ -326,6 +342,7 @@
 
 .accountant-page__students {
   margin-top: 2rem;
+  padding: 1rem;
 }
 
 .student-account-search {
