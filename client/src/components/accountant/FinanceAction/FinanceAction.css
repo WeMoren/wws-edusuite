@@ -1,31 +1,85 @@
+
 .finance-action {
   width: 100%;
-  padding: 1rem;
+  min-height: 105px;
+  padding: 1.15rem;
 
   display: flex;
   flex-direction: column;
   align-items: flex-start;
-  gap: 0.35rem;
+  justify-content: center;
+  gap: 0.45rem;
 
-  border: 1px solid #e5e7eb;
-  border-radius: 8px;
+  border: 1px solid transparent;
+  border-left: 4px solid;
+  border-radius: 10px;
 
-  background: #ffffff;
   cursor: pointer;
-
   text-align: left;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
 }
 
 .finance-action:hover {
-  border-color: #cbd5e1;
+  transform: translateY(-3px);
+  box-shadow: 0 7px 18px rgba(15, 23, 42, 0.09);
+}
+
+.finance-action:focus-visible {
+  outline: 3px solid #2563eb;
+  outline-offset: 3px;
 }
 
 .finance-action__label {
   font-size: 1rem;
-  font-weight: 600;
+  font-weight: 700;
 }
 
 .finance-action__description {
   font-size: 0.85rem;
-  color: #6b7280;
+  line-height: 1.5;
+}
+
+/* Record Payment — Green */
+.finance-action--green {
+  background: #ecfdf5;
+  border-color: #a7f3d0;
+  border-left-color: #10b981;
+}
+
+.finance-action--green .finance-action__label {
+  color: #047857;
+}
+
+.finance-action--green .finance-action__description {
+  color: #059669;
+}
+
+/* Add Expense — Purple */
+.finance-action--purple {
+  background: #f5f3ff;
+  border-color: #ddd6fe;
+  border-left-color: #8b5cf6;
+}
+
+.finance-action--purple .finance-action__label {
+  color: #6d28d9;
+}
+
+.finance-action--purple .finance-action__description {
+  color: #7c3aed;
+}
+
+/* Generate Fee Account — Blue */
+.finance-action--blue {
+  background: #eff6ff;
+  border-color: #bfdbfe;
+  border-left-color: #3b82f6;
+}
+
+.finance-action--blue .finance-action__label {
+  color: #1d4ed8;
+}
+
+.finance-action--blue .finance-action__description {
+  color: #3b82f6;
 }

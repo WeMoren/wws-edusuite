@@ -1,9 +1,11 @@
+
 import React from "react";
 import "./FinanceAction.css";
-const FinanceAction = ({ label, description, onClick }) => {
+
+const FinanceAction = ({ label, description, onClick, variant = "blue" }) => {
   return (
     <button
-      className="finance-action"
+      className={`finance-action finance-action--${variant}`}
       type="button"
       onClick={onClick}
     >

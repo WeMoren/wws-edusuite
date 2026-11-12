@@ -1964,3 +1964,247 @@ The next work should proceed in this order:
 7. Commit and push only after explicit approval.
 
 This checkpoint is the current development handoff. Update it as work progresses rather than allowing historical checkpoints to be mistaken for the current project state.
+
+# 27. Student Progression Backend Checkpoint — November 11, 2026
+
+This checkpoint records the implementation of the student progression backend foundation. It extends the existing academic-session, academic-level, class, section, enrollment, and financial-account architecture.
+
+The progression workflow is designed to preserve historical enrollments and financial records rather than modifying existing enrollment records to represent a student's next academic session.
+
+## 27.1 Database Migration 060
+
+Migration:
+
+`server/src/db/migrations/060_create_student_progression.sql`
+
+Migration 060 was successfully applied to the `wws_edusuite` PostgreSQL database.
+
+It introduces the following permission records:
+
+- `studentProgression:view`
+- `studentProgression:create`
+- `studentProgression:edit`
+
+It grants these permissions to:
+
+- Principal
+- School Admin
+- Exam Officer
+
+No progression delete permission is introduced. Teacher and Accountant are not granted progression processing permissions by this migration.
+
+### Database integrity changes
+
+Migration 060 adds:
+
+- A unique `(school_id, id)` reference on `academic_sessions`.
+- A composite school-scoped enrollment reference covering `(school_id, id, student_id, academic_session_id)`.
+- Composite foreign keys connecting progression-related enrollment references to the correct school, student, and academic session.
+
+### `student_progression_batches`
+
+Stores each completed progression operation, including:
+
+- School.
+- Source academic session.
+- Destination academic session.
+- Processing status.
+- Total students processed.
+- Counts for promoted, repeated, graduated, transferred, and withdrawn students.
+- User who processed the batch.
+- Processing timestamp.
+
+### `student_progression_records`
+
+Stores individual student outcomes within a progression batch, including:
+
+- Batch reference.
+- Student reference.
+- Source enrollment.
+- Optional destination enrollment.
+- Source and destination academic sessions.
+- Progression outcome.
+- Creation timestamp.
+
+Database uniqueness constraints prevent duplicate student records within a batch and prevent a source enrollment or destination enrollment from being reused in conflicting progression records.
+
+Indexes support school-scoped history retrieval and student progression history lookups.
+
+The progression tables preserve historical records. No application-level delete endpoint is provided.
+
+## 27.2 Progression Outcomes and Business Rules
+
+The supported outcomes are:
+
+| Outcome | Previous enrollment | New enrollment | Student status |
+|---|---|---|---|
+| Promote | completed | Next academic level | active |
+| Repeat | completed | Same academic level | active |
+| Graduate | completed | None | graduated |
+| Transfer | transferred | None | transferred |
+| Withdraw | withdrawn | None | inactive |
+
+Graduation is an explicit decision. Reaching the highest academic level does not automatically graduate a student.
+
+### Academic-level sequence
+
+- `academic_levels.display_order` is authoritative.
+- Lower display order represents a lower academic level.
+- Academic-level names are school-configurable.
+- No Nursery, Primary, JSS, or SSS naming assumptions are hardcoded into progression logic.
+- Progression validates that the configured sequence is consecutive and unambiguous.
+- Duplicate positions or missing sequence numbers prevent progression processing until the school corrects its configuration.
+
+Existing academic-level configurations must not be automatically rewritten or reordered by progression operations.
+
+### Destination placement
+
+Promoted and repeating students require a valid destination class and section belonging to the selected destination academic session and academic level.
+
+Where applicable:
+
+- Streams must be active and mapped to the destination academic level.
+- Subject combinations must be active and match the destination level and stream.
+- Subject assignments must be valid for the destination academic level.
+- A subject combination requires a stream.
+- Stream and subject-combination assignments remain optional when no combination is being assigned.
+
+The workflow uses the school's configured academic levels, streams, classes, sections, and subject combinations rather than hardcoded school structures.
+
+## 27.3 Backend Implementation
+
+New service:
+
+`server/src/services/studentProgressionService.js`
+
+New controller:
+
+`server/src/controllers/studentProgressionController.js`
+
+New routes:
+
+`server/src/routes/studentProgressionRoutes.js`
+
+The routes are mounted in:
+
+`server/src/server.js`
+
+API endpoints:
+
+| Method | Endpoint | Permission |
+|---|---|---|
+| GET | `/api/student-progressions/prepare` | `studentProgression:view` |
+| POST | `/api/student-progressions/preview` | `studentProgression:create` |
+| POST | `/api/student-progressions/process` | `studentProgression:edit` |
+| GET | `/api/student-progressions/history` | `studentProgression:view` |
+
+### Workflow
+
+1. Prepare retrieves eligible students from the selected source session and provides available destination sessions and placement options.
+2. Preview validates the proposed student outcomes and destination placements without permanently changing student or enrollment records.
+3. Process validates the proposal again, locks relevant student and enrollment rows, and performs the complete batch inside a database transaction.
+4. History retrieves previously processed batches and their individual student records.
+
+### Transactional processing
+
+Progression processing performs the following operations within the same transaction:
+
+- Creates the progression batch.
+- Updates the previous enrollment status.
+- Updates the student's status where required.
+- Creates a new enrollment for promotion and repetition outcomes.
+- Calls the existing student financial-account service for eligible destination enrollments.
+- Creates individual progression history records.
+- Records the corresponding activity.
+
+If any operation fails, the transaction is rolled back.
+
+The implementation uses the existing financial-account service rather than introducing a separate progression-specific financial-account creation mechanism.
+
+Existing enrollments, financial accounts, and payment history must remain preserved.
+
+### History and auditability
+
+History retrieval:
+
+- Is restricted to the authenticated school.
+- Paginates at the progression-batch level.
+- Returns all records belonging to each batch on the requested page.
+- Includes source and destination session information.
+- Includes student identity, outcome, and source/destination placement.
+- Returns pagination metadata.
+- Supports terminal outcomes without destination enrollments.
+
+Progression history is not exposed through a delete operation.
+
+## 27.4 Verification Completed
+
+The following checks have been completed:
+
+- Migration 060 successfully applied.
+- Migration numbering through 060 verified.
+- New permissions and role assignments inspected.
+- Composite foreign keys, uniqueness constraints, and indexes inspected.
+- Cross-school enrollment integrity checked before migration.
+- Progression service reviewed across its preparation, validation, preview, processing, and history workflows.
+- Controller and route authorization reviewed.
+- Server route mounting verified.
+- JavaScript syntax checks passed for:
+  - `studentProgressionService.js`
+  - `studentProgressionController.js`
+  - `studentProgressionRoutes.js`
+  - `server.js`
+- History pagination and batch grouping reviewed.
+
+The backend package currently exposes `start` and `dev` scripts but no automated test script.
+
+Authenticated API integration testing has not yet been completed. No real student progression batch has been processed during this implementation review.
+
+The backend foundation should therefore be treated as implemented and syntax-validated, not yet fully integration-tested or production-certified.
+
+## 27.5 Outstanding Progression Work
+
+The following work remains:
+
+1. Complete safe API integration checks without processing real student records.
+2. Implement the student progression frontend, including preparation, review, preview, confirmation, and history.
+3. Implement a safe academic-level reordering workflow.
+
+### Academic-level reordering requirement
+
+Schools need a safe way to correct academic-level ordering when their configured `display_order` values contain duplicates or gaps.
+
+Any reordering implementation must:
+
+- Preserve existing academic-level records and identifiers.
+- Preserve existing classes and their academic-level relationships.
+- Preserve student enrollments and progression history.
+- Avoid silently inferring the intended order from academic-level names.
+- Update ordering safely without introducing temporary uniqueness conflicts.
+- Validate the resulting sequence before allowing progression.
+
+Until that functionality is implemented, invalid academic-level sequences must continue to block progression processing.
+
+## 27.6 Next Development Priorities
+
+The two strategic development goals remain:
+
+1. Session- and term-based financial management.
+2. Student progression between academic sessions.
+
+The next work should proceed in this order:
+
+1. Finish the safe backend progression verification.
+2. Complete the Accountant frontend's academic-session and term reporting selectors and selected-period financial summaries. Selecting a reporting period must not change the school's current session or term.
+3. Implement the safe academic-level reordering workflow.
+4. Build the student progression frontend around the completed backend APIs.
+5. Test the complete progression workflow using controlled test data.
+6. Re-run relevant project checks and review the final working-tree changes.
+
+All future changes must preserve existing working Students, Accountant, Results, enrollment, and financial-account workflows.
+
+No commit or push is authorized by this checkpoint.
+
+# 28. LAST UPDATED
+
+November 11, 2026 — Student progression backend foundation implemented, migration 060 applied, and syntax and structural verification completed.

@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, {useEffect, useState } from "react";
 import "./ExpenseModal.css";
 
 const getTodayDate = () => {
@@ -13,6 +13,8 @@ const getTodayDate = () => {
 
 const ExpenseModal = ({
   expense,
+  academicSessions = [],
+  academicTerms = [],
   categories = [],
   error = "",
   saving = false,
@@ -36,6 +38,68 @@ const ExpenseModal = ({
     description: expense?.description || "",
   });
 
+  const [academicSessionId, setAcademicSessionId] = useState("");
+  const [termId, setTermId] = useState("");
+
+    useEffect(() => {
+    if (expense) {
+      setAcademicSessionId(
+        expense.academicSessionId ||
+          expense.academic_session_id ||
+          ""
+      );
+
+      setTermId(
+        expense.termId ||
+          expense.term_id ||
+          ""
+      );
+
+      return;
+    }
+
+    if (!academicSessions.length) {
+      return;
+    }
+
+    const currentSession =
+      academicSessions.find((session) => session.isCurrent) ||
+      academicSessions[0];
+
+    const sessionTerms = academicTerms
+      .filter(
+        (term) => term.academicSessionId === currentSession.id
+      )
+      .sort((a, b) => a.displayOrder - b.displayOrder);
+
+    const defaultTerm =
+      sessionTerms.find((term) => term.isCurrent) ||
+      sessionTerms[0];
+
+    setAcademicSessionId(currentSession.id);
+    setTermId(defaultTerm?.id || "");
+  }, [expense, academicSessions, academicTerms]);
+
+
+    const handleAcademicSessionChange = (sessionId) => {
+    setAcademicSessionId(sessionId);
+
+    if (!sessionId) {
+      setTermId("");
+      return;
+    }
+
+    const sessionTerms = academicTerms
+      .filter((term) => term.academicSessionId === sessionId)
+      .sort((a, b) => a.displayOrder - b.displayOrder);
+
+    const defaultTerm =
+      sessionTerms.find((term) => term.isCurrent) ||
+      sessionTerms[0];
+
+    setTermId(defaultTerm?.id || "");
+  };
+
   const handleChange = (e) => {
     const { name, value } = e.target;
 
@@ -45,13 +109,15 @@ const ExpenseModal = ({
     }));
   };
 
-  const handleSubmit = (e) => {
+   const handleSubmit = (e) => {
     e.preventDefault();
 
     onAddExpense({
       ...expenseData,
       id: expense?.id,
       amount: Number(expenseData.amount),
+      academicSessionId: academicSessionId || null,
+      termId: termId || null,
     });
   };
 
@@ -137,6 +203,55 @@ const ExpenseModal = ({
               ))}
             </select>
           </div>
+
+         <div className="expense-form__group">
+            <label htmlFor="academicSessionId">
+              Academic Session
+            </label>
+
+            <select
+              id="academicSessionId"
+              value={academicSessionId}
+              onChange={(e) =>
+                handleAcademicSessionChange(e.target.value)
+              }
+            >
+              <option value="">Unallocated / No Academic Period</option>
+
+              {academicSessions.map((session) => (
+                <option key={session.id} value={session.id}>
+                  {session.name}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div className="expense-form__group">
+            <label htmlFor="termId">Academic Term</label>
+
+            <select
+              id="termId"
+              value={termId}
+              onChange={(e) => setTermId(e.target.value)}
+              disabled={!academicSessionId}
+              required={Boolean(academicSessionId)}
+            >
+              <option value="">Select academic term</option>
+
+              {academicTerms
+                .filter(
+                  (term) =>
+                    term.academicSessionId === academicSessionId
+                )
+                .sort((a, b) => a.displayOrder - b.displayOrder)
+                .map((term) => (
+                  <option key={term.id} value={term.id}>
+                    {term.name}
+                  </option>
+                ))}
+            </select>
+          </div>
+
 
           <div className="expense-form__group">
             <label htmlFor="expenseDate">Expense Date</label>

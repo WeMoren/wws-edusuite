@@ -10,6 +10,13 @@
   margin: 0;
 }
 
+@media (max-width: 600px) {
+  .accountant-page__header h1 {
+     text-align: center;
+  }
+}
+
+
 .accountant-page__header p {
   margin-top: 0.4rem;
   color: #6b7280;
@@ -109,6 +116,14 @@
 .accountant-page__section-header {
   margin-bottom: 1rem;
 }
+
+
+@media (max-width: 600px) {
+  .accountant-page__section-header {
+    text-align: center;
+    padding: 8px;
+  }
+ }
 
 .accountant-page__section-header h2 {
   margin: 0;
@@ -218,6 +233,15 @@
   margin-bottom: 1rem;
 }
 
+
+@media (max-width: 600px) {
+  .recent-expenses {
+    margin: auto;
+  }
+ }
+
+
+
 .accountant-page__expenses-header .accountant-page__section-header {
   margin-bottom: 0;
 }
@@ -230,7 +254,16 @@
   color: #2563eb;
   font-weight: 600;
   cursor: pointer;
+
 }
+
+
+@media (max-width: 600px) {
+  .accountant-page__manage-categories{
+    padding: 1rem;
+     margin: auto;
+  }
+ }
 
 .accountant-page__manage-categories:hover {
   background: #eff6ff;
@@ -434,4 +467,193 @@
 .payment-status--unpaid {
   color: #991b1b;
   background: #fee2e2;
+}
+
+
+
+/* =========================================
+   ACCOUNTANT PAGE — COLOUR ENHANCEMENTS
+========================================= */
+
+/* Page background */
+.accountant-page {
+  background: #f8fafc;
+}
+
+/* Main page heading */
+.accountant-page__header {
+  margin-bottom: 1.5rem;
+}
+
+.accountant-page__header h1 {
+  color: #172554;
+}
+
+/* Financial breakdown panel */
+.accountant-page__level-breakdown {
+  background: linear-gradient(135deg, #ffffff 0%, #eff6ff 100%);
+  border: 1px solid #bfdbfe;
+  border-radius: 14px;
+  box-shadow: 0 3px 12px rgba(37, 99, 235, 0.05);
+}
+
+/* Quick Actions panel */
+.accountant-page__actions {
+  padding: 1.25rem;
+  background: linear-gradient(135deg, #ffffff 0%, #f5f3ff 100%);
+  border: 1px solid #ddd6fe;
+  border-radius: 14px;
+}
+
+/* Section headings */
+.accountant-page__section-header h2 {
+  color: #1e3a8a;
+}
+
+.accountant-page__section-header p {
+  color: #64748b;
+}
+
+/* Account generation panel */
+.accountant-page__account-generation {
+  border: 1px solid #a5f3fc;
+  border-radius: 12px;
+  background: linear-gradient(135deg, #ecfeff 0%, #ffffff 100%);
+}
+
+/* Transactions panel */
+.accountant-page__transactions {
+  border: 1px solid #bbf7d0;
+  border-radius: 14px;
+  background: linear-gradient(135deg, #ffffff 0%, #f0fdf4 100%);
+}
+
+/* Expenses panel */
+.accountant-page__expenses {
+  border: 1px solid #ddd6fe;
+  border-radius: 14px;
+  background: linear-gradient(135deg, #ffffff 0%, #faf5ff 100%);
+}
+
+/* Student accounts panel */
+.accountant-page__students {
+  border: 1px solid #bfdbfe;
+  border-radius: 14px;
+  background: linear-gradient(135deg, #ffffff 0%, #f8fbff 100%);
+}
+
+/* Table headings */
+.accountant-page__table thead,
+.accountant-page__transactions table thead,
+.accountant-page__expenses table thead,
+.accountant-page__students table thead {
+  background: #eff6ff;
+}
+
+.accountant-page__table th,
+.accountant-page__transactions table th,
+.accountant-page__expenses table th,
+.accountant-page__students table th {
+  color: #1e40af;
+}
+
+/* Table row interactions */
+.accountant-page__table tbody tr:hover,
+.accountant-page__transactions table tbody tr:hover,
+.accountant-page__expenses table tbody tr:hover,
+.accountant-page__students table tbody tr:hover {
+  background: #f1f5f9;
+}
+
+/* Search and filter controls */
+.accountant-page input,
+.accountant-page select {
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.accountant-page input:focus,
+.accountant-page select:focus {
+  border-color: #60a5fa;
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.12);
+}
+
+/* Category management action */
+.accountant-page__manage-categories {
+  border-radius: 8px;
+  transition: background 0.2s ease, transform 0.2s ease;
+}
+
+.accountant-page__manage-categories:hover {
+  transform: translateY(-1px);
+}
+
+/* Responsive card spacing */
+@media (max-width: 600px) {
+  .accountant-page__actions {
+    padding: 1rem;
+  }
+
+  .accountant-page__level-breakdown,
+  .accountant-page__transactions,
+  .accountant-page__expenses,
+  .accountant-page__students {
+    border-radius: 10px;
+  }
+}
+
+
+/* =========================================
+   ACCOUNTANT — REPORTING PERIOD
+========================================= */
+
+.accountant-page__reporting-period {
+  margin-bottom: 1.5rem;
+  padding: 1.25rem;
+  background: linear-gradient(135deg, #ecfeff 0%, #eff6ff 100%);
+  border: 1px solid #a5f3fc;
+  border-radius: 14px;
+  box-shadow: 0 3px 12px rgba(8, 145, 178, 0.07);
+}
+
+.accountant-page__reporting-controls {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1.25rem;
+  margin-top: 1rem;
+}
+
+.accountant-page__reporting-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.accountant-page__reporting-field label {
+  color: #164e63;
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+
+.accountant-page__reporting-field select {
+  width: 100%;
+  min-height: 44px;
+  padding: 0.65rem 0.85rem;
+  color: #164e63;
+  background: #ffffff;
+  border: 1px solid #a5f3fc;
+  border-radius: 8px;
+  font: inherit;
+}
+
+.accountant-page__reporting-field select:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+@media (max-width: 600px) {
+  .accountant-page__reporting-controls {
+    grid-template-columns: 1fr;
+    gap: 1rem;
+  }
 }

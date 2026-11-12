@@ -1,5 +1,55 @@
 import pool from "../config/db.js";
 
+const isValidUuid = (value) =>
+    typeof value === "string" &&
+    /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(value);
+
+
+const validateExpenseAcademicPeriod = async ({
+    schoolId,
+    academicSessionId,
+    termId,
+}) => {
+    if ((academicSessionId === undefined && termId === undefined) ||
+        (academicSessionId === null && termId === null)) {
+        return {
+            valid: true,
+        };
+    }
+
+    if (!isValidUuid(academicSessionId) || !isValidUuid(termId)) {
+        return {
+            valid: false,
+            message: "A valid academic session and term must be selected together.",
+        };
+    }
+
+    const result = await pool.query(
+        `
+        SELECT s.id
+        FROM academic_sessions s
+        JOIN terms t
+            ON t.academic_session_id = s.id
+           AND t.school_id = s.school_id
+        WHERE s.id = $1
+          AND t.id = $2
+          AND s.school_id = $3;
+        `,
+        [academicSessionId, termId, schoolId]
+    );
+
+    if (result.rows.length === 0) {
+        return {
+            valid: false,
+            message: "The selected academic session and term do not belong to this school or do not match.",
+        };
+    }
+
+    return {
+        valid: true,
+    };
+};
+
 // GET all expenses
 export const getExpenses = async (req, res) => {
     const schoolId = req.schoolId;
@@ -17,6 +67,10 @@ export const getExpenses = async (req, res) => {
                 e.payment_method,
                 e.reference,
                 e.description,
+                e.academic_session_id,
+                s.name AS academic_session_name,
+                e.term_id,
+                t.name AS term_name,
                 e.created_by,
                 CONCAT_WS(' ', u.first_name, u.last_name) AS created_by_name,
                 e.created_at,
@@ -24,6 +78,13 @@ export const getExpenses = async (req, res) => {
             FROM expenses e
             JOIN users u
                 ON u.id = e.created_by
+            LEFT JOIN academic_sessions s
+                ON s.id = e.academic_session_id
+               AND s.school_id = e.school_id
+            LEFT JOIN terms t
+                ON t.id = e.term_id
+               AND t.academic_session_id = e.academic_session_id
+               AND t.school_id = e.school_id
             WHERE e.school_id = $1
             ORDER BY e.expense_date DESC, e.created_at DESC;
             `,
@@ -58,6 +119,10 @@ export const getExpenseById = async (req, res) => {
                 e.payment_method,
                 e.reference,
                 e.description,
+                e.academic_session_id,
+                s.name AS academic_session_name,
+                e.term_id,
+                t.name AS term_name,
                 e.created_by,
                 CONCAT_WS(' ', u.first_name, u.last_name) AS created_by_name,
                 e.created_at,
@@ -65,6 +130,13 @@ export const getExpenseById = async (req, res) => {
             FROM expenses e
             JOIN users u
                 ON u.id = e.created_by
+            LEFT JOIN academic_sessions s
+                ON s.id = e.academic_session_id
+               AND s.school_id = e.school_id
+            LEFT JOIN terms t
+                ON t.id = e.term_id
+               AND t.academic_session_id = e.academic_session_id
+               AND t.school_id = e.school_id
             WHERE e.id = $1
               AND e.school_id = $2;
             `,
@@ -100,6 +172,8 @@ export const createExpense = async (req, res) => {
         paymentMethod,
         reference,
         description,
+        academicSessionId,
+        termId,
     } = req.body;
 
     if (!title || typeof title !== "string" || !title.trim()) {
@@ -176,6 +250,20 @@ export const createExpense = async (req, res) => {
     }
 
     try {
+
+        const academicPeriodValidation =
+                await validateExpenseAcademicPeriod({
+                    schoolId,
+                    academicSessionId,
+                    termId,
+                });
+
+            if (!academicPeriodValidation.valid) {
+                return res.status(400).json({
+                    message: academicPeriodValidation.message,
+                });
+            }
+
         const categoryResult = await pool.query(
             `
             SELECT
@@ -220,7 +308,7 @@ export const createExpense = async (req, res) => {
             });
         }
 
-        const result = await pool.query(
+                const result = await pool.query(
             `
             INSERT INTO expenses (
                 school_id,
@@ -232,6 +320,8 @@ export const createExpense = async (req, res) => {
                 payment_method,
                 reference,
                 description,
+                academic_session_id,
+                term_id,
                 created_by
             )
             VALUES (
@@ -244,7 +334,9 @@ export const createExpense = async (req, res) => {
                 $7,
                 $8,
                 $9,
-                $10
+                $10,
+                $11,
+                $12
             )
             RETURNING
                 id,
@@ -256,6 +348,8 @@ export const createExpense = async (req, res) => {
                 payment_method,
                 reference,
                 description,
+                academic_session_id,
+                term_id,
                 created_by,
                 created_at,
                 updated_at;
@@ -270,6 +364,8 @@ export const createExpense = async (req, res) => {
                 paymentMethod,
                 reference?.trim() || null,
                 description?.trim() || null,
+                academicSessionId ?? null,
+                termId ?? null,
                 userId,
             ]
         );
@@ -297,6 +393,8 @@ export const updateExpense = async (req, res) => {
         paymentMethod,
         reference,
         description,
+        academicSessionId,
+        termId,
     } = req.body;
 
     try {
@@ -310,7 +408,9 @@ export const updateExpense = async (req, res) => {
                 expense_date,
                 payment_method,
                 reference,
-                description
+                description,
+                academic_session_id,
+                term_id
             FROM expenses
             WHERE id = $1
               AND school_id = $2;
@@ -325,6 +425,34 @@ export const updateExpense = async (req, res) => {
         }
 
         const existingExpense = existingResult.rows[0];
+
+
+                let updatedAcademicSessionId =
+            existingExpense.academic_session_id;
+
+        let updatedTermId = existingExpense.term_id;
+
+        const academicPeriodWasProvided =
+            academicSessionId !== undefined ||
+            termId !== undefined;
+
+        if (academicPeriodWasProvided) {
+            const academicPeriodValidation =
+                await validateExpenseAcademicPeriod({
+                    schoolId,
+                    academicSessionId,
+                    termId,
+                });
+
+            if (!academicPeriodValidation.valid) {
+                return res.status(400).json({
+                    message: academicPeriodValidation.message,
+                });
+            }
+
+            updatedAcademicSessionId = academicSessionId;
+            updatedTermId = termId;
+        }
 
         const updatedTitle =
             title !== undefined
@@ -440,7 +568,7 @@ export const updateExpense = async (req, res) => {
             });
         }
 
-        const result = await pool.query(
+                const result = await pool.query(
             `
             UPDATE expenses
             SET
@@ -452,9 +580,11 @@ export const updateExpense = async (req, res) => {
                 payment_method = $6,
                 reference = $7,
                 description = $8,
+                academic_session_id = $9,
+                term_id = $10,
                 updated_at = NOW()
-            WHERE id = $9
-            AND school_id = $10
+            WHERE id = $11
+              AND school_id = $12
             RETURNING
                 id,
                 title,
@@ -465,6 +595,8 @@ export const updateExpense = async (req, res) => {
                 payment_method,
                 reference,
                 description,
+                academic_session_id,
+                term_id,
                 created_by,
                 created_at,
                 updated_at;
@@ -478,6 +610,8 @@ export const updateExpense = async (req, res) => {
                 updatedPaymentMethod,
                 updatedReference,
                 updatedDescription,
+                updatedAcademicSessionId,
+                updatedTermId,
                 id,
                 schoolId,
             ]

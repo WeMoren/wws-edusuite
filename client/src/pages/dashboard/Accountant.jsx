@@ -3,7 +3,6 @@ import { useAuth } from "../../auth/AuthContext";
 import { useOutletContext } from "react-router-dom";
 import "./Accountant.css";
 import FinanceCard from "../../components/accountant/FinanceCard/FinanceCard";
-/*import financialSummary from "../../data/financialSummary";*/
 import FinanceAction from "../../components/accountant/FinanceAction/FinanceAction";
 import PaymentModal from "../../components/accountant/PaymentModal/PaymentModal";
 import initialPayments from "../../data/payments";
@@ -30,6 +29,9 @@ const Accountant = () => {
   });
   const [summaryLoading, setSummaryLoading] = useState(true);
   const [summaryError, setSummaryError] = useState("");
+  const [reportingAcademicSessionId, setReportingAcademicSessionId] = useState("");
+
+const [reportingTermId, setReportingTermId] = useState("");
   const [financialAccounts, setFinancialAccounts] = useState([]);
   const [accountsLoading, setAccountsLoading] = useState(true);
   const [accountsError, setAccountsError] = useState("");
@@ -71,9 +73,89 @@ const {
     enrollments,
     academicSessions,
     academicTerms,
-      setFinancialAccounts: setSharedFinancialAccounts,
+    setFinancialAccounts: setSharedFinancialAccounts,
   } = useOutletContext();
 
+
+  useEffect(() => {
+    if (academicSessions.length === 0) return;
+
+    const selectedSession = academicSessions.find(
+        (session) => session.id === reportingAcademicSessionId
+    );
+
+    const defaultSession =
+        selectedSession ||
+        academicSessions.find((session) => session.isCurrent) ||
+        academicSessions[0];
+
+    if (reportingAcademicSessionId !== defaultSession.id) {
+        setReportingAcademicSessionId(defaultSession.id);
+    }
+
+    const sessionTerms = academicTerms
+        .filter((term) => term.academicSessionId === defaultSession.id)
+        .sort((a, b) => a.displayOrder - b.displayOrder);
+
+    if (sessionTerms.length === 0) {
+        if (reportingTermId !== "") {
+            setReportingTermId("");
+        }
+        return;
+    }
+
+    const selectedTerm = sessionTerms.find(
+        (term) => term.id === reportingTermId
+    );
+
+    const defaultTerm =
+        selectedTerm ||
+        sessionTerms.find((term) => term.isCurrent) ||
+        sessionTerms[0];
+
+    if (reportingTermId !== defaultTerm.id) {
+        setReportingTermId(defaultTerm.id);
+    }
+}, [
+    academicSessions,
+    academicTerms,
+    reportingAcademicSessionId,
+    reportingTermId,
+]);
+
+  const reportingTerms = academicTerms
+    .filter(
+        (term) => term.academicSessionId === reportingAcademicSessionId
+    )
+    .sort((a, b) => a.displayOrder - b.displayOrder);
+
+const handleReportingSessionChange = (sessionId) => {
+    setReportingAcademicSessionId(sessionId);
+
+    const sessionTerms = academicTerms
+        .filter((term) => term.academicSessionId === sessionId)
+        .sort((a, b) => a.displayOrder - b.displayOrder);
+
+    const defaultTerm =
+        sessionTerms.find((term) => term.isCurrent) ||
+        sessionTerms[0];
+
+    setReportingTermId(defaultTerm?.id || "");
+};
+
+
+const getFinancialSummaryUrl = () => {
+    if (!reportingAcademicSessionId || !reportingTermId) {
+        return null;
+    }
+
+    const params = new URLSearchParams({
+        academicSessionId: reportingAcademicSessionId,
+        termId: reportingTermId,
+    });
+
+    return `${API_BASE_URL}/financial-summary?${params.toString()}`;
+};
 
   const [expenses, setExpenses] = useState([]);
   const [expenseCategories, setExpenseCategories] = useState([]);
@@ -95,7 +177,14 @@ const {
       setSummaryError("");
 
       try {
-        const response = await fetch(`${API_BASE_URL}/financial-summary`, {
+        const summaryUrl = getFinancialSummaryUrl();
+
+          if (!summaryUrl) {
+              setSummaryLoading(false);
+              return;
+          }
+
+        const response = await fetch(summaryUrl, {
           headers: {
             Authorization: `Bearer ${authToken}`,
           },
@@ -131,7 +220,7 @@ const {
     loadFinancialSummary();
 
     return () => controller.abort();
-  }, [authToken]);
+  }, [authToken,  reportingAcademicSessionId, reportingTermId]);
 
 
     useEffect(() => {
@@ -517,10 +606,60 @@ const filteredPayments = payments.filter((payment) => {
           </p>
         )}
 
+
+        <section className="accountant-page__reporting-period">
+          <div className="accountant-page__section-header">
+            <h2>Reporting Period</h2>
+            <p>Select an academic session and term to view financial records.</p>
+          </div>
+
+          <div className="accountant-page__reporting-controls">
+            <div className="accountant-page__reporting-field">
+              <label htmlFor="reporting-academic-session">
+                Academic Session
+              </label>
+
+              <select
+                id="reporting-academic-session"
+                value={reportingAcademicSessionId}
+                onChange={(e) => handleReportingSessionChange(e.target.value)}
+                disabled={academicSessions.length === 0}
+              >
+                {academicSessions.map((session) => (
+                  <option key={session.id} value={session.id}>
+                    {session.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div className="accountant-page__reporting-field">
+              <label htmlFor="reporting-academic-term">
+                Academic Term
+              </label>
+
+              <select
+                id="reporting-academic-term"
+                value={reportingTermId}
+                onChange={(e) => setReportingTermId(e.target.value)}
+                disabled={reportingTerms.length === 0}
+              >
+                {reportingTerms.map((term) => (
+                  <option key={term.id} value={term.id}>
+                    {term.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
+        </section>
+
+
         <div className="accountant-page__summary">
 
                 <FinanceCard
                   title="Total Expected Fees"
+                  variant="blue"
                   value={
                     summaryLoading
                       ? "Loading..."
@@ -528,31 +667,35 @@ const filteredPayments = payments.filter((payment) => {
                         ? "Unavailable"
                         : `₦${financialSummary.expectedFees.toLocaleString()}`
                   }
-                  description="Current-term fees × active enrolments"
+                  description="Expected fees for the selected academic period"
                />
 
               <FinanceCard
                 title="Total Collected"
+                variant="green"
                 value={summaryLoading ? "Loading..." : summaryError ? "Unavailable" : `₦${financialSummary.totalCollected.toLocaleString()}`}
                 description="Total fees collected"
               />
 
               <FinanceCard
                 title="Outstanding Fees"
+                variant="amber"
                 value={summaryLoading ? "Loading..." : summaryError ? "Unavailable" : `₦${financialSummary.outstandingFees.toLocaleString()}`}
                 description="Fees yet to be collected"
               />
 
               <FinanceCard
                 title="Total Expenses"
+                variant="purple"
                 value={summaryLoading ? "Loading..." : summaryError ? "Unavailable" : `₦${financialSummary.totalExpenses.toLocaleString()}`}
                 description="School expenses"
               />
 
               <FinanceCard
                 title="Net Balance"
+                variant="teal"
                 value={summaryLoading ? "Loading..." : summaryError ? "Unavailable" : `₦${financialSummary.netBalance.toLocaleString()}`}
-                description="Current financial balance"
+                description="Net balance for the selected academic period"
               />
         </div>
 
@@ -560,13 +703,13 @@ const filteredPayments = payments.filter((payment) => {
           <div className="accountant-page__section-header">
             <h2>Expected Fees by Academic Level</h2>
             <p>
-              Current-term fee structure multiplied by active enrolments.
+               Fee structure multiplied by active enrolments for the selected period.
             </p>
           </div>
 
           {financialSummary.academicLevelBreakdown.length === 0 ? (
             <p className="accountant-page__empty">
-              No academic-level fee breakdown is available for the current term.
+             No academic-level fee breakdown is available for the selected period.
             </p>
           ) : (
             <div className="accountant-page__table-wrapper">
@@ -616,18 +759,21 @@ const filteredPayments = payments.filter((payment) => {
          <div className="accountant-page__actions-grid">
           <FinanceAction
             label="Record Payment"
+            variant="green"
             description="Record a student fee payment."
             onClick={() => setShowPaymentModal(true)}
           />
 
           <FinanceAction
             label="Add Expense"
+            variant="purple"
             description="Record a school expense."
             onClick={() => setShowExpenseModal(true)}
           />
 
           <FinanceAction
             label="Generate Fee Account"
+            variant="blue"
             description="Create a current-term fee account for an active student."
             onClick={() => {
               setAccountGenerationError("");
@@ -968,7 +1114,7 @@ const filteredPayments = payments.filter((payment) => {
 
                     <section className="accountant-page__expenses">
                         <div className="accountant-page__expenses-header">
-                        <div className="accountant-page__section-header">
+                        <div className="accountant-page__section-header recent-expenses">
                           <h2>Recent Expenses</h2>
                           <p>View recent school expenses.</p>
                         </div>
@@ -1058,14 +1204,20 @@ const filteredPayments = payments.filter((payment) => {
           Authorization: `Bearer ${authToken}`,
         };
 
+        const summaryUrl = getFinancialSummaryUrl();
+
         const [expensesResponse, summaryResponse] = await Promise.all([
           fetch(`${API_BASE_URL}/expenses`, { headers }),
-          fetch(`${API_BASE_URL}/financial-summary`, { headers }),
+          summaryUrl
+            ? fetch(summaryUrl, { headers })
+            : Promise.resolve(null),
         ]);
 
         const [expensesData, summaryData] = await Promise.all([
           expensesResponse.json().catch(() => ({})),
-          summaryResponse.json().catch(() => ({})),
+          summaryResponse
+            ? summaryResponse.json().catch(() => ({}))
+            : Promise.resolve({}),
         ]);
 
         if (!expensesResponse.ok) {
@@ -1074,7 +1226,7 @@ const filteredPayments = payments.filter((payment) => {
           );
         }
 
-        if (!summaryResponse.ok) {
+        if (summaryResponse && !summaryResponse.ok) {
           throw new Error(
             "Expense deleted, but the financial summary could not refresh."
           );
@@ -1096,15 +1248,17 @@ const filteredPayments = payments.filter((payment) => {
           )
         );
 
-        setFinancialSummary({
-          expectedFees: Number(summaryData.expectedFees) || 0,
-          totalCollected: Number(summaryData.totalCollected) || 0,
-          outstandingFees: Number(summaryData.outstandingFees) || 0,
-          totalExpenses: Number(summaryData.totalExpenses) || 0,
-          netBalance: Number(summaryData.netBalance) || 0,
-          academicLevelBreakdown:
-            summaryData.academicLevelBreakdown || [],
-        });
+       if (summaryResponse) {
+          setFinancialSummary({
+            expectedFees: Number(summaryData.expectedFees) || 0,
+            totalCollected: Number(summaryData.totalCollected) || 0,
+            outstandingFees: Number(summaryData.outstandingFees) || 0,
+            totalExpenses: Number(summaryData.totalExpenses) || 0,
+            netBalance: Number(summaryData.netBalance) || 0,
+            academicLevelBreakdown:
+              summaryData.academicLevelBreakdown || [],
+          });
+      }
       } catch (error) {
         console.error("Expense deletion failed:", error);
 
@@ -1203,17 +1357,23 @@ const filteredPayments = payments.filter((payment) => {
               Authorization: `Bearer ${authToken}`,
             };
 
+            const summaryUrl = getFinancialSummaryUrl();
+
             const [paymentsResponse, accountsResponse, summaryResponse] =
               await Promise.all([
                 fetch(`${API_BASE_URL}/payments`, { headers }),
                 fetch(`${API_BASE_URL}/student-financial-accounts`, { headers }),
-                fetch(`${API_BASE_URL}/financial-summary`, { headers }),
+                summaryUrl
+                  ? fetch(summaryUrl, { headers })
+                  : Promise.resolve(null),
               ]);
 
-            const [paymentsData, accountsData, summaryData] = await Promise.all([
+           const [paymentsData, accountsData, summaryData] = await Promise.all([
               paymentsResponse.json().catch(() => ({})),
               accountsResponse.json().catch(() => ({})),
-              summaryResponse.json().catch(() => ({})),
+              summaryResponse
+                ? summaryResponse.json().catch(() => ({}))
+                : Promise.resolve({}),
             ]);
 
             if (!paymentsResponse.ok) {
@@ -1224,7 +1384,7 @@ const filteredPayments = payments.filter((payment) => {
               throw new Error(`${actionLabel} succeeded, but student accounts could not refresh.`);
             }
 
-            if (!summaryResponse.ok) {
+            if (summaryResponse && !summaryResponse.ok) {
               throw new Error(`${actionLabel} succeeded, but the financial summary could not refresh.`);
             }
 
@@ -1272,14 +1432,16 @@ const filteredPayments = payments.filter((payment) => {
               }))
             );
 
-            setFinancialSummary({
-              expectedFees: Number(summaryData.expectedFees) || 0,
-              totalCollected: Number(summaryData.totalCollected) || 0,
-              outstandingFees: Number(summaryData.outstandingFees) || 0,
-              totalExpenses: Number(summaryData.totalExpenses) || 0,
-              netBalance: Number(summaryData.netBalance) || 0,
-              academicLevelBreakdown: summaryData.academicLevelBreakdown || [],
-            });
+            if (summaryResponse) {
+              setFinancialSummary({
+                expectedFees: Number(summaryData.expectedFees) || 0,
+                totalCollected: Number(summaryData.totalCollected) || 0,
+                outstandingFees: Number(summaryData.outstandingFees) || 0,
+                totalExpenses: Number(summaryData.totalExpenses) || 0,
+                netBalance: Number(summaryData.netBalance) || 0,
+                academicLevelBreakdown: summaryData.academicLevelBreakdown || [],
+              });
+            }
           } catch (error) {
             console.error("Payment request failed:", error);
             setPaymentError(error.message || "Payment operation failed.");
@@ -1302,11 +1464,13 @@ const filteredPayments = payments.filter((payment) => {
 
     {(showExpenseModal || editingExpense) && (
           <ExpenseModal
-            expense={editingExpense}
-            categories={expenseCategories.filter((category) => category.is_active)}
-            error={expenseSaveError}
-            saving={expenseSaving}
-            onClose={() => {
+              expense={editingExpense}
+              academicSessions={academicSessions}
+              academicTerms={academicTerms}
+              categories={expenseCategories.filter((category) => category.is_active)}
+              error={expenseSaveError}
+              saving={expenseSaving}
+              onClose={() => {
               setShowExpenseModal(false);
               setEditingExpense(null);
               setExpenseSaveError("");
@@ -1335,6 +1499,8 @@ const filteredPayments = payments.filter((payment) => {
                       expenseCategoryId: expenseData.expenseCategoryId,
                       amount: expenseData.amount,
                       expenseDate: expenseData.expenseDate,
+                      academicSessionId: expenseData.academicSessionId,
+                      termId: expenseData.termId,
                       paymentMethod: expenseData.paymentMethod,
                       reference: expenseData.reference,
                       description: expenseData.description,
@@ -1362,23 +1528,28 @@ const filteredPayments = payments.filter((payment) => {
                   Authorization: `Bearer ${authToken}`,
                 };
 
-                const [expensesResponse, summaryResponse] = await Promise.all([
-                  fetch(`${API_BASE_URL}/expenses`, { headers }),
-                  fetch(`${API_BASE_URL}/financial-summary`, { headers }),
-                ]);
+              const summaryUrl = getFinancialSummaryUrl();
+
+              const [expensesResponse, summaryResponse] = await Promise.all([
+                fetch(`${API_BASE_URL}/expenses`, { headers }),
+                summaryUrl
+                  ? fetch(summaryUrl, { headers })
+                  : Promise.resolve(null),
+              ]);
 
                 const [expensesData, summaryData] = await Promise.all([
                   expensesResponse.json().catch(() => ({})),
-                  summaryResponse.json().catch(() => ({})),
+                  summaryResponse
+                    ? summaryResponse.json().catch(() => ({}))
+                    : Promise.resolve({}),
                 ]);
-
-                if (!expensesResponse.ok) {
+              if (!expensesResponse.ok) {
                   throw new Error(
                     "Expense saved, but the expense list could not refresh."
                   );
                 }
 
-                if (!summaryResponse.ok) {
+                if (summaryResponse && !summaryResponse.ok) {
                   throw new Error(
                     "Expense saved, but the financial summary could not refresh."
                   );
@@ -1398,14 +1569,17 @@ const filteredPayments = payments.filter((payment) => {
                   }))
                 );
 
-                setFinancialSummary({
-                  expectedFees: Number(summaryData.expectedFees) || 0,
-                  totalCollected: Number(summaryData.totalCollected) || 0,
-                  outstandingFees: Number(summaryData.outstandingFees) || 0,
-                  totalExpenses: Number(summaryData.totalExpenses) || 0,
-                  netBalance: Number(summaryData.netBalance) || 0,
-                  academicLevelBreakdown: summaryData.academicLevelBreakdown || [],
-                });
+                if (summaryResponse) {
+                  setFinancialSummary({
+                    expectedFees: Number(summaryData.expectedFees) || 0,
+                    totalCollected: Number(summaryData.totalCollected) || 0,
+                    outstandingFees: Number(summaryData.outstandingFees) || 0,
+                    totalExpenses: Number(summaryData.totalExpenses) || 0,
+                    netBalance: Number(summaryData.netBalance) || 0,
+                    academicLevelBreakdown:
+                      summaryData.academicLevelBreakdown || [],
+                  });
+                }
               } catch (error) {
                 console.error("Expense request failed:", error);
 

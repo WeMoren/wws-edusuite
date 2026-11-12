@@ -1,24 +1,91 @@
+
 .finance-card {
-  padding: 1.25rem;
-  background: #ffffff;
-  border: 1px solid #e5e7eb;
-  border-radius: 10px;
+  position: relative;
+  overflow: hidden;
+  padding: 1.35rem;
+  border: 1px solid transparent;
+  border-radius: 12px;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.finance-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 8px 20px rgba(15, 23, 42, 0.08);
 }
 
 .finance-card h3 {
-  margin: 0 0 0.75rem;
+  margin: 0 0 0.85rem;
   font-size: 0.95rem;
   font-weight: 600;
-  color: #6b7280;
 }
 
 .finance-card__value {
-  margin: 0 0 0.5rem;
-  font-size: 1.6rem;
-  font-weight: 700;
+  margin: 0 0 0.55rem;
+  font-size: 1.65rem;
+  font-weight: 750;
+  overflow-wrap: anywhere;
 }
 
 .finance-card__description {
   font-size: 0.85rem;
-  color: #6b7280;
+}
+
+/* Expected fees — Blue */
+.finance-card--blue {
+  background: #eff6ff;
+  border-color: #bfdbfe;
+  color: #1d4ed8;
+}
+
+.finance-card--blue h3,
+.finance-card--blue .finance-card__description {
+  color: #3b82f6;
+}
+
+/* Collections — Green */
+.finance-card--green {
+  background: #ecfdf5;
+  border-color: #a7f3d0;
+  color: #047857;
+}
+
+.finance-card--green h3,
+.finance-card--green .finance-card__description {
+  color: #059669;
+}
+
+/* Outstanding — Amber */
+.finance-card--amber {
+  background: #fffbeb;
+  border-color: #fde68a;
+  color: #b45309;
+}
+
+.finance-card--amber h3,
+.finance-card--amber .finance-card__description {
+  color: #d97706;
+}
+
+/* Expenses — Purple */
+.finance-card--purple {
+  background: #f5f3ff;
+  border-color: #ddd6fe;
+  color: #6d28d9;
+}
+
+.finance-card--purple h3,
+.finance-card--purple .finance-card__description {
+  color: #7c3aed;
+}
+
+/* Net balance — Teal */
+.finance-card--teal {
+  background: #f0fdfa;
+  border-color: #99f6e4;
+  color: #0f766e;
+}
+
+.finance-card--teal h3,
+.finance-card--teal .finance-card__description {
+  color: #0d9488;
 }
