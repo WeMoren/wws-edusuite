@@ -10,6 +10,7 @@ const getSchoolProfile = async (req, res) => {
                 email,
                 phone,
                 address,
+                motto,
                 website,
                 logo_url,
                 created_at,
@@ -44,6 +45,7 @@ const updateSchoolProfile = async (req, res) => {
         email,
         phone,
         address,
+        motto,
         website,
         logoUrl,
     } = req.body;
@@ -105,6 +107,16 @@ const updateSchoolProfile = async (req, res) => {
         });
     }
 
+        if (
+        motto !== undefined &&
+        motto !== null &&
+        typeof motto !== "string"
+    ) {
+        return res.status(400).json({
+            message: "School motto must be a string.",
+        });
+    }
+
     if (
         logoUrl !== undefined &&
         logoUrl !== null &&
@@ -119,21 +131,23 @@ const updateSchoolProfile = async (req, res) => {
         const result = await pool.query(
             `
             UPDATE schools
-            SET
-                name = $1,
-                email = $2,
-                phone = CASE WHEN $3 THEN $4 ELSE phone END,
-                address = CASE WHEN $5 THEN $6 ELSE address END,
-                website = CASE WHEN $7 THEN $8 ELSE website END,
-                logo_url = CASE WHEN $9 THEN $10 ELSE logo_url END,
-                updated_at = NOW()
-            WHERE id = $11
+              SET
+                  name = $1,
+                  email = $2,
+                  phone = CASE WHEN $3 THEN $4 ELSE phone END,
+                  address = CASE WHEN $5 THEN $6 ELSE address END,
+                  motto = CASE WHEN $7 THEN $8 ELSE motto END,
+                  website = CASE WHEN $9 THEN $10 ELSE website END,
+                  logo_url = CASE WHEN $11 THEN $12 ELSE logo_url END,
+                  updated_at = NOW()
+              WHERE id = $13
             RETURNING
                 id,
                 name,
                 email,
                 phone,
                 address,
+                motto,
                 website,
                 logo_url,
                 created_at,
@@ -146,6 +160,8 @@ const updateSchoolProfile = async (req, res) => {
                 phone?.trim() || null,
                 address !== undefined,
                 address?.trim() || null,
+                motto !== undefined,
+                motto?.trim() || null,
                 website !== undefined,
                 normalizedWebsite,
                 logoUrl !== undefined,

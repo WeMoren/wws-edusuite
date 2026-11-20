@@ -8,6 +8,9 @@ const ConfirmDialog = ({
   onCancel,
   loading = false,
     error = "",
+    confirmLabel = "Delete",
+  loadingLabel = "Deleting...",
+  confirmClassName = "confirm-dialog__delete",
 }) => {
   return (
     <div className="confirm-dialog__overlay">
@@ -34,11 +37,11 @@ const ConfirmDialog = ({
 
           <button
             type="button"
-            className="confirm-dialog__delete"
+            className={confirmClassName}
             onClick={onConfirm}
             disabled={loading}
           >
-            {loading ? "Deleting..." : "Delete"}
+            {loading ? loadingLabel : confirmLabel}
           </button>
         </div>
       </div>

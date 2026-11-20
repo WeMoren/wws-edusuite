@@ -5,7 +5,9 @@ import {
     getAcademicLevelById,
     createAcademicLevel,
     updateAcademicLevel,
+    reorderAcademicLevels,
     deleteAcademicLevel,
+
 } from "../controllers/academicLevelController.js";
 
 import { authenticateToken } from "../middleware/authMiddleware.js";
@@ -36,6 +38,14 @@ router.post(
     requireSchoolContext,
     requirePermission("academicSetup", "create"),
     createAcademicLevel
+);
+
+router.patch(
+    "/reorder",
+    authenticateToken,
+    requireSchoolContext,
+    requirePermission("academicSetup", "edit"),
+    reorderAcademicLevels
 );
 
 router.patch(

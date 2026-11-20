@@ -187,13 +187,21 @@ export const createResultDocument = async (req, res) => {
             });
         }
 
+        /*
+         * A separately configured Exam Officer takes precedence.
+         * If the school has no Exam Officer, the Principal may
+         * fulfil both authorization capacities.
+         *
+         * This is only a document snapshot fallback. It does not
+         * create another school official or authorize the document.
+         */
         if (!officials.exam_officer) {
-            await client.query("ROLLBACK");
-
-            return res.status(409).json({
-                message:
-                    "An Exam Officer must be configured in School Officials before a result document can be created.",
-            });
+            officials.exam_officer = {
+                name: officials.principal.name,
+                title: "Principal (Acting as Exam Officer)",
+                signature_url: officials.principal.signature_url,
+                stamp_url: officials.principal.stamp_url,
+            };
         }
 
         /*
@@ -203,19 +211,20 @@ export const createResultDocument = async (req, res) => {
          * enrollment and term.
          */
         const schoolResult = await client.query(
-            `
-            SELECT
-                name,
-                email,
-                phone,
-                address,
-                logo_url
-            FROM schools
-            WHERE id = $1;
-            `,
-            [req.schoolId]
-        );
-
+              `
+              SELECT
+                  name,
+                  motto,
+                  email,
+                  phone,
+                  address,
+                  website,
+                  logo_url
+              FROM schools
+              WHERE id = $1;
+              `,
+              [req.schoolId]
+          );
         if (schoolResult.rows.length === 0) {
             await client.query("ROLLBACK");
 
@@ -235,93 +244,99 @@ export const createResultDocument = async (req, res) => {
             .filter(Boolean)
             .join(" ");
 
-        const result = await client.query(
-            `
-            INSERT INTO result_documents (
-                school_id,
-                student_enrollment_id,
-                term_id,
-                status,
+         const result = await client.query(
+              `
+              INSERT INTO result_documents (
+                  school_id,
+                  student_enrollment_id,
+                  term_id,
+                  status,
 
-                school_name,
-                school_email,
-                school_phone,
-                school_address,
-                school_logo_url,
+                  school_name,
+                  school_motto,
+                  school_email,
+                  school_phone,
+                  school_address,
+                  school_website,
+                  school_logo_url,
 
-                student_name,
-                admission_number,
-                gender,
+                  student_name,
+                  admission_number,
+                  gender,
 
-                academic_session_name,
-                term_name,
-                academic_level_name,
-                class_name,
+                  academic_session_name,
+                  term_name,
+                  academic_level_name,
+                  class_name,
+                  section_name,
 
-                stream_name,
-                subject_combination_name,
+                  stream_name,
+                  subject_combination_name,
 
-                principal_name,
-                principal_title,
-                principal_signature_url,
-                principal_stamp_url,
+                  principal_name,
+                  principal_title,
+                  principal_signature_url,
+                  principal_stamp_url,
 
-                exam_officer_name,
-                exam_officer_title,
-                exam_officer_signature_url,
-                exam_officer_stamp_url
-            )
-            VALUES (
-                $1, $2, $3, 'draft',
+                  exam_officer_name,
+                  exam_officer_title,
+                  exam_officer_signature_url,
+                  exam_officer_stamp_url
+              )
+              VALUES (
+                  $1, $2, $3, 'draft',
 
-                $4, $5, $6, $7, $8,
+                  $4, $5, $6, $7, $8, $9, $10,
 
-                $9, $10, $11,
+                  $11, $12, $13,
 
-                $12, $13, $14, $15,
+                  $14, $15, $16, $17, $18,
 
-                $16, $17,
+                  $19, $20,
 
-                $18, $19, $20, $21,
+                  $21, $22, $23, $24,
 
-                $22, $23, $24, $25
-            )
-            RETURNING *;
-            `,
-            [
-                req.schoolId,
-                enrollment.id,
-                term.id,
+                  $25, $26, $27, $28
+              )
+              RETURNING *;
+              `,
+              [
+                  req.schoolId,
+                  enrollment.id,
+                  term.id,
 
-                school.name,
-                school.email,
-                school.phone,
-                school.address,
-                school.logo_url,
+                  school.name,
+                  school.motto,
+                  school.email,
+                  school.phone,
+                  school.address,
+                  school.website,
+                  school.logo_url,
 
-                studentName,
-                enrollment.admission_no,
-                enrollment.gender,
+                  studentName,
+                  enrollment.admission_no,
+                  enrollment.gender,
 
-                enrollment.academic_session_name,
-                term.name,
-                enrollment.academic_level_name,
-                enrollment.class_name,
+                  enrollment.academic_session_name,
+                  term.name,
+                  enrollment.academic_level_name,
+                  enrollment.class_name,
+                  enrollment.section_name,
 
-                enrollment.stream_name,
-                enrollment.subject_combination_name,
+                  enrollment.stream_name,
+                  enrollment.subject_combination_name,
 
-                officials.principal.name,
-                officials.principal.title,
-                officials.principal.signature_url,
-                officials.principal.stamp_url,
+                  officials.principal.name,
+                  officials.principal.title,
+                  officials.principal.signature_url,
+                  officials.principal.stamp_url,
 
-                officials.exam_officer.name,
-                officials.exam_officer.title,
-                officials.exam_officer.signature_url,
-                officials.exam_officer.stamp_url,
-            ]
-        );
+                  officials.exam_officer.name,
+                  officials.exam_officer.title,
+                  officials.exam_officer.signature_url,
+                  officials.exam_officer.stamp_url,
+              ]
+          );
 
         await client.query("COMMIT");
 
@@ -372,8 +387,10 @@ export const getResultDocumentById = async (req, res) => {
                 rd.status,
 
                 rd.school_name,
+                rd.school_motto,
                 rd.school_email,
                 rd.school_phone,
+                rd.school_website,
                 rd.school_address,
                 rd.school_logo_url,
 
@@ -385,6 +402,7 @@ export const getResultDocumentById = async (req, res) => {
                 rd.term_name,
                 rd.academic_level_name,
                 rd.class_name,
+                rd.section_name,
                 rd.stream_name,
                 rd.subject_combination_name,
 
@@ -400,14 +418,16 @@ export const getResultDocumentById = async (req, res) => {
 
                 rd.session_average,
                 rd.session_academic_level_position,
+                rd.session_academic_level_position_total,
 
                 rd.term_total_score,
                 rd.term_average,
                 rd.term_grade,
                 rd.term_remark,
                 rd.class_position,
+                rd.class_position_total,
                 rd.academic_level_position,
-
+                rd.academic_level_position_total,
                 rd.attendance_present,
                 rd.attendance_absent,
                 rd.attendance_total_marked,
@@ -667,6 +687,7 @@ export const finalizeResultDocument = async (req, res) => {
          */
         const termRankingResult = await client.query(
             `
+
             WITH applicable_subjects AS (
                 SELECT
                     se.id AS student_enrollment_id,
@@ -682,24 +703,22 @@ export const finalizeResultDocument = async (req, res) => {
 
                 INNER JOIN subject_academic_levels sal
                     ON sal.subject_id = s.id
-                   AND sal.academic_level_id =
-                       c.academic_level_id
+                AND sal.academic_level_id =
+                    c.academic_level_id
 
                 LEFT JOIN subject_combination_subjects scs
                     ON scs.subject_id = s.id
-                   AND scs.subject_combination_id =
-                       se.subject_combination_id
+                AND scs.subject_combination_id =
+                    se.subject_combination_id
 
                 WHERE se.school_id = $1
-                  AND se.academic_session_id =
-                      $2
-                  AND c.academic_level_id =
-                      $3
+                AND se.academic_session_id = $2
+                AND c.academic_level_id = $3
 
-                  AND (
-                      se.subject_combination_id IS NULL
-                      OR scs.subject_id IS NOT NULL
-                  )
+                AND (
+                    se.subject_combination_id IS NULL
+                    OR scs.subject_id IS NOT NULL
+                )
             ),
 
             student_subject_summary AS (
@@ -707,6 +726,7 @@ export const finalizeResultDocument = async (req, res) => {
                     se.id AS student_enrollment_id,
                     se.student_id,
                     se.class_id,
+                    se.section_id,
                     c.academic_level_id,
 
                     COUNT(DISTINCT aps.subject_id)
@@ -727,20 +747,19 @@ export const finalizeResultDocument = async (req, res) => {
 
                 LEFT JOIN results r
                     ON r.student_enrollment_id = se.id
-                   AND r.term_id = $4
-                   AND r.subject_id = aps.subject_id
-                   AND r.school_id = $1
+                AND r.term_id = $4
+                AND r.subject_id = aps.subject_id
+                AND r.school_id = $1
 
                 WHERE se.school_id = $1
-                  AND se.academic_session_id =
-                      $2
-                  AND c.academic_level_id =
-                      $3
+                AND se.academic_session_id = $2
+                AND c.academic_level_id = $3
 
                 GROUP BY
                     se.id,
                     se.student_id,
                     se.class_id,
+                    se.section_id,
                     c.academic_level_id
             ),
 
@@ -749,6 +768,7 @@ export const finalizeResultDocument = async (req, res) => {
                     student_enrollment_id,
                     student_id,
                     class_id,
+                    section_id,
                     academic_level_id,
 
                     applicable_subject_count,
@@ -764,8 +784,8 @@ export const finalizeResultDocument = async (req, res) => {
                 FROM student_subject_summary
 
                 WHERE applicable_subject_count > 0
-                  AND entered_result_count =
-                      applicable_subject_count
+                AND entered_result_count =
+                    applicable_subject_count
             ),
 
             ranked_students AS (
@@ -773,14 +793,22 @@ export const finalizeResultDocument = async (req, res) => {
                     rs.*,
 
                     RANK() OVER (
-                        PARTITION BY rs.class_id
+                        PARTITION BY rs.section_id
                         ORDER BY rs.average_score DESC
                     ) AS class_position,
+
+                    COUNT(*) OVER (
+                        PARTITION BY rs.section_id
+                    ) AS class_position_total,
 
                     RANK() OVER (
                         PARTITION BY rs.academic_level_id
                         ORDER BY rs.average_score DESC
-                    ) AS academic_level_position
+                    ) AS academic_level_position,
+
+                    COUNT(*) OVER (
+                        PARTITION BY rs.academic_level_id
+                    ) AS academic_level_position_total
 
                 FROM rankable_students rs
             )
@@ -800,11 +828,15 @@ export const finalizeResultDocument = async (req, res) => {
                 ) AS average_score,
 
                 class_position,
-                academic_level_position
+                class_position_total,
+
+                academic_level_position,
+                academic_level_position_total
 
             FROM ranked_students
 
             WHERE student_enrollment_id = $5;
+
             `,
             [
                 schoolId,
@@ -942,6 +974,7 @@ export const finalizeResultDocument = async (req, res) => {
          */
         let sessionAverage = null;
         let sessionAcademicLevelPosition = null;
+        let sessionAcademicLevelPositionTotal = null;
 
         if (termContext.display_order === 3) {
             const sessionRankingResult = await client.query(
@@ -1112,7 +1145,7 @@ export const finalizeResultDocument = async (req, res) => {
                     FROM complete_session_results csr
                 ),
 
-                ranked_students AS (
+                                ranked_students AS (
                     SELECT
                         srs.*,
 
@@ -1121,7 +1154,12 @@ export const finalizeResultDocument = async (req, res) => {
                                 srs.academic_level_id
                             ORDER BY
                                 srs.session_average DESC
-                        ) AS session_academic_level_position
+                        ) AS session_academic_level_position,
+
+                        COUNT(*) OVER (
+                            PARTITION BY
+                                srs.academic_level_id
+                        ) AS session_academic_level_position_total
 
                     FROM session_rankable_students srs
                 )
@@ -1132,7 +1170,8 @@ export const finalizeResultDocument = async (req, res) => {
                         2
                     ) AS session_average,
 
-                    rs.session_academic_level_position
+                    rs.session_academic_level_position,
+                    rs.session_academic_level_position_total
 
                 FROM ranked_students rs
 
@@ -1160,6 +1199,9 @@ export const finalizeResultDocument = async (req, res) => {
 
             sessionAcademicLevelPosition =
                 sessionRankingResult.rows[0].session_academic_level_position;
+
+            sessionAcademicLevelPositionTotal =
+                sessionRankingResult.rows[0].session_academic_level_position_total;
         }
 
         /*
@@ -1192,6 +1234,10 @@ export const finalizeResultDocument = async (req, res) => {
                 session_average = $13,
                 session_academic_level_position = $14,
 
+                class_position_total = $15,
+                academic_level_position_total = $16,
+                session_academic_level_position_total = $17,
+
                 finalized_at = NOW(),
                 updated_at = NOW()
 
@@ -1210,7 +1256,9 @@ export const finalizeResultDocument = async (req, res) => {
                 term_grade,
                 term_remark,
                 class_position,
+                class_position_total,
                 academic_level_position,
+                academic_level_position_total,
 
                 attendance_present,
                 attendance_absent,
@@ -1219,6 +1267,7 @@ export const finalizeResultDocument = async (req, res) => {
 
                 session_average,
                 session_academic_level_position,
+                session_academic_level_position_total,
 
                 principal_authorized_at,
                 principal_authorized_by,
@@ -1246,6 +1295,10 @@ export const finalizeResultDocument = async (req, res) => {
 
                 sessionAverage,
                 sessionAcademicLevelPosition,
+
+                termSummary.class_position_total,
+                termSummary.academic_level_position_total,
+                sessionAcademicLevelPositionTotal,
             ]
         );
 
@@ -1409,7 +1462,7 @@ export const authorizeResultDocumentAsExamOfficer = async (req, res) => {
         !userRoles.includes("Principal")) {
         return res.status(403).json({
             message:
-                "Only the Exam Officer can authorize result documents as Exam Officer.",
+                "Only the Principal or Exam Officer can authorize result documents in the Exam Officer capacity.",
         });
     }
 
@@ -1513,5 +1566,80 @@ export const authorizeResultDocumentAsExamOfficer = async (req, res) => {
         });
     } finally {
         client.release();
+    }
+};
+export const getResultDocumentStatuses = async (req, res) => {
+    const { termId, studentEnrollmentIds } = req.query;
+    const { schoolId } = req;
+
+    const uuidPattern =
+        /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+    if (
+        !termId ||
+        !uuidPattern.test(termId) ||
+        !studentEnrollmentIds ||
+        typeof studentEnrollmentIds !== "string"
+    ) {
+        return res.status(400).json({
+            message:
+                "A valid term ID and student enrollment IDs are required.",
+        });
+    }
+
+    const enrollmentIds = studentEnrollmentIds
+        .split(",")
+        .map((id) => id.trim());
+
+    if (
+        enrollmentIds.length === 0 ||
+        enrollmentIds.length > 200 ||
+        enrollmentIds.some((id) => !uuidPattern.test(id))
+    ) {
+        return res.status(400).json({
+            message:
+                "Student enrollment IDs must be valid UUIDs. A maximum of 200 IDs is allowed.",
+        });
+    }
+
+    try {
+        const result = await pool.query(
+            `
+            SELECT
+                student_enrollment_id AS "studentEnrollmentId",
+                id AS "documentId",
+                status,
+                principal_authorized_at AS "principalAuthorizedAt",
+                exam_officer_authorized_at AS "examOfficerAuthorizedAt",
+                finalized_at AS "finalizedAt"
+
+            FROM result_documents
+
+            WHERE school_id = $1
+              AND term_id = $2
+              AND student_enrollment_id = ANY($3::uuid[])
+
+            ORDER BY created_at DESC;
+            `,
+            [
+                schoolId,
+                termId,
+                enrollmentIds,
+            ]
+        );
+
+        return res.status(200).json({
+            documents: result.rows,
+        });
+    } catch (error) {
+        console.error(
+            "Failed to fetch result document statuses:",
+            error.message
+        );
+
+        return res.status(500).json({
+            message:
+                "Failed to fetch result document statuses.",
+        });
     }
 };

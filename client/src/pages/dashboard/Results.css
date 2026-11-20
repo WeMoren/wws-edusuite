@@ -305,3 +305,34 @@
     grid-template-columns: 1fr;
   }
 }
+
+/* Result document authorization controls */
+.results-document-controls {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+
+  min-width: 220px;
+  padding: 12px;
+
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+}
+
+.results-document-controls > strong {
+  font-size: 13px;
+  font-weight: 700;
+  color: #1e293b;
+}
+
+.results-document-controls > span {
+  font-size: 12px;
+  color: #64748b;
+}
+
+.results-document-controls button {
+  white-space: normal;
+}

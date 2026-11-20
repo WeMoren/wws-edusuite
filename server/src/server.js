@@ -11,6 +11,7 @@ import studentRoutes from "./routes/studentRoutes.js";
 import parentRoutes from "./routes/parentRoutes.js";
 import enrollmentRoutes from "./routes/enrollmentRoutes.js";
 import studentProgressionRoutes from "./routes/studentProgressionRoutes.js";
+import studentPromotionCriteriaRoutes from "./routes/studentPromotionCriteriaRoutes.js";
 import academicSessionRoutes from "./routes/academicSessionRoutes.js";
 import academicLevelRoutes from "./routes/academicLevelRoutes.js";
 import classRoutes from "./routes/classRoutes.js";
@@ -46,7 +47,7 @@ app.use( cors({
         allowedHeaders: ["Content-Type", "Authorization"],
     }));
 
-app.use(express.json());
+app.use(express.json({ limit: "10mb" }));
 
 app.use("/api/school-profile", schoolProfileRoutes);
 app.use("/api/school-officials", schoolOfficialRoutes);
@@ -57,6 +58,10 @@ app.use("/api/students", studentRoutes);
 app.use("/api/parents", parentRoutes);
 app.use("/api/enrollments", enrollmentRoutes);
 app.use("/api/student-progressions", studentProgressionRoutes);
+app.use(
+    "/api/student-promotion-criteria",
+    studentPromotionCriteriaRoutes
+);
 app.use("/api/academic-levels", academicLevelRoutes);
 app.use("/api/classes", classRoutes);
 app.use("/api/sections", sectionRoutes);

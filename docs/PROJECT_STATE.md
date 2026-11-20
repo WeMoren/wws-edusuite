@@ -1696,19 +1696,34 @@ The Results backend foundation is now implemented and tested incrementally.
 * Migration 035 — added term result and attendance snapshot fields to result documents
 * Result document finalization snapshots the term total score, term average, term grade, and term remark
 * Result document finalization snapshots class position and academic-level position
-* Result document finalization snapshots attendance present, absent, total marked, and attendance percentage when attendance records exist
-* Attendance snapshot fields remain nullable when no attendance records are marked for the term
-* Result document finalization requires complete applicable subject results before calculating and storing term ranking data
-* Existing finalized documents created before Migration 035 remain valid, with the new nullable snapshot fields left unchanged
-* Result document retrieval now includes the complete term, ranking, and attendance snapshot fields
-* Focused API verification completed for retrieval of the new Migration 035 snapshot fields
+
+
+### Results frontend integration and document workflow
+
+* Results UI integrates backend result-document status lookup for loaded student enrollments.
+* Document statuses display independently for each student and selected term.
+* Authorized users can create result-document drafts through the Results interface.
+* Principal and Exam Officer authorization actions are exposed with role-aware controls.
+* Principal can perform both authorization steps, including when acting as Exam Officer for a school without a separately configured Exam Officer.
+* Both authorizations remain independently recorded by the backend.
+* Finalization is available only after both authorization requirements are satisfied.
+* Existing individual student `Download Result` PDF workflow remains intact and was browser-tested successfully after the integration.
+* Added a separate `Download Finalized Result` PDF workflow using only the backend's finalized document snapshot and subject-result data.
+* Finalized PDF includes historical school, student, academic, subject, ranking, attendance, and official authorization snapshot information.
+* Finalized PDF download is restricted to documents whose backend status is `finalized`.
+* Signature, stamp, and school-logo images are converted for PDF rendering where supported.
+* Frontend build completed successfully after the integration.
+* Browser verification confirmed Results page loading, document status display, authorization controls, and successful existing PDF download.
+* Finalized PDF download remains pending end-to-end browser verification because no finalized document was available during testing.
+* No draft creation, authorization, or finalization actions were performed during this browser verification.
 
 ### Results requirements still to implement
 
-The backend must continue to remain authoritative for:
+* End-to-end browser verification of `Download Finalized Result` using an already-finalized result document.
+* Continue testing document lifecycle and historical snapshot integrity without disrupting existing score entry, result downloads, or ranking behavior.
 
-* Complete subject applicability behavior, including non-offered subjects
-* Result document download/printing support
+The backend must continue to remain authoritative for result calculations, subject applicability, authorization, and finalization.
+
 
 The Results module should continue incrementally:
 
@@ -2205,6 +2220,38 @@ All future changes must preserve existing working Students, Accountant, Results,
 
 No commit or push is authorized by this checkpoint.
 
-# 28. LAST UPDATED
+# 28. DOCUMENT AUTHORIZATION IMAGE UPLOAD FIX
 
-November 11, 2026 — Student progression backend foundation implemented, migration 060 applied, and syntax and structural verification completed.
+## 28.1 Problem
+
+Saving school document authorization settings failed when signature and stamp images were included in the request. The backend returned `PayloadTooLargeError: request entity too large`.
+
+The affected images were AVIF files submitted as Base64 data URLs through the school-officials API.
+
+## 28.2 Root Cause
+
+The global Express JSON body parser used its default request-size limit, which was insufficient for the combined Base64-encoded image payloads.
+
+## 28.3 Fix Applied
+
+Updated `server/src/server.js` from:
+
+`app.use(express.json());`
+
+to:
+
+`app.use(express.json({ limit: "10mb" }));`
+
+The existing middleware order, routes, controllers, and database implementation were preserved.
+
+## 28.4 Verification
+
+- Backend restarted successfully after the change.
+- School document authorization settings saved successfully with AVIF signature and stamp images.
+- Settings were refreshed and persistence was confirmed.
+- No database migration or controller changes were required.
+
+# 29. LAST UPDATED
+
+
+November 19, 2026 — Document authorization image upload limit increased to 10 MB; AVIF signature and stamp save and persistence verified.

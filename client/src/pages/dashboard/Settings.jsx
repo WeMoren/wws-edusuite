@@ -10,6 +10,7 @@ const Settings = () => {
   const [officialIds, setOfficialIds] = useState({});
   const [schoolProfile, setSchoolProfile] = useState({
     name: "",
+    motto: "",
     address: "",
     phone: "",
     email: "",
@@ -87,6 +88,7 @@ const Settings = () => {
         if (profile) {
           setSchoolProfile({
             name: profile.name || "",
+            motto: profile.motto || "",
             address: profile.address || "",
             phone: profile.phone || "",
             email: profile.email || "",
@@ -191,6 +193,7 @@ const Settings = () => {
         method: "PUT",
         body: JSON.stringify({
           name: schoolProfile.name,
+          motto: schoolProfile.motto,
           email: schoolProfile.email,
           phone: schoolProfile.phone,
           address: schoolProfile.address,
@@ -203,6 +206,7 @@ const Settings = () => {
       if (profile) {
         setSchoolProfile({
           name: profile.name || "",
+          motto: profile.motto || "",
           address: profile.address || "",
           phone: profile.phone || "",
           email: profile.email || "",
@@ -288,6 +292,21 @@ const Settings = () => {
               value={schoolProfile.name}
               onChange={handleChange}
               placeholder="Enter school name"
+            />
+          </div>
+
+          <div>
+            <label htmlFor="schoolMotto">
+              School Motto
+            </label>
+
+            <input
+              id="schoolMotto"
+              name="motto"
+              type="text"
+              value={schoolProfile.motto}
+              onChange={handleChange}
+              placeholder="Enter school motto"
             />
           </div>
 

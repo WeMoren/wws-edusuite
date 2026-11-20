@@ -1,0 +1,7 @@
+
+ALTER TABLE schools
+ADD COLUMN IF NOT EXISTS motto TEXT;
+
+ALTER TABLE result_documents
+ADD COLUMN IF NOT EXISTS school_motto TEXT,
+ADD COLUMN IF NOT EXISTS school_website TEXT;

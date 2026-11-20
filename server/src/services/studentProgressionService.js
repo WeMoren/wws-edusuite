@@ -4,6 +4,9 @@ import { recordActivity } from "./activityLogService.js";
 import {
     createStudentFinancialAccountForCurrentTerm,
 } from "./studentFinancialAccountService.js";
+import {
+    evaluateStudentPromotionCriteria,
+} from "./studentPromotionCriteriaService.js";
 
 const PROGRESSION_OUTCOMES = [
     "promote",
@@ -14,11 +17,17 @@ const PROGRESSION_OUTCOMES = [
 ];
 
 export class StudentProgressionError extends Error {
-    constructor(message, statusCode = 400, details = null) {
+    constructor(
+        message,
+        statusCode = 400,
+        details = null,
+        code = null
+    ) {
         super(message);
         this.name = "StudentProgressionError";
         this.statusCode = statusCode;
         this.details = details;
+        this.code = code;
     }
 }
 
@@ -29,7 +38,8 @@ const getAcademicLevelSequence = async (client, schoolId) => {
             id,
             name,
             category,
-            display_order
+            display_order,
+            requires_subject_combination
         FROM academic_levels
         WHERE school_id = $1
         ORDER BY display_order ASC, id ASC;
@@ -429,6 +439,7 @@ const validateProgressionProposal = async (
         destinationAcademicSessionId,
         studentProgressions,
         lockRows = false,
+        previewOnly = false,
     }
 ) => {
     if (
@@ -503,6 +514,56 @@ const validateProgressionProposal = async (
 
         let destinationLevel = null;
         let destinationPlacement = null;
+        let criteriaEvaluation = null;
+         let criteriaConfigurationMissing = false;
+
+        if (
+            outcome === "promote"
+            || outcome === "repeat"
+        ) {
+             try {
+                criteriaEvaluation =
+                    await evaluateStudentPromotionCriteria(client, {
+                        schoolId,
+                        academicLevelId: currentLevel.id,
+                        sourceEnrollmentId:
+                            sourceEnrollment.source_enrollment_id,
+                        sourceAcademicSessionId,
+                        requiresSubjectCombination:
+                            currentLevel.requires_subject_combination,
+                        streamId: sourceEnrollment.stream_id,
+                        subjectCombinationId:
+                            sourceEnrollment.subject_combination_id,
+                    });
+                        } catch (error) {
+                if (
+                    previewOnly
+                    && error.code === "PROMOTION_CRITERIA_NOT_CONFIGURED"
+                ) {
+                    criteriaConfigurationMissing = true;
+
+                    criteriaEvaluation = {
+                        evaluationStatus: "criteria_not_configured",
+                        status: "criteria_not_configured",
+                        recommendedOutcome: null,
+                        reasons: [
+                            error.message
+                                || "Promotion criteria are not configured for this academic level.",
+                        ],
+                        snapshot: {},
+                        criteriaConfigurationMissing: true,
+                    };
+                } else {
+                    throw new StudentProgressionError(
+                        error.message
+                            || "Student promotion criteria evaluation failed.",
+                        error.statusCode || 409,
+                        error.details || null,
+                        error.code || null
+                    );
+                }
+            }
+        }
 
         if (outcome === "promote") {
             destinationLevel = getNextAcademicLevel(
@@ -543,6 +604,24 @@ const validateProgressionProposal = async (
             );
         }
 
+              const requiresOverride = !criteriaConfigurationMissing
+            && criteriaEvaluation !== null && (
+            criteriaEvaluation.evaluationStatus === "incomplete"
+            || (
+                criteriaEvaluation.evaluationStatus === "eligible"
+                && outcome === "repeat"
+            )
+            || (
+                criteriaEvaluation.evaluationStatus === "not_eligible"
+                && outcome === "promote"
+            )
+        );
+
+        const overrideReason =
+            typeof item.overrideReason === "string"
+                ? item.overrideReason.trim()
+                : null;
+
         validatedStudents.push({
             studentId: item.studentId,
             admissionNo: sourceEnrollment.admission_no,
@@ -565,6 +644,10 @@ const validateProgressionProposal = async (
                 }
                 : null,
             destinationPlacement,
+            criteriaEvaluation,
+            criteriaConfigurationMissing,
+            requiresOverride,
+            overrideReason,
         });
     }
 
@@ -609,6 +692,7 @@ export const previewStudentProgression = async ({
                 sourceAcademicSessionId,
                 destinationAcademicSessionId,
                 studentProgressions,
+                previewOnly: true,
             }
         );
 
@@ -634,6 +718,8 @@ export const previewStudentProgression = async ({
 export const processStudentProgression = async ({
     schoolId,
     userId,
+    userRoles = [],
+    roleIds = [],
     sourceAcademicSessionId,
     destinationAcademicSessionId,
     studentProgressions,
@@ -659,6 +745,65 @@ export const processStudentProgression = async ({
             totalStudents,
             students,
         } = validatedProposal;
+
+        if (!userId) {
+            throw new StudentProgressionError(
+                "An authenticated user is required to process progression.",
+                401
+            );
+        }
+
+        const overrideStudents = students.filter(
+            (student) => student.requiresOverride
+        );
+
+        for (const student of overrideStudents) {
+            if (!student.overrideReason) {
+                throw new StudentProgressionError(
+                    "An override reason is required for this progression decision.",
+                    400,
+                    { studentId: student.studentId }
+                );
+            }
+        }
+
+        if (overrideStudents.length > 0) {
+            const isPrincipal = userRoles.includes("Principal");
+
+            if (!isPrincipal) {
+                if (!Array.isArray(roleIds) || roleIds.length === 0) {
+                    throw new StudentProgressionError(
+                        "You do not have permission to override promotion criteria.",
+                        403
+                    );
+                }
+
+                const permissionResult = await client.query(
+                    `
+                    SELECT 1
+                    FROM role_permissions rp
+                    JOIN permissions p
+                        ON p.id = rp.permission_id
+                    WHERE rp.role_id = ANY($1::uuid[])
+                      AND p.resource = $2
+                      AND p.action = $3
+                    LIMIT 1;
+                    `,
+                    [
+                        roleIds,
+                        "studentProgression",
+                        "override",
+                    ]
+                );
+
+                if (permissionResult.rows.length === 0) {
+                    throw new StudentProgressionError(
+                        "You do not have permission to override promotion criteria.",
+                        403
+                    );
+                }
+            }
+        }
 
         const batchResult = await client.query(
             `
@@ -827,9 +972,20 @@ export const processStudentProgression = async ({
                     destination_enrollment_id,
                     source_academic_session_id,
                     destination_academic_session_id,
-                    outcome
+                    outcome,
+                    criteria_version_id,
+                    evaluation_status,
+                    evaluation_snapshot,
+                    recommended_outcome,
+                    is_override,
+                    override_reason,
+                    decided_by,
+                    decided_at
                 )
-                VALUES ($1, $2, $3, $4, $5, $6, $7, $8);
+                VALUES (
+                    $1, $2, $3, $4, $5, $6, $7, $8,
+                    $9, $10, $11::JSONB, $12, $13, $14, $15, NOW()
+                );
                 `,
                 [
                     schoolId,
@@ -840,6 +996,13 @@ export const processStudentProgression = async ({
                     sourceAcademicSessionId,
                     destinationAcademicSessionId,
                     student.outcome,
+                    student.criteriaEvaluation?.criteriaVersionId || null,
+                    student.criteriaEvaluation?.evaluationStatus || "not_required",
+                    JSON.stringify(student.criteriaEvaluation?.snapshot || {}),
+                    student.criteriaEvaluation?.recommendedOutcome || null,
+                    student.requiresOverride,
+                    student.requiresOverride ? student.overrideReason : null,
+                    userId,
                 ]
             );
 

@@ -72,3 +72,8 @@
   color: #b91c1c;
   font-size: 0.9rem;
 }
+
+.confirm-dialog__confirm {
+  background: #2563eb;
+  color: #ffffff;
+}

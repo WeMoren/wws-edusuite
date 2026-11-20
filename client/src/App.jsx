@@ -15,6 +15,7 @@ const StaffManagement = lazy(() => import("./pages/dashboard/StaffManagement"));
 const Dashboard = lazy(() => import("./pages/dashboard/Dashboard"));
 const DashboardLayout = lazy(() => import("./layouts/DashboardLayout"));
 const Students = lazy(() => import("./pages/dashboard/Students"));
+const StudentProgression = lazy(() => import("./pages/dashboard/StudentProgression"));
 const Teachers = lazy(() => import("./pages/dashboard/Teachers"));
 const Parents = lazy(() => import("./pages/dashboard/Parents"));
 const Accountant = lazy(() => import("./pages/dashboard/Accountant"));
@@ -147,6 +148,21 @@ const App = () => {
                 ]}
               >
                 <Students />
+              </RoleRoute>
+            }
+          />
+
+          <Route
+            path="student-progression"
+            element={
+              <RoleRoute
+                allowedRoles={[
+                  "Principal",
+                  "School Admin",
+                  "Exam Officer",
+                ]}
+              >
+                <StudentProgression />
               </RoleRoute>
             }
           />

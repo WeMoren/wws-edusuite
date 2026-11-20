@@ -54,6 +54,17 @@
   font-weight: 700;
 }
 
+.payment-receipt__motto {
+  margin: 4px 0 0;
+
+  font-size: 13px;
+  font-weight: 500;
+  font-style: italic;
+  color: #6b7280;
+  text-transform: none;
+  letter-spacing: normal;
+}
+
 .payment-receipt__header p {
   margin: 6px 0 0;
 

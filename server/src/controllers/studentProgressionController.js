@@ -80,6 +80,8 @@ export const processProgression = async (req, res) => {
         const result = await processStudentProgression({
             schoolId: req.schoolId,
             userId: req.user?.userId,
+            userRoles: req.user?.roles || [],
+            roleIds: req.user?.roleIds || [],
             sourceAcademicSessionId,
             destinationAcademicSessionId,
             studentProgressions,

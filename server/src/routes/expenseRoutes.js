@@ -12,6 +12,7 @@ import { authenticateToken } from "../middleware/authMiddleware.js";
 import { requireSchoolContext } from "../middleware/schoolMiddleware.js";
 import { requirePermission } from "../middleware/permissionMiddleware.js";
 
+
 const router = express.Router();
 
 // All routes require authentication and school context

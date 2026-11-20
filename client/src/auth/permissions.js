@@ -1,5 +1,6 @@
 const FULL_ACCESS = ["view", "create", "edit", "delete"];
 
+
 const permissions = {
   principal: {
     students: FULL_ACCESS,
@@ -26,6 +27,7 @@ const permissions = {
     recent_activities: ["view"],
     library: FULL_ACCESS,
     reception: FULL_ACCESS,
+    studentPromotionCriteria: ["view", "create", "edit"],
   },
 
   schoolAdmin: {
@@ -35,7 +37,8 @@ const permissions = {
     settings: FULL_ACCESS,
     subscription: ["view", "create", "edit"],
     events: FULL_ACCESS,
-    recent_activities: ["view"]
+    recent_activities: ["view"],
+    studentPromotionCriteria: ["view"],
   },
 
   examOfficer: {
@@ -43,10 +46,11 @@ const permissions = {
     teachers: ["view"],
     classes: ["view"],
     sections: ["view"],
-    academicSetup:  FULL_ACCESS,
+    academicSetup: FULL_ACCESS,
     attendance: ["view"],
     results: ["view", "create", "edit", "download", "authorize"],
-    recent_activities: ["view"]
+    recent_activities: ["view"],
+    studentPromotionCriteria: ["view", "create", "edit"],
   },
 
   teacher: {
@@ -62,7 +66,7 @@ const permissions = {
 
   accountant: {
     accountant: FULL_ACCESS,
-     recent_activities: ["view"],
+    recent_activities: ["view"],
   },
 };
 

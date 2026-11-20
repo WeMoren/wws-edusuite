@@ -13,6 +13,7 @@ import {
 import {
     createResultDocument,
     getResultDocumentById,
+    getResultDocumentStatuses,
     finalizeResultDocument,
     authorizeResultDocumentAsPrincipal,
     authorizeResultDocumentAsExamOfficer
@@ -38,6 +39,14 @@ router.post(
     requireSchoolContext,
     requirePermission("results", "create"),
     createResultDocument
+);
+
+router.get(
+    "/documents/lookup",
+    authenticateToken,
+    requireSchoolContext,
+    requirePermission("results", "view"),
+    getResultDocumentStatuses
 );
 
 router.get(

@@ -141,6 +141,7 @@ const apiRequest = async (path, options = {}) => {
   const [resultSettingsLoading, setResultSettingsLoading] = useState(true);
   const [resultSettingsLoaded, setResultSettingsLoaded] = useState(false);
   const [assessmentSettingsSaving, setAssessmentSettingsSaving] = useState(false);
+  const [isReorderingLevels, setIsReorderingLevels] = useState(false);
 
   // Load the school's assessment and grading settings
   useEffect(() => {
@@ -296,6 +297,82 @@ const apiRequest = async (path, options = {}) => {
         title: "Unable to Create Level",
         message: error.message,
       });
+    }
+  };
+
+
+    // Reorder Academic Levels
+  const handleMoveAcademicLevel = async (levelId, direction) => {
+    if (isReorderingLevels) return;
+
+    const orderedLevels = [...academicLevels].sort(
+      (a, b) => a.displayOrder - b.displayOrder
+    );
+
+    const currentIndex = orderedLevels.findIndex(
+      (level) => level.id === levelId
+    );
+
+    if (currentIndex === -1) return;
+
+    const targetIndex =
+      direction === "up" ? currentIndex - 1 : currentIndex + 1;
+
+    if (
+      targetIndex < 0 ||
+      targetIndex >= orderedLevels.length
+    ) {
+      return;
+    }
+
+    const reorderedLevels = [...orderedLevels];
+
+    [
+      reorderedLevels[currentIndex],
+      reorderedLevels[targetIndex],
+    ] = [
+      reorderedLevels[targetIndex],
+      reorderedLevels[currentIndex],
+    ];
+
+    setIsReorderingLevels(true);
+
+    try {
+      const data = await apiRequest("/academic-levels/reorder", {
+        method: "PATCH",
+        body: JSON.stringify({
+          levelIds: reorderedLevels.map((level) => level.id),
+        }),
+      });
+
+      if (!Array.isArray(data.levels)) {
+        throw new Error(
+          "The server did not return the updated academic levels."
+        );
+      }
+
+      setAcademicLevels(
+            data.levels.map((level) => ({
+            id: level.id,
+            name: level.name,
+            category: level.category,
+            displayOrder: level.display_order,
+            requiresSubjectCombination:
+              level.requires_subject_combination ?? false,
+          }))
+        );
+
+      notify({
+        title: "Academic levels reordered",
+        message: "The new academic-level sequence was saved successfully.",
+      });
+    } catch (error) {
+      notify({
+        title: "Unable to reorder academic levels",
+        message: error.message || "Please try again.",
+      });
+    } finally {
+      setIsReorderingLevels(false);
     }
   };
 
@@ -870,24 +947,32 @@ const handleAddSubject = async () => {
     }
   };
 
-  // Edit dialog helpers
-  const openEditDialog = (type, item, value) => {
-    setEditDialog({
-      open: true,
-      type,
-      item,
-      value,
-    });
-  };
+ // Edit dialog helpers
+const openEditDialog = (type, item, value) => {
+  setEditDialog({
+    open: true,
+    type,
+    item,
+    value,
+    requiresSubjectCombination:
+      type === "level"
+        ? Boolean(
+            item.requires_subject_combination ??
+            item.requiresSubjectCombination
+          )
+        : false,
+  });
+};
 
-  const closeEditDialog = () => {
-    setEditDialog({
-      open: false,
-      type: "",
-      item: null,
-      value: "",
-    });
-  };
+const closeEditDialog = () => {
+  setEditDialog({
+    open: false,
+    type: "",
+    item: null,
+    value: "",
+    requiresSubjectCombination: false,
+  });
+};
 
     // Save edit
   const handleEditSave = async () => {
@@ -907,7 +992,11 @@ const handleAddSubject = async () => {
           `/classes/${editDialog.item.id}`,
           {
             method: "PATCH",
-            body: JSON.stringify({ name: value }),
+            body: JSON.stringify({
+            name: value,
+            requiresSubjectCombination:
+              editDialog.requiresSubjectCombination,
+          }),
           }
         );
 
@@ -952,7 +1041,11 @@ const handleAddSubject = async () => {
           `/sections/${editDialog.item.id}`,
           {
             method: "PATCH",
-            body: JSON.stringify({ name: value }),
+           body: JSON.stringify({
+            name: value,
+            requiresSubjectCombination:
+              editDialog.requiresSubjectCombination,
+          }),
           }
         );
 
@@ -993,46 +1086,89 @@ const handleAddSubject = async () => {
       return;
     }
 
-    if (editDialog.type === "level") {
-      setAcademicLevels((prev) =>
-        prev.map((level) =>
-          level.id === editDialog.item.id
-            ? { ...level, name: value }
-            : level
-        )
-      );
-    } else if (editDialog.type === "session") {
-      setAcademicSessions((prev) =>
-        prev.map((session) =>
-          session.id === editDialog.item.id
-            ? { ...session, name: value }
-            : session
-        )
-      );
-    } else if (editDialog.type === "term") {
-      const exists = academicTerms.some(
-        (term) =>
-          term.id !== editDialog.item.id &&
-          term.academicSessionId === editDialog.item.academicSessionId &&
-          term.name.toLowerCase() === value.toLowerCase()
-      );
 
-      if (exists) {
-        notify({
-          title: "Term Already Exists",
-          message: `${value} already exists for this academic session.`,
-        });
-        return;
+if (editDialog.type === "level") {
+  try {
+    const data = await apiRequest(
+      `/academic-levels/${editDialog.item.id}`,
+      {
+        method: "PATCH",
+        body: JSON.stringify({
+        name: value,
+        requiresSubjectCombination:
+          editDialog.requiresSubjectCombination,
+      }),
       }
+    );
 
-      setAcademicTerms((prev) =>
-        prev.map((term) =>
-          term.id === editDialog.item.id
-            ? { ...term, name: value }
-            : term
-        )
+    const updatedLevel = data.level;
+
+    if (!updatedLevel?.id) {
+      throw new Error(
+        "The server did not return the updated academic level."
       );
-    }else if (editDialog.type === "subject") {
+    }
+
+    setAcademicLevels((prev) =>
+      prev.map((level) =>
+        level.id === updatedLevel.id
+          ? {
+              ...level,
+              name: updatedLevel.name,
+              category: updatedLevel.category,
+              displayOrder: updatedLevel.display_order,
+              requiresSubjectCombination:
+              updatedLevel.requires_subject_combination,
+            }
+          : level
+      )
+    );
+
+    notify({
+      title: "Academic level updated",
+      message: `${updatedLevel.name} was updated successfully.`,
+    });
+  } catch (error) {
+    notify({
+      title: "Unable to update academic level",
+      message: error.message || "Please try again.",
+    });
+    return;
+  }
+
+} else if (editDialog.type === "session") {
+  setAcademicSessions((prev) =>
+    prev.map((session) =>
+      session.id === editDialog.item.id
+        ? { ...session, name: value }
+        : session
+    )
+  );
+} else if (editDialog.type === "term") {
+  const exists = academicTerms.some(
+    (term) =>
+      term.id !== editDialog.item.id &&
+      term.academicSessionId === editDialog.item.academicSessionId &&
+      term.name.toLowerCase() === value.toLowerCase()
+  );
+
+  if (exists) {
+    notify({
+      title: "Term Already Exists",
+      message: `${value} already exists for this academic session.`,
+    });
+    return;
+  }
+
+  setAcademicTerms((prev) =>
+    prev.map((term) =>
+      term.id === editDialog.item.id
+        ? { ...term, name: value }
+        : term
+    )
+  );
+} else if (editDialog.type === "subject") {
+
     const exists = subjects.some(
       (subject) =>
         subject.id !== editDialog.item.id &&
@@ -1391,40 +1527,75 @@ const handleAddSubject = async () => {
             </button>
           </div>
 
+
           <div className="academic-levels__list">
-            {academicLevels.map((level) => (
-              <div
-                key={level.id}
-                className="academic-levels__item"
-              >
-                <span>{level.name}</span>
+            {[...academicLevels]
+              .sort((a, b) => a.displayOrder - b.displayOrder)
+              .map((level, index) => (
+                <div
+                  key={level.id}
+                  className="academic-levels__item"
+                >
+                  <div className="academic-levels__sequence">
+                    <span className="academic-levels__number">
+                      {index + 1}
+                    </span>
 
-                <div className="academic-levels__actions">
-                  <button
-                    className="edit"
-                    type="button"
-                    onClick={() =>
-                      openEditDialog(
-                        "level",
-                        level,
-                        level.name
-                      )
-                    }
-                  >
-                    Edit
-                  </button>
+                    <span>{level.name}</span>
+                  </div>
 
-                  <button
-                    className="delete"
-                    type="button"
-                    onClick={() => requestDeleteLevel(level)}
-                  >
-                    Delete
-                  </button>
+                  <div className="academic-levels__actions">
+                    <button
+                      type="button"
+                      className="academic-levels__move"
+                      onClick={() =>
+                        handleMoveAcademicLevel(level.id, "up")
+                      }
+                      disabled={isReorderingLevels || index === 0}
+                      aria-label={`Move ${level.name} up`}
+                      title="Move up"
+                    >
+                      ↑
+                    </button>
+
+                    <button
+                      type="button"
+                      className="academic-levels__move"
+                      onClick={() =>
+                        handleMoveAcademicLevel(level.id, "down")
+                      }
+                      disabled={
+                        isReorderingLevels ||
+                        index === academicLevels.length - 1
+                      }
+                      aria-label={`Move ${level.name} down`}
+                      title="Move down"
+                    >
+                      ↓
+                    </button>
+
+                    <button
+                      className="edit"
+                      type="button"
+                      onClick={() =>
+                        openEditDialog("level", level, level.name)
+                      }
+                    >
+                      Edit
+                    </button>
+
+                    <button
+                      className="delete"
+                      type="button"
+                      onClick={() => requestDeleteLevel(level)}
+                    >
+                      Delete
+                    </button>
+                  </div>
                 </div>
-              </div>
-            ))}
+              ))}
           </div>
+
         </div>
 
 
@@ -2798,6 +2969,25 @@ const handleAddSubject = async () => {
                 }))
               }
             />
+
+            {editDialog.type === "level" && (
+                <label className="edit-modal__checkbox">
+                  <input
+                    type="checkbox"
+                    checked={editDialog.requiresSubjectCombination}
+                    onChange={(e) =>
+                      setEditDialog((dialog) => ({
+                        ...dialog,
+                        requiresSubjectCombination: e.target.checked,
+                      }))
+                    }
+                  />
+
+                  <span>
+                    Requires subject combination
+                  </span>
+                </label>
+              )}
 
             <div className="edit-modal__actions">
               <button

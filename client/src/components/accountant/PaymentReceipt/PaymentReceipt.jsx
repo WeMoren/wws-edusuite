@@ -169,6 +169,7 @@ import { Download } from "lucide-react";
 
         setSchoolProfile({
           name: profile.name || "",
+          motto: profile.motto || "",
           address: profile.address || "",
           phone: profile.phone || "",
           email: profile.email || "",
@@ -288,51 +289,79 @@ import { Download } from "lucide-react";
       }
     }
 
-    doc.setFontSize(18);
+          doc.setFontSize(18);
 
-    doc.text(
-      schoolProfile.name || "School",
-      105,
-      y,
-      { align: "center" }
-    );
-
-    y += 9;
-
-    doc.setFontSize(10);
-
-    if (schoolProfile.address) {
       doc.text(
-        schoolProfile.address,
+        schoolProfile.name || "School",
         105,
         y,
         { align: "center" }
       );
 
-      y += 6;
-    }
+      y += 7;
 
-    if (schoolProfile.phone) {
-      doc.text(
-        schoolProfile.phone,
-        105,
-        y,
-        { align: "center" }
-      );
+      if (schoolProfile.motto) {
+        doc.setFont("helvetica", "italic");
+        doc.setFontSize(10);
 
-      y += 6;
-    }
+        doc.text(
+          schoolProfile.motto,
+          105,
+          y,
+          { align: "center" }
+        );
 
-    if (schoolProfile.email) {
-      doc.text(
-        schoolProfile.email,
-        105,
-        y,
-        { align: "center" }
-      );
+        y += 7;
+      }
 
-      y += 10;
-    }
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(10);
+
+      if (schoolProfile.address) {
+        doc.text(
+          schoolProfile.address,
+          105,
+          y,
+          { align: "center" }
+        );
+
+        y += 6;
+      }
+
+      if (schoolProfile.phone) {
+        doc.text(
+          schoolProfile.phone,
+          105,
+          y,
+          { align: "center" }
+        );
+
+        y += 6;
+      }
+
+      if (schoolProfile.email) {
+        doc.text(
+          schoolProfile.email,
+          105,
+          y,
+          { align: "center" }
+        );
+
+        y += 6;
+      }
+
+      if (schoolProfile.website) {
+        doc.text(
+          schoolProfile.website,
+          105,
+          y,
+          { align: "center" }
+        );
+
+        y += 6;
+      }
+
+      y += 4;
 
     /* Receipt Title */
 
@@ -919,16 +948,23 @@ accountDetails.forEach(([left, right]) => {
             />
           )}
 
-          <h2>{schoolProfile.name}</h2>
+            <h2>{schoolProfile.name}</h2>
 
-          <p>Payment Receipt</p>
-        </div>
+            {schoolProfile.motto && (
+              <p className="payment-receipt__motto">
+                {schoolProfile.motto}
+              </p>
+            )}
 
-        <div className="payment-receipt__school-info">
-          <p>{schoolProfile.address}</p>
-          <p>{schoolProfile.phone}</p>
-          <p>{schoolProfile.email}</p>
-        </div>
+            <p>Payment Receipt</p>
+          </div>
+
+          <div className="payment-receipt__school-info">
+            {schoolProfile.address && <p>{schoolProfile.address}</p>}
+            {schoolProfile.phone && <p>{schoolProfile.phone}</p>}
+            {schoolProfile.email && <p>{schoolProfile.email}</p>}
+            {schoolProfile.website && <p>{schoolProfile.website}</p>}
+          </div>
 
         <div className="payment-receipt__details">
 

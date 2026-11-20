@@ -22,8 +22,25 @@ const Results = () => {
     streams = [],
   } = useOutletContext();
 
-  const { authToken } = useAuth();
+  const {currentUser, authToken } = useAuth();
   const API_BASE_URL = "http://localhost:5000/api";
+
+    const currentUserRoles = Array.isArray(currentUser?.roles)
+    ? currentUser.roles
+    : currentUser?.role
+    ? [currentUser.role]
+    : [];
+
+  const canManageResultDocuments =
+    currentUserRoles.includes("Principal") ||
+    currentUserRoles.includes("Exam Officer");
+
+  const canAuthorizeAsPrincipal =
+    currentUserRoles.includes("Principal");
+
+  const canAuthorizeAsExamOfficer =
+    currentUserRoles.includes("Principal") ||
+    currentUserRoles.includes("Exam Officer");
 
   const getStudentFullName = (student) =>
   [
@@ -47,6 +64,8 @@ const Results = () => {
   const [loadedStudents, setLoadedStudents] = useState([]);
   const [loadedSubjects, setLoadedSubjects] = useState([]);
   const [scoreEntries, setScoreEntries] = useState({});
+  const [savedResults, setSavedResults] = useState([]);
+  const [resultsLoading, setResultsLoading] = useState(false);
 
   const [showNotification, setShowNotification] = useState(false);
   const [notification, setNotification] = useState({
@@ -68,6 +87,10 @@ const Results = () => {
   const [documentSettingsLoading, setDocumentSettingsLoading] = useState(true);
   const [documentSettingsLoaded, setDocumentSettingsLoaded] = useState(false);
 
+  const [documentStatuses, setDocumentStatuses] = useState({});
+  const [documentStatusesLoading, setDocumentStatusesLoading] = useState(false);
+  const [documentStatusesError, setDocumentStatusesError] = useState(false);
+  const [documentActionLoading, setDocumentActionLoading] = useState({});
 
 
   const notify = ({ title, message }) => {
@@ -183,6 +206,7 @@ const Results = () => {
 
         setSchoolProfile({
           name: profile.name || "",
+          motto: profile.motto || "",
           address: profile.address || "",
           phone: profile.phone || "",
           email: profile.email || "",
@@ -447,7 +471,8 @@ const getStudentSubjectsForEnrollment = (
       Load results
   -------------------------------- */
 
-  const handleLoadResults = () => {
+  
+  const handleLoadResults = async () => {
     if (
       !selectedSessionId ||
       !selectedTermId ||
@@ -476,8 +501,8 @@ const getStudentSubjectsForEnrollment = (
 
     const selectedSection = sections.find(
       (section) =>
-        section.id === sectionId &&
-        section.classId === classId
+        String(section.id) === String(sectionId) &&
+        String(section.classId) === String(classId)
     );
 
     if (!selectedClass || !selectedSection) {
@@ -490,184 +515,441 @@ const getStudentSubjectsForEnrollment = (
       return;
     }
 
-    const studentIds = enrollments
-      .filter(
-        (enrollment) =>
-          String(enrollment.academicSessionId) === String(sessionId) &&
-          String(enrollment.sectionId) === String(sectionId)
-      )
-      .map((enrollment) => enrollment.studentId);
+    setResultsLoading(true);
+    setResultsLoaded(false);
+    setSavedResults([]);
+    setScoreEntries({});
+    setDocumentStatuses({});
+    setDocumentStatusesError(false);
 
-    const matchingStudents = students.filter((student) =>
-      studentIds.includes(String(student.id))
-    );
+    try {
+      if (!authToken) {
+        throw new Error(
+          "Your session has expired. Please log in again."
+        );
+      }
 
-    /*
-      loadedSubjects remains the academic-level subject list
-      because the entry table is shared across students.
+      const studentIds = enrollments
+        .filter(
+          (enrollment) =>
+            String(enrollment.academicSessionId) === String(sessionId) &&
+            String(enrollment.sectionId) === String(sectionId)
+        )
+        .map((enrollment) => String(enrollment.studentId));
 
-      Each individual student's actual offered subjects are
-      resolved separately below.
-    */
-    const matchingSubjects = subjects.filter((subject) =>
-      subject.academicLevelIds?.some(
-        (levelId) =>
-          String(levelId) ===
-          String(selectedClass.academicLevelId)
-      )
-    );
+      const matchingStudents = students.filter((student) =>
+        studentIds.includes(String(student.id))
+      );
 
-    setLoadedStudents(matchingStudents);
-    setLoadedSubjects(matchingSubjects);
+      /*
+        loadedSubjects remains the academic-level subject list
+        because the entry table is shared across students.
 
-    const existingScores = {};
+        Each individual student's actual offered subjects are
+        resolved separately below.
+      */
+      const matchingSubjects = subjects.filter((subject) =>
+        subject.academicLevelIds?.some(
+          (levelId) =>
+            String(levelId) ===
+            String(selectedClass.academicLevelId)
+        )
+      );
 
-    matchingStudents.forEach((student) => {
-      const enrollment =
-        getStudentEnrollment(
+      const matchingEnrollmentIds = new Set(
+        matchingStudents
+          .map((student) =>
+            getStudentEnrollment(student, sessionId)
+          )
+          .filter(Boolean)
+          .map((enrollment) => String(enrollment.id))
+      );
+
+      const response = await fetch(
+        `${API_BASE_URL}/results?termId=${encodeURIComponent(termId)}`,
+        {
+          headers: {
+            Authorization: `Bearer ${authToken}`,
+          },
+        }
+      );
+
+      const data = await response.json().catch(() => ({}));
+
+      if (!response.ok) {
+        throw new Error(
+          data.message || "Failed to load saved results."
+        );
+      }
+
+      const mappedResults = (data.results || [])
+        .filter((result) =>
+          matchingEnrollmentIds.has(
+            String(result.student_enrollment_id)
+          )
+        )
+        .map((result) => {
+          const enrollment = enrollments.find(
+            (item) =>
+              String(item.id) ===
+              String(result.student_enrollment_id)
+          );
+
+          return {
+            id: result.id,
+            studentId: result.student_id,
+            studentEnrollmentId: result.student_enrollment_id,
+            subjectId: result.subject_id,
+            academicSessionId: enrollment?.academicSessionId,
+            academicTermId: result.term_id,
+            sectionId: enrollment?.sectionId,
+            ca: result.ca,
+            exam: result.exam,
+            total: result.total,
+            grade: result.grade,
+            remark: result.remark,
+          };
+        });
+
+      const existingScores = {};
+
+      matchingStudents.forEach((student) => {
+        const enrollment = getStudentEnrollment(
           student,
           sessionId
         );
 
-      const studentSubjects =
-        getStudentSubjectsForEnrollment(
-          student,
-          enrollment
-        );
+        const studentSubjects =
+          getStudentSubjectsForEnrollment(
+            student,
+            enrollment
+          );
 
-      studentSubjects.forEach((subject) => {
-        const existingResult = results.find(
-          (result) =>
-            result.studentId === student.id &&
-            result.subjectId === subject.id &&
-            result.academicSessionId === sessionId &&
-            result.academicTermId === termId &&
-            result.sectionId === sectionId
-        );
+        studentSubjects.forEach((subject) => {
+          const existingResult = mappedResults.find(
+            (result) =>
+              String(result.studentEnrollmentId) ===
+                String(enrollment?.id) &&
+              String(result.subjectId) === String(subject.id)
+          );
 
-        if (existingResult) {
-          existingScores[
-            `${student.id}-${subject.id}`
-          ] = {
-            ca: existingResult.ca,
-            exam: existingResult.exam,
-          };
-        }
+          if (existingResult) {
+            existingScores[
+              `${student.id}-${subject.id}`
+            ] = {
+              ca: existingResult.ca,
+              exam: existingResult.exam,
+            };
+          }
+        });
       });
-    });
 
-    setScoreEntries(existingScores);
-    setResultsLoaded(true);
+      setLoadedStudents(matchingStudents);
+      setLoadedSubjects(matchingSubjects);
+      setSavedResults(mappedResults);
+      setScoreEntries(existingScores);
+      setResultsLoaded(true);
+
+      notify({
+        title: "Results Loaded",
+        message:
+          "Saved results have been loaded successfully.",
+      });
+
+            // Load result-document authorization statuses separately.
+      // A lookup failure must not affect the successfully loaded results.
+      setDocumentStatusesLoading(true);
+
+      try {
+        const enrollmentIds = matchingStudents
+          .map((student) =>
+            getStudentEnrollment(student, sessionId)
+          )
+          .filter(
+            (enrollment) => enrollment?.id
+          )
+          .map((enrollment) => String(enrollment.id));
+
+        const statusMap = {};
+
+        for (
+          let index = 0;
+          index < enrollmentIds.length;
+          index += 200
+        ) {
+          const enrollmentIdBatch = enrollmentIds.slice(
+            index,
+            index + 200
+          );
+
+          const statusResponse = await fetch(
+            `${API_BASE_URL}/results/documents/lookup?termId=${encodeURIComponent(termId)}&studentEnrollmentIds=${encodeURIComponent(enrollmentIdBatch.join(","))}`,
+            {
+              headers: {
+                Authorization: `Bearer ${authToken}`,
+              },
+            }
+          );
+
+          const statusData = await statusResponse
+            .json()
+            .catch(() => ({}));
+
+          if (!statusResponse.ok) {
+            throw new Error(
+              statusData.message ||
+                "Unable to load result-document statuses."
+            );
+          }
+
+          (statusData.documents || []).forEach(
+            (document) => {
+              const enrollmentId = String(
+                document.studentEnrollmentId
+              );
+
+              // The backend returns newest documents first.
+              // Keep the newest document for each enrollment.
+              if (!statusMap[enrollmentId]) {
+                statusMap[enrollmentId] = document;
+              }
+            }
+          );
+        }
+
+        setDocumentStatuses(statusMap);
+      } catch (statusError) {
+          setDocumentStatusesError(true);
+
+        console.error(
+          "Result document status lookup failed:",
+          statusError
+        );
+
+        notify({
+          title: "Document Status Unavailable",
+          message:
+            "Results loaded successfully, but authorization statuses could not be retrieved. You can retry by loading the results again.",
+        });
+      } finally {
+        setDocumentStatusesLoading(false);
+      }
+
+    } catch (error) {
+      setLoadedStudents([]);
+      setLoadedSubjects([]);
+      setSavedResults([]);
+      setScoreEntries({});
+
+      notify({
+        title: "Unable to Load Results",
+        message: error.message,
+      });
+    } finally {
+      setResultsLoading(false);
+    }
   };
+
 
   /* --------------------------------
       Save results
   -------------------------------- */
 
 
-const handleSaveResults = () => {
-  let updatedResults = results.filter((result) => {
-    const student = loadedStudents.find(
-      (item) => item.id === result.studentId
-    );
 
-    if (!student) {
-      return true;
+  const handleSaveResults = async () => {
+    if (!resultsLoaded || resultsLoading) {
+      notify({
+        title: "Results Not Loaded",
+        message:
+          "Load the results for the selected class and term before saving.",
+      });
+
+      return;
     }
 
-    const enrollment = getStudentEnrollment(
-      student,
-      selectedSessionId
-    );
+    if (!authToken) {
+      notify({
+        title: "Session Expired",
+        message:
+          "Please log in again before saving results.",
+      });
 
-    if (!enrollment) {
-      return true;
+      return;
     }
 
-    const studentSubjects =
-      getStudentSubjectsForEnrollment(
-        student,
-        enrollment
+    let savedCount = 0;
+    const failedResults = [];
+
+    try {
+      for (const student of loadedStudents) {
+        const enrollment = getStudentEnrollment(
+          student,
+          selectedSessionId
+        );
+
+        if (!enrollment) {
+          failedResults.push(
+            `${student.firstName || "Student"}: enrollment not found`
+          );
+          continue;
+        }
+
+        const studentSubjects =
+          getStudentSubjectsForEnrollment(
+            student,
+            enrollment
+          );
+
+        for (const subject of studentSubjects) {
+          const entryKey = `${student.id}-${subject.id}`;
+          const entry = scoreEntries[entryKey];
+
+          if (!entry) {
+            continue;
+          }
+
+          const ca = Number(entry.ca) || 0;
+          const exam = Number(entry.exam) || 0;
+
+          const existingResult = savedResults.find(
+            (result) =>
+              String(result.studentEnrollmentId) ===
+                String(enrollment.id) &&
+              String(result.academicTermId) ===
+                String(selectedTermId) &&
+              String(result.subjectId) === String(subject.id)
+          );
+
+          const isUpdate = Boolean(existingResult?.id);
+
+          const response = await fetch(
+            isUpdate
+              ? `${API_BASE_URL}/results/${encodeURIComponent(existingResult.id)}`
+              : `${API_BASE_URL}/results`,
+            {
+              method: isUpdate ? "PATCH" : "POST",
+              headers: {
+                Authorization: `Bearer ${authToken}`,
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify(
+                isUpdate
+                  ? { ca, exam }
+                  : {
+                      studentEnrollmentId: enrollment.id,
+                      termId: selectedTermId,
+                      subjectId: subject.id,
+                      ca,
+                      exam,
+                    }
+              ),
+            }
+          );
+
+          const data = await response.json().catch(() => ({}));
+
+          if (!response.ok) {
+            failedResults.push(
+              `${student.firstName || "Student"} - ${subject.name}: ${
+                data.message || "Save failed"
+              }`
+            );
+
+            continue;
+          }
+
+          savedCount += 1;
+        }
+      }
+
+      /*
+        Reload the selected term from PostgreSQL so the UI
+        reflects the actual persisted records and database IDs.
+      */
+      const refreshResponse = await fetch(
+        `${API_BASE_URL}/results?termId=${encodeURIComponent(selectedTermId)}`,
+        {
+          headers: {
+            Authorization: `Bearer ${authToken}`,
+          },
+        }
       );
 
-    const isSameResultPeriod =
-      String(result.academicSessionId) === String(selectedSessionId) &&
-      String(result.academicTermId) === String(selectedTermId) &&
-      String(result.sectionId) === String(selectedSectionId);
+      const refreshData = await refreshResponse.json().catch(() => ({}));
 
-    if (!isSameResultPeriod) {
-      return true;
-    }
+      if (!refreshResponse.ok) {
+        throw new Error(
+          refreshData.message ||
+            "Scores were processed, but saved results could not be refreshed."
+        );
+      }
 
-    return studentSubjects.some(
-      (subject) =>
-        String(subject.id) === String(result.subjectId)
-    );
-  });
-
-  loadedStudents.forEach((student) => {
-    const enrollment = getStudentEnrollment(
-      student,
-      selectedSessionId
-    );
-
-    const studentSubjects =
-      getStudentSubjectsForEnrollment(
-        student,
-        enrollment
+      const matchingEnrollmentIds = new Set(
+        loadedStudents
+          .map((student) =>
+            getStudentEnrollment(student, selectedSessionId)
+          )
+          .filter(Boolean)
+          .map((enrollment) => String(enrollment.id))
       );
 
-    studentSubjects.forEach((subject) => {
-      const entryKey = `${student.id}-${subject.id}`;
-      const entry = scoreEntries[entryKey];
+      const refreshedResults = (refreshData.results || [])
+        .filter((result) =>
+          matchingEnrollmentIds.has(
+            String(result.student_enrollment_id)
+          )
+        )
+        .map((result) => {
+          const enrollment = enrollments.find(
+            (item) =>
+              String(item.id) ===
+              String(result.student_enrollment_id)
+          );
 
-      if (!entry) {
+          return {
+            id: result.id,
+            studentId: result.student_id,
+            studentEnrollmentId: result.student_enrollment_id,
+            subjectId: result.subject_id,
+            academicSessionId: enrollment?.academicSessionId,
+            academicTermId: result.term_id,
+            sectionId: enrollment?.sectionId,
+            ca: result.ca,
+            exam: result.exam,
+            total: result.total,
+            grade: result.grade,
+            remark: result.remark,
+          };
+        });
+
+      setSavedResults(refreshedResults);
+
+      if (failedResults.length > 0) {
+        notify({
+          title: "Some Results Could Not Be Saved",
+          message:
+            `${savedCount} result(s) saved successfully. ` +
+            `${failedResults.length} failed. ` +
+            failedResults.slice(0, 3).join("; "),
+        });
+
         return;
       }
 
-      const ca = Number(entry.ca) || 0;
-      const exam = Number(entry.exam) || 0;
+      notify({
+        title: "Results Saved",
+        message:
+          `${savedCount} result(s) saved successfully to the database.`,
+      });
+    } catch (error) {
+      notify({
+        title: "Unable to Complete Save",
+        message: error.message,
+      });
+    }
+  };
 
-      const existingIndex = updatedResults.findIndex(
-        (result) =>
-          result.studentId === student.id &&
-          String(result.subjectId) === String(subject.id) &&
-          String(result.academicSessionId) === String(selectedSessionId) &&
-          String(result.academicTermId) === String(selectedTermId) &&
-          String(result.sectionId) === String(selectedSectionId)
-      );
-
-      const resultData = {
-        studentId: student.id,
-        subjectId: subject.id,
-        academicSessionId: selectedSessionId,
-        academicTermId: selectedTermId,
-        sectionId: selectedSectionId,
-        ca,
-        exam,
-      };
-
-      if (existingIndex !== -1) {
-        updatedResults[existingIndex] = {
-          ...updatedResults[existingIndex],
-          ...resultData,
-        };
-      } else {
-        updatedResults.push({
-          id: Date.now() + updatedResults.length,
-          ...resultData,
-        });
-      }
-    });
-  });
-
-  setResults(updatedResults);
-
-  notify({
-    title: "Results Saved",
-    message: "Student results have been saved successfully.",
-  });
-};
 
 
   /* --------------------------------
@@ -697,15 +979,15 @@ const getStudentTermAverage = (
     return null;
   }
 
-  const savedResults = results.filter(
-    (result) =>
-      result.studentId === student.id &&
-      String(result.academicSessionId) === String(selectedSessionId) &&
-      String(result.academicTermId) === String(termId) &&
-      String(result.sectionId) === String(enrollment.sectionId)
-  );
+  const studentSavedResults = savedResults.filter(
+  (result) =>
+    String(result.studentId) === String(student.id) &&
+    String(result.academicSessionId) === String(selectedSessionId) &&
+    String(result.academicTermId) === String(termId) &&
+    String(result.sectionId) === String(enrollment.sectionId)
+);
 
-  if (savedResults.length === 0) {
+  if (studentSavedResults.length === 0) {
     return null;
   }
 
@@ -713,7 +995,7 @@ const getStudentTermAverage = (
   let subjectCount = 0;
 
   studentSubjects.forEach((subject) => {
-    const result = savedResults.find(
+    const result = studentSavedResults.find(
       (item) => String(item.subjectId) === String(subject.id)
     );
 
@@ -1044,6 +1326,1151 @@ const getStudentResultData = (student) => {
 
 
   /* --------------------------------
+      Result document authorization
+  -------------------------------- */
+
+  const handleDownloadFinalizedResult = async (student) => {
+    const enrollment = getStudentEnrollment(
+      student,
+      selectedSessionId
+    );
+
+    const enrollmentId = enrollment?.id
+      ? String(enrollment.id)
+      : "";
+
+    const document = enrollmentId
+      ? documentStatuses[enrollmentId]
+      : null;
+
+    if (!document?.documentId || document.status !== "finalized") {
+      notify({
+        title: "Result Not Finalized",
+        message:
+          "Only finalized result documents can be downloaded as official results.",
+      });
+      return;
+    }
+
+    if (!authToken) {
+      notify({
+        title: "Session Expired",
+        message: "Please log in again.",
+      });
+      return;
+    }
+
+    setDocumentActionLoading((previousLoading) => ({
+      ...previousLoading,
+      [enrollmentId]: true,
+    }));
+
+    try {
+      const response = await fetch(
+        `${API_BASE_URL}/results/documents/${encodeURIComponent(document.documentId)}`,
+        {
+          headers: {
+            Authorization: `Bearer ${authToken}`,
+          },
+        }
+      );
+
+      const data = await response.json().catch(() => ({}));
+
+      if (!response.ok) {
+        throw new Error(
+          data.message || "Unable to retrieve the finalized result."
+        );
+      }
+
+      if (data.document?.status !== "finalized") {
+        throw new Error(
+          "This result document has not been finalized."
+        );
+      }
+
+    
+      const resultDocument = data.document;
+      const subjectResults = data.results || [];
+
+      const doc = new jsPDF();
+
+      const pageWidth = doc.internal.pageSize.getWidth();
+      const pageHeight = doc.internal.pageSize.getHeight();
+      const leftMargin = 20;
+      const rightMargin = 20;
+      const contentWidth = pageWidth - leftMargin - rightMargin;
+
+      let y = 20;
+
+      const addPageIfNeeded = (requiredSpace = 10) => {
+        if (y + requiredSpace > pageHeight - 25) {
+          doc.addPage();
+          y = 20;
+        }
+      };
+
+            const addText = (value, x, positionY, options = {}) => {
+        const textValue =
+          typeof value === "string" || Array.isArray(value)
+            ? value
+            : String(value ?? "—");
+
+        doc.text(
+          textValue,
+          x,
+          positionY,
+          options
+        );
+      };
+
+      const convertImageToPng = async (imageSource) => {
+       
+        if (!imageSource || typeof imageSource !== "string") {
+          return null;
+        }
+
+        if (imageSource.startsWith("data:image/png")) {
+          return imageSource;
+        }
+
+        return new Promise((resolve) => {
+          const image = new Image();
+
+          image.onload = () => {
+            try {
+              const canvas = window.document.createElement("canvas");
+
+              canvas.width = image.naturalWidth;
+              canvas.height = image.naturalHeight;
+
+              if (!image.naturalWidth || !image.naturalHeight) {
+              console.warn(
+                "Finalized result PDF image has invalid dimensions."
+              );
+              resolve(null);
+              return;
+            }
+
+              const context = canvas.getContext("2d");
+
+              if (!context) {
+                resolve(null);
+                return;
+              }
+
+              context.drawImage(image, 0, 0);
+
+              resolve(canvas.toDataURL("image/png"));
+            } catch (error) {
+              console.warn("Image conversion failed.", error);
+              resolve(null);
+            }
+          };
+
+            image.onerror = (error) => {
+            console.warn(
+              "Image could not be loaded for finalized result PDF.",
+              {
+                sourceType: imageSource.slice(0, 40),
+                error,
+              }
+            );
+            resolve(null);
+          };
+          image.src = imageSource;
+        });
+      };
+
+            
+      // Professional school letterhead
+      const headerStartY = y;
+      const logoX = leftMargin;
+      const logoSize = 28;
+      const schoolInfoX = logoX + logoSize + 8;
+      const schoolInfoWidth = pageWidth - rightMargin - schoolInfoX;
+
+      let logoRendered = false;
+
+      if (resultDocument.school_logo_url) {
+        const schoolLogo = await convertImageToPng(
+          resultDocument.school_logo_url
+        );
+
+        if (schoolLogo) {
+          try {
+            doc.addImage(
+              schoolLogo,
+              "PNG",
+              logoX,
+              headerStartY,
+              logoSize,
+              logoSize
+            );
+            logoRendered = true;
+          } catch (error) {
+            console.warn("School logo could not be rendered.", error);
+          }
+        }
+      }
+
+      if (!logoRendered) {
+        doc.setDrawColor(200, 210, 225);
+        doc.setFillColor(248, 250, 252);
+        doc.rect(logoX, headerStartY, logoSize, logoSize, "FD");
+
+        doc.setFont("helvetica", "bold");
+        doc.setFontSize(8);
+        doc.setTextColor(120, 130, 145);
+        addText("LOGO", logoX + logoSize / 2, headerStartY + 16, {
+          align: "center",
+        });
+      }
+
+      let schoolTextY = headerStartY + 6;
+
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(16);
+      doc.setTextColor(25, 45, 75);
+
+      const schoolNameLines = doc.splitTextToSize(
+        resultDocument.school_name || "School Name",
+        schoolInfoWidth
+      );
+
+      addText(schoolNameLines, schoolInfoX, schoolTextY);
+      schoolTextY += schoolNameLines.length * 7;
+
+      if (resultDocument.school_motto) {
+        doc.setFont("helvetica", "italic");
+        doc.setFontSize(9);
+        doc.setTextColor(90, 100, 115);
+
+        addText(
+          doc.splitTextToSize(resultDocument.school_motto, schoolInfoWidth),
+          schoolInfoX,
+          schoolTextY
+        );
+
+        schoolTextY += 6;
+      }
+
+      const schoolContactParts = [];
+
+      if (resultDocument.school_address) {
+        schoolContactParts.push(resultDocument.school_address);
+      }
+
+      if (resultDocument.school_phone) {
+        schoolContactParts.push(resultDocument.school_phone);
+      }
+
+      if (resultDocument.school_email) {
+        schoolContactParts.push(resultDocument.school_email);
+      }
+
+      if (resultDocument.school_website) {
+        schoolContactParts.push(resultDocument.school_website);
+      }
+
+      if (schoolContactParts.length > 0) {
+        doc.setFont("helvetica", "normal");
+        doc.setFontSize(8);
+        doc.setTextColor(80, 90, 105);
+
+        const contactLines = doc.splitTextToSize(
+          schoolContactParts.join(" | "),
+          schoolInfoWidth
+        );
+
+        addText(contactLines, schoolInfoX, schoolTextY);
+        schoolTextY += contactLines.length * 4.5;
+      }
+
+      y = Math.max(
+        headerStartY + logoSize,
+        schoolTextY
+      ) + 5;
+
+      doc.setDrawColor(37, 99, 235);
+      doc.setLineWidth(0.7);
+      doc.line(leftMargin, y, pageWidth - rightMargin, y);
+      y += 9;
+
+      // Official document heading
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(14);
+      doc.setTextColor(25, 45, 75);
+
+      addText("OFFICIAL STUDENT RESULT", pageWidth / 2, y, {
+        align: "center",
+      });
+
+      y += 10;
+
+      // Student and academic information panel
+        const studentDetails = [
+        ["Student", resultDocument.student_name],
+        ["Admission Number", resultDocument.admission_number],
+        ["Gender", resultDocument.gender],
+        ["Academic Session", resultDocument.academic_session_name],
+        ["Term", resultDocument.term_name],
+        ["Academic Level", resultDocument.academic_level_name],
+        
+       [
+          "Class / Arm",
+          resultDocument.section_name
+            ? `${resultDocument.class_name || ""} ${resultDocument.section_name}`.trim()
+            : resultDocument.class_name,
+        ],
+        ["Stream", resultDocument.stream_name],
+        ["Subject Combination", resultDocument.subject_combination_name],
+      ];
+
+      const availableStudentDetails = studentDetails.filter(
+        ([, value]) =>
+          value !== null &&
+          value !== undefined &&
+          value !== ""
+      );
+
+      const detailColumnGap = 8;
+      const detailColumnWidth =
+        (contentWidth - detailColumnGap) / 2;
+
+      const detailColumnX = [
+        leftMargin,
+        leftMargin + detailColumnWidth + detailColumnGap,
+      ];
+
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(9);
+      doc.setTextColor(45, 60, 80);
+      addText("STUDENT INFORMATION", leftMargin, y);
+
+      y += 5;
+
+      for (
+        let index = 0;
+        index < availableStudentDetails.length;
+        index += 2
+      ) {
+        const leftEntry = availableStudentDetails[index];
+        const rightEntry = availableStudentDetails[index + 1];
+
+        const leftValueLines = doc.splitTextToSize(
+          String(leftEntry[1]),
+          detailColumnWidth - 7
+        );
+
+        const rightValueLines = rightEntry
+          ? doc.splitTextToSize(
+              String(rightEntry[1]),
+              detailColumnWidth - 7
+            )
+          : [];
+
+        const maximumValueLines = Math.max(
+          leftValueLines.length,
+          rightValueLines.length
+        );
+
+        const rowHeight = Math.max(
+          14,
+          9 + maximumValueLines * 4
+        );
+
+        doc.setFillColor(248, 250, 252);
+        doc.setDrawColor(220, 226, 235);
+        doc.setLineWidth(0.2);
+
+        doc.rect(
+          leftMargin,
+          y,
+          contentWidth,
+          rowHeight,
+          "FD"
+        );
+
+        doc.line(
+          leftMargin + detailColumnWidth + detailColumnGap / 2,
+          y,
+          leftMargin + detailColumnWidth + detailColumnGap / 2,
+          y + rowHeight
+        );
+
+        const detailEntries = [
+          { entry: leftEntry, x: detailColumnX[0], lines: leftValueLines },
+          { entry: rightEntry, x: detailColumnX[1], lines: rightValueLines },
+        ];
+
+        detailEntries.forEach(({ entry, x, lines }) => {
+          if (!entry) return;
+
+          doc.setFont("helvetica", "normal");
+          doc.setFontSize(7);
+          doc.setTextColor(105, 115, 130);
+
+          addText(entry[0], x + 3, y + 4);
+
+          doc.setFont("helvetica", "bold");
+          doc.setFontSize(8.5);
+          doc.setTextColor(35, 45, 60);
+
+          addText(lines, x + 3, y + 9);
+        });
+
+        y += rowHeight;
+      }
+
+      y += 8;
+
+
+      // Professional subject results table
+      addPageIfNeeded(30);
+
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(10);
+      doc.setTextColor(35, 45, 60);
+      addText("SUBJECT RESULTS", leftMargin, y);
+      y += 8;
+
+      const columns = [
+        { title: "Subject", x: 20, width: 52 },
+        { title: "CA", x: 73, width: 17 },
+        { title: "Exam", x: 91, width: 20 },
+        { title: "Total", x: 112, width: 20 },
+        { title: "Grade", x: 133, width: 20 },
+        { title: "Remark", x: 154, width: 36 },
+      ];
+
+      const drawTableHeader = () => {
+        doc.setFont("helvetica", "bold");
+        doc.setFontSize(8);
+        doc.setTextColor(255, 255, 255);
+        doc.setFillColor(30, 58, 95);
+        doc.setDrawColor(30, 58, 95);
+
+        doc.rect(
+          leftMargin,
+          y - 5,
+          contentWidth,
+          9,
+          "FD"
+        );
+
+        columns.forEach((column, index) => {
+          const isSubject = index === 0;
+          const isRemark = index === 5;
+
+          addText(
+            column.title,
+            isSubject
+              ? column.x + 2
+              : isRemark
+                ? column.x + column.width - 2
+                : column.x + column.width / 2,
+            y,
+            {
+              align: isSubject
+                ? "left"
+                : isRemark
+                  ? "right"
+                  : "center",
+            }
+          );
+        });
+
+        y += 8;
+        doc.setFont("helvetica", "normal");
+        doc.setTextColor(35, 45, 60);
+      };
+
+      drawTableHeader();
+
+      subjectResults.forEach((subject, index) => {
+        const applicable = subject.is_applicable === true;
+        const hasResult = subject.has_result === true;
+
+        const subjectName = subject.subject_name || "—";
+        const ca = applicable && hasResult ? subject.ca : "—";
+        const exam = applicable && hasResult ? subject.exam : "—";
+        const total = applicable && hasResult ? subject.total : "—";
+
+        const grade = applicable && hasResult
+          ? subject.grade
+          : applicable
+            ? "—"
+            : "N/A";
+
+        const remark = applicable && hasResult
+          ? subject.remark
+          : applicable
+            ? "Pending"
+            : "Not Applicable";
+
+        const subjectLines = doc.splitTextToSize(
+          subjectName,
+          49
+        );
+
+        const remarkLines = doc.splitTextToSize(
+          String(remark || "—"),
+          33
+        );
+
+        const rowHeight = Math.max(
+          8,
+          Math.max(
+            subjectLines.length,
+            remarkLines.length
+          ) * 4 + 3
+        );
+
+        const previousPage = doc.internal.getNumberOfPages();
+
+        addPageIfNeeded(rowHeight + 5);
+
+        if (doc.internal.getNumberOfPages() > previousPage) {
+          drawTableHeader();
+        }
+
+        doc.setFillColor(
+          index % 2 === 0 ? 248 : 255,
+          index % 2 === 0 ? 250 : 255,
+          index % 2 === 0 ? 253 : 255
+        );
+
+        doc.setDrawColor(220, 226, 235);
+        doc.setLineWidth(0.2);
+
+        doc.rect(
+          leftMargin,
+          y - 5,
+          contentWidth,
+          rowHeight,
+          "FD"
+        );
+
+        // Subtle vertical column separators
+        [72, 90, 111, 132, 153].forEach((position) => {
+          doc.line(
+            position,
+            y - 5,
+            position,
+            y - 5 + rowHeight
+          );
+        });
+
+        doc.setFont("helvetica", "normal");
+        doc.setFontSize(8);
+        doc.setTextColor(45, 55, 70);
+
+        addText(
+          subjectLines,
+          columns[0].x + 2,
+          y
+        );
+
+        addText(
+          ca,
+          columns[1].x + columns[1].width / 2,
+          y,
+          { align: "center" }
+        );
+
+        addText(
+          exam,
+          columns[2].x + columns[2].width / 2,
+          y,
+          { align: "center" }
+        );
+
+        addText(
+          total,
+          columns[3].x + columns[3].width / 2,
+          y,
+          { align: "center" }
+        );
+
+        doc.setFont("helvetica", "bold");
+
+        addText(
+          grade,
+          columns[4].x + columns[4].width / 2,
+          y,
+          { align: "center" }
+        );
+
+        doc.setFont("helvetica", "normal");
+
+        addText(
+          remarkLines,
+          columns[5].x + columns[5].width - 2,
+          y,
+          { align: "right" }
+        );
+
+        y += rowHeight;
+      });
+
+
+      
+      // Professional finalized result summary
+      const hasSessionSummary =
+        resultDocument.session_average !== null &&
+        resultDocument.session_average !== undefined;
+
+      const summaryRequiredHeight = hasSessionSummary ? 115 : 90;
+
+      addPageIfNeeded(summaryRequiredHeight);
+      y += 8;
+
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(11);
+      doc.setTextColor(35, 45, 60);
+      addText("FINAL RESULT SUMMARY", leftMargin, y);
+      y += 10;
+
+      const attendancePercentage =
+        resultDocument.attendance_percentage !== null &&
+        resultDocument.attendance_percentage !== undefined
+          ? `${resultDocument.attendance_percentage}%`
+          : "—";
+
+      const formatFinalizedPosition = (position, total) => {
+        if (
+          position === null ||
+          position === undefined ||
+          total === null ||
+          total === undefined
+        ) {
+          return "—";
+        }
+
+        return `${formatPosition(Number(position))} of ${Number(total)}`;
+      };
+
+      const summaryCards = [
+        {
+          label: "TOTAL SCORE",
+          value: resultDocument.term_total_score ?? "—",
+        },
+        {
+          label: "AVERAGE",
+          value:
+            resultDocument.term_average !== null &&
+            resultDocument.term_average !== undefined
+              ? `${resultDocument.term_average}%`
+              : "—",
+        },
+        {
+          label: "GRADE",
+          value: resultDocument.term_grade ?? "—",
+        },
+        {
+          label: "REMARK",
+          value: resultDocument.term_remark ?? "—",
+        },
+        {
+          label: "CLASS POSITION",
+          value: formatFinalizedPosition(
+            resultDocument.class_position,
+            resultDocument.class_position_total
+          ),
+        },
+        {
+          label: "LEVEL POSITION",
+          value: formatFinalizedPosition(
+            resultDocument.academic_level_position,
+            resultDocument.academic_level_position_total
+          ),
+        },
+        {
+          label: "ATTENDANCE PRESENT",
+          value: resultDocument.attendance_present ?? "—",
+        },
+        {
+          label: "ATTENDANCE ABSENT",
+          value: resultDocument.attendance_absent ?? "—",
+        },
+        {
+          label: "ATTENDANCE",
+          value: attendancePercentage,
+        },
+      ];
+
+      const summaryColumnGap = 4;
+      const summaryCardWidth =
+        (contentWidth - summaryColumnGap * 2) / 3;
+      const summaryCardHeight = 21;
+
+      summaryCards.forEach((card, index) => {
+        const columnIndex = index % 3;
+        const rowIndex = Math.floor(index / 3);
+
+        const cardX =
+          leftMargin +
+          columnIndex * (summaryCardWidth + summaryColumnGap);
+
+        const cardY = y + rowIndex * (summaryCardHeight + 3);
+
+        doc.setFillColor(248, 250, 253);
+        doc.setDrawColor(220, 226, 235);
+        doc.setLineWidth(0.25);
+
+        doc.rect(
+          cardX,
+          cardY,
+          summaryCardWidth,
+          summaryCardHeight,
+          "FD"
+        );
+
+        doc.setFont("helvetica", "bold");
+        doc.setFontSize(6.5);
+        doc.setTextColor(105, 115, 130);
+
+        addText(
+          card.label,
+          cardX + 3,
+          cardY + 6
+        );
+
+        doc.setFont("helvetica", "bold");
+        doc.setFontSize(10);
+        doc.setTextColor(35, 55, 85);
+
+        const cardValueLines = doc.splitTextToSize(
+          String(card.value),
+          summaryCardWidth - 6
+        );
+
+        addText(
+          cardValueLines.slice(0, 2),
+          cardX + 3,
+          cardY + 14
+        );
+      });
+
+      y += summaryCardHeight * 3 + 6;
+
+      if (hasSessionSummary) {
+        const sessionCardGap = 4;
+        const sessionCardWidth =
+          (contentWidth - sessionCardGap) / 2;
+        const sessionCardHeight = 20;
+
+        const sessionCards = [
+          {
+            label: "SESSION AVERAGE",
+            value: `${resultDocument.session_average}%`,
+          },
+          {
+            label: "SESSION LEVEL POSITION",
+            value: formatFinalizedPosition(
+              resultDocument.session_academic_level_position,
+              resultDocument.session_academic_level_position_total
+            ),
+          },
+        ];
+
+        sessionCards.forEach((card, index) => {
+          const cardX =
+            leftMargin +
+            index * (sessionCardWidth + sessionCardGap);
+
+          doc.setFillColor(240, 246, 255);
+          doc.setDrawColor(190, 210, 235);
+          doc.setLineWidth(0.25);
+
+          doc.rect(
+            cardX,
+            y,
+            sessionCardWidth,
+            sessionCardHeight,
+            "FD"
+          );
+
+          doc.setFont("helvetica", "bold");
+          doc.setFontSize(7);
+          doc.setTextColor(75, 95, 120);
+
+          addText(
+            card.label,
+            cardX + 3,
+            y + 6
+          );
+
+          doc.setFontSize(10);
+          doc.setTextColor(35, 55, 85);
+
+          addText(
+            String(card.value),
+            cardX + 3,
+            y + 15
+          );
+        });
+
+        y += sessionCardHeight + 3;
+      }
+
+      y += 5;
+
+
+      // Saved official authorization snapshot
+      addPageIfNeeded(80);
+      y += 10;
+
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(11);
+      addText("AUTHORIZED OFFICIALS", leftMargin, y);
+      y += 10;
+
+            const drawOfficial = async (official, x) => {
+        doc.setFont("helvetica", "bold");
+        doc.setFontSize(9);
+        addText(official.name, x, y);
+
+        doc.setFont("helvetica", "normal");
+        doc.setFontSize(8);
+        addText(official.title, x, y + 6);
+
+        if (official.signature) {
+          const signature = await convertImageToPng(
+            official.signature
+          );
+
+          if (signature) {
+            try {
+              doc.addImage(signature, "PNG", x, y + 9, 65, 16);
+            } catch (error) {
+              console.warn("Official signature could not be rendered.", error);
+            }
+          }
+        }
+
+        doc.line(x, y + 30, x + 65, y + 30);
+
+        if (official.stamp) {
+          const stamp = await convertImageToPng(official.stamp);
+
+          if (stamp) {
+            try {
+              doc.addImage(stamp, "PNG", x + 42, y + 32, 22, 22);
+            } catch (error) {
+              console.warn("Official stamp could not be rendered.", error);
+            }
+          }
+        }
+
+        doc.setFontSize(7);
+        addText("Signature / Stamp", x, y + 36);
+      };
+
+        await  drawOfficial(
+        {
+          name: resultDocument.exam_officer_name,
+          title: resultDocument.exam_officer_title,
+          signature: resultDocument.exam_officer_signature_url,
+          stamp: resultDocument.exam_officer_stamp_url,
+        },
+        25
+      );
+
+      await  drawOfficial(
+        {
+          name: resultDocument.principal_name,
+          title: resultDocument.principal_title,
+          signature: resultDocument.principal_signature_url,
+          stamp: resultDocument.principal_stamp_url,
+        },
+        110
+      );
+
+      // Footer and page numbering
+      const totalPages = doc.internal.getNumberOfPages();
+      const finalizedDate = resultDocument.finalized_at
+        ? new Date(resultDocument.finalized_at).toLocaleDateString("en-GB")
+        : "—";
+
+      for (let page = 1; page <= totalPages; page++) {
+        doc.setPage(page);
+
+        doc.setFont("helvetica", "normal");
+        doc.setFontSize(7);
+        doc.setTextColor(120, 120, 120);
+
+        addText(
+          `Finalized: ${finalizedDate}`,
+          leftMargin,
+          pageHeight - 12
+        );
+
+        addText(
+          `Page ${page} of ${totalPages}`,
+          pageWidth / 2,
+          pageHeight - 12,
+          { align: "center" }
+        );
+
+        addText(
+          "Powered by WeMoren Web Services",
+          pageWidth - rightMargin,
+          pageHeight - 12,
+          { align: "right" }
+        );
+
+        doc.setTextColor(0, 0, 0);
+      }
+
+      const fileName = (resultDocument.student_name || "Student")
+        .trim()
+        .replace(/\s+/g, "-");
+
+      doc.save(`${fileName}-Finalized-Result.pdf`);
+
+      notify({
+        title: "Finalized Result Downloaded",
+        message:
+          "The official result document was generated from its finalized database snapshot.",
+      });
+    } catch (error) {
+      notify({
+        title: "Download Failed",
+        message: error.message,
+      });
+    } finally {
+      setDocumentActionLoading((previousLoading) => ({
+        ...previousLoading,
+        [enrollmentId]: false,
+      }));
+    }
+  };
+
+
+  const refreshDocumentStatus = async (
+    enrollmentId,
+    termId = selectedTermId
+  ) => {
+    const response = await fetch(
+      `${API_BASE_URL}/results/documents/lookup?termId=${encodeURIComponent(termId)}&studentEnrollmentIds=${encodeURIComponent(enrollmentId)}`,
+      {
+        headers: {
+          Authorization: `Bearer ${authToken}`,
+        },
+      }
+    );
+
+    const data = await response.json().catch(() => ({}));
+
+    if (!response.ok) {
+      throw new Error(
+        data.message ||
+          "Unable to refresh result-document status."
+      );
+    }
+
+    const latestDocument = data.documents?.[0];
+
+    setDocumentStatuses((previousStatuses) => {
+      const updatedStatuses = {
+        ...previousStatuses,
+      };
+
+      if (latestDocument) {
+        updatedStatuses[enrollmentId] = latestDocument;
+      } else {
+        delete updatedStatuses[enrollmentId];
+      }
+
+      return updatedStatuses;
+    });
+  };
+
+  const handleResultDocumentAction = async (
+    student,
+    action
+  ) => {
+    const enrollment = getStudentEnrollment(
+      student,
+      selectedSessionId
+    );
+
+    if (!enrollment?.id) {
+      notify({
+        title: "Enrollment Not Found",
+        message:
+          "This student does not have a valid enrollment for the selected academic session.",
+      });
+
+      return;
+    }
+
+    if (!selectedTermId) {
+      notify({
+        title: "Term Required",
+        message:
+          "Select an academic term before managing result documents.",
+      });
+
+      return;
+    }
+
+    if (!authToken) {
+      notify({
+        title: "Session Expired",
+        message:
+          "Please log in again before managing result documents.",
+      });
+
+      return;
+    }
+
+    if (!canManageResultDocuments) {
+      notify({
+        title: "Access Denied",
+        message:
+          "Only the Principal or Exam Officer can manage result-document authorization.",
+      });
+
+      return;
+    }
+
+    const enrollmentId = String(enrollment.id);
+    const existingDocument =
+      documentStatuses[enrollmentId];
+
+    let endpoint = "";
+    let requestBody;
+    let method = "POST";
+
+    if (action === "create") {
+      if (existingDocument?.documentId) {
+        notify({
+          title: "Document Already Exists",
+          message:
+            "A result document already exists for this student and term. Refresh its status before continuing.",
+        });
+
+        return;
+      }
+
+      endpoint = `${API_BASE_URL}/results/documents`;
+
+      requestBody = {
+        studentEnrollmentId: enrollmentId,
+        termId: selectedTermId,
+      };
+    } else {
+      if (!existingDocument?.documentId) {
+        notify({
+          title: "Document Not Found",
+          message:
+            "Create the result document before attempting authorization or finalization.",
+        });
+
+        return;
+      }
+
+      const documentId = existingDocument.documentId;
+
+      if (action === "principal") {
+        if (!canAuthorizeAsPrincipal) {
+          return;
+        }
+
+        endpoint = `${API_BASE_URL}/results/documents/${documentId}/authorize/principal`;
+      } else if (action === "exam-officer") {
+        if (!canAuthorizeAsExamOfficer) {
+          return;
+        }
+
+        endpoint = `${API_BASE_URL}/results/documents/${documentId}/authorize/exam-officer`;
+      } else if (action === "finalize") {
+        if (
+          !existingDocument.principalAuthorizedAt ||
+          !existingDocument.examOfficerAuthorizedAt
+        ) {
+          notify({
+            title: "Authorization Incomplete",
+            message:
+              "Both Principal and Exam Officer authorization must be completed before finalization.",
+          });
+
+          return;
+        }
+
+        endpoint = `${API_BASE_URL}/results/documents/${documentId}/finalize`;
+      } else {
+        return;
+      }
+    }
+
+    setDocumentActionLoading((previousLoading) => ({
+      ...previousLoading,
+      [enrollmentId]: true,
+    }));
+
+    try {
+      const response = await fetch(endpoint, {
+        method,
+        headers: {
+          Authorization: `Bearer ${authToken}`,
+          "Content-Type": "application/json",
+        },
+        ...(requestBody
+          ? {
+              body: JSON.stringify(requestBody),
+            }
+          : {}),
+      });
+
+      const data = await response.json().catch(() => ({}));
+
+      if (!response.ok) {
+        throw new Error(
+          data.message ||
+            "The result-document action could not be completed."
+        );
+      }
+
+      notify({
+        title: "Result Document Updated",
+        message:
+          data.message ||
+          "The result-document action was completed successfully.",
+      });
+
+      try {
+        await refreshDocumentStatus(enrollmentId);
+      } catch (statusError) {
+        console.error(
+          "Failed to refresh result-document status:",
+          statusError
+        );
+
+        notify({
+          title: "Status Refresh Failed",
+          message:
+            "The action succeeded, but the displayed document status could not be refreshed. Reload the results to retrieve the latest status.",
+        });
+      }
+    } catch (error) {
+      notify({
+        title: "Result Document Action Failed",
+        message: error.message,
+      });
+    } finally {
+      setDocumentActionLoading((previousLoading) => ({
+        ...previousLoading,
+        [enrollmentId]: false,
+      }));
+    }
+  };
+
+
+  /* --------------------------------
       Download result
   -------------------------------- */
 
@@ -1229,57 +2656,94 @@ const handleDownloadResult = (student) => {
       }
     }
 
-    doc.setFontSize(18);
+          doc.setFontSize(18);
 
-    doc.text(
-      schoolProfile.name ||
-        "School",
-      105,
-      y,
-      {
-        align: "center",
+      doc.text(
+        schoolProfile.name || "School",
+        105,
+        y,
+        {
+          align: "center",
+        }
+      );
+
+      y += 7;
+
+      if (schoolProfile.motto) {
+        doc.setFont("helvetica", "italic");
+        doc.setFontSize(10);
+
+        const mottoLines = doc.splitTextToSize(
+          schoolProfile.motto,
+          170
+        );
+
+        doc.text(
+          mottoLines,
+          105,
+          y,
+          {
+            align: "center",
+          }
+        );
+
+        y += mottoLines.length * 5 + 2;
       }
-    );
 
-    y += 8;
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(10);
 
-    doc.setFontSize(10);
+      if (schoolProfile.address) {
+        const addressLines = doc.splitTextToSize(
+          schoolProfile.address,
+          170
+        );
 
-    if (schoolProfile.address) {
-      doc.text(
-        schoolProfile.address,
-        105,
-        y,
-        {
-          align: "center",
-        }
-      );
+        doc.text(
+          addressLines,
+          105,
+          y,
+          {
+            align: "center",
+          }
+        );
 
-      y += 6;
-    }
+        y += addressLines.length * 5 + 2;
+      }
 
-    if (
-      schoolProfile.phone ||
-      schoolProfile.email
-    ) {
-      const contactInfo = [
-        schoolProfile.phone,
-        schoolProfile.email,
-      ]
-        .filter(Boolean)
-        .join(" | ");
+      const contactDetails = [];
 
-      doc.text(
-        contactInfo,
-        105,
-        y,
-        {
-          align: "center",
-        }
-      );
+      if (schoolProfile.phone) {
+        contactDetails.push(schoolProfile.phone);
+      }
 
-      y += 10;
-    }
+      if (schoolProfile.email) {
+        contactDetails.push(schoolProfile.email);
+      }
+
+      if (schoolProfile.website) {
+        contactDetails.push(schoolProfile.website);
+      }
+
+      const contactInfo = contactDetails.join(" | ");
+
+      if (contactInfo) {
+        const contactLines = doc.splitTextToSize(
+          contactInfo,
+          170
+        );
+
+        doc.text(
+          contactLines,
+          105,
+          y,
+          {
+            align: "center",
+          }
+        );
+
+        y += contactLines.length * 5 + 6;
+      }
 
     /* --------------------------------
         Result title
@@ -2617,6 +4081,29 @@ const handleDownloadResult = (student) => {
                       student
                     );
 
+                  const enrollment =
+                    getStudentEnrollment(
+                      student,
+                      selectedSessionId
+                    );
+
+                  const enrollmentId =
+                    enrollment?.id
+                      ? String(enrollment.id)
+                      : "";
+
+                  const document =
+                    enrollmentId
+                      ? documentStatuses[enrollmentId]
+                      : null;
+
+                  const actionLoading =
+                    enrollmentId
+                      ? Boolean(
+                          documentActionLoading[enrollmentId]
+                        )
+                      : false;
+
                   return (
                     <div
                       key={
@@ -2682,6 +4169,156 @@ const handleDownloadResult = (student) => {
                           </span>
                         )}
                       </div>
+
+                      <div className="results-document-controls">
+                        <strong>
+                          Result Document Authorization
+                        </strong>
+
+                        {documentStatusesLoading ? (
+                          <span>
+                            Loading document status...
+                          </span>
+                        ) : documentStatusesError ? (
+                          <span>
+                            Document status unavailable. Reload results before managing authorization.
+                          </span>
+                        ) : !enrollmentId ? (
+                          <span>
+                            No enrollment found for this session.
+                          </span>
+                        ) : !document ? (
+                          <span>
+                            No result document created.
+                          </span>
+                        ) : (
+                          <>
+                            <span>
+                              Document Status:{" "}
+                              {document.status === "finalized"
+                                ? "Finalized"
+                                : "Draft"}
+                            </span>
+
+                            <span>
+                              Principal Authorization:{" "}
+                              {document.principalAuthorizedAt
+                                ? "Complete"
+                                : "Pending"}
+                            </span>
+
+                            <span>
+                              Exam Officer Authorization:{" "}
+                              {document.examOfficerAuthorizedAt
+                                ? "Complete"
+                                : "Pending"}
+                            </span>
+                          </>
+                        )}
+
+                        {canManageResultDocuments &&
+                          enrollmentId &&
+                          !document &&
+                          !documentStatusesLoading && 
+                           !documentStatusesError && (
+                            <button
+                              type="button"
+                              disabled={actionLoading}
+                              onClick={() =>
+                                handleResultDocumentAction(
+                                  student,
+                                  "create"
+                                )
+                              }
+                            >
+                              {actionLoading
+                                ? "Creating..."
+                                : "Create Result Draft"}
+                            </button>
+                          )}
+
+                        {document &&
+                          document.status === "draft" && (
+                            <>
+                              {canAuthorizeAsPrincipal &&
+                                !document.principalAuthorizedAt && (
+                                  <button
+                                    type="button"
+                                    disabled={actionLoading}
+                                    onClick={() =>
+                                      handleResultDocumentAction(
+                                        student,
+                                        "principal"
+                                      )
+                                    }
+                                  >
+                                    {actionLoading
+                                      ? "Processing..."
+                                      : "Authorize as Principal"}
+                                  </button>
+                                )}
+
+                              {canAuthorizeAsExamOfficer &&
+                                !document.examOfficerAuthorizedAt && (
+                                  <button
+                                    type="button"
+                                    disabled={actionLoading}
+                                    onClick={() =>
+                                      handleResultDocumentAction(
+                                        student,
+                                        "exam-officer"
+                                      )
+                                    }
+                                  >
+                                    {actionLoading
+                                      ? "Processing..."
+                                      : currentUserRoles.includes("Principal")
+                                      ? "Authorize as Exam Officer"
+                                      : "Authorize as Exam Officer"}
+                                  </button>
+                                )}
+
+                              {document.principalAuthorizedAt &&
+                                document.examOfficerAuthorizedAt &&
+                                canManageResultDocuments && (
+                                  <button
+                                    type="button"
+                                    disabled={actionLoading}
+                                    onClick={() =>
+                                      handleResultDocumentAction(
+                                        student,
+                                        "finalize"
+                                      )
+                                    }
+                                  >
+                                    {actionLoading
+                                      ? "Finalizing..."
+                                      : "Finalize Result"}
+                                  </button>
+                                )}
+                            </>
+                          )}
+
+                        {document?.status === "finalized" && (
+                          <strong>
+                            Result document finalized successfully.
+                          </strong>
+                        )}
+                      </div>
+
+                                            {document?.status === "finalized" && (
+                        <button
+                          type="button"
+                          disabled={actionLoading}
+                          onClick={() =>
+                            handleDownloadFinalizedResult(student)
+                          }
+                        >
+                          {actionLoading
+                            ? "Preparing Official Result..."
+                            : "Download Finalized Result"}
+                        </button>
+                      )}
 
                       <button
                         type="button"

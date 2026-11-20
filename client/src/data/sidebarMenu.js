@@ -27,6 +27,13 @@ const sidebarMenu = [
     icon: "👨‍🎓",
     roles: TEACHING_ROLES,
   },
+    {
+    id: 18,
+    label: "Student Progression",
+    path: "/dashboard/student-progression",
+    icon: "🔄",
+    roles: ["Principal", "School Admin", "Exam Officer"],
+  },
   {
     id: 3,
     label: "Teacher",
