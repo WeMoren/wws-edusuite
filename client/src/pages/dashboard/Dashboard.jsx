@@ -1,204 +1,256 @@
-import React, { useState }  from 'react';
-import { useOutletContext } from 'react-router-dom';
-import StatCard from '../../components/dashboard/StatCard/StatCard';
-import ActivityItem from '../../components/dashboard/ActivityItem/ActivityItem';
-import EventItem from '../../components/dashboard/EventItem/EventItem';
-import quickActions from '../../data/quickActions';
-import ActionButton from '../../components/dashboard/ActionButton/ActionButton';
-import "./Dashboard.css";
-import EventModal from '../../components/dashboard/EventModal/EventModal';
-import { useAuth } from "../../auth/AuthContext";
 
+import React, { useState } from "react";
+import { useOutletContext } from "react-router-dom";
+import {
+  GraduationCap,
+  Users,
+  UsersRound,
+  School,
+  ClipboardCheck,
+  BriefcaseBusiness,
+} from "lucide-react";
+import StatCard from "../../components/dashboard/StatCard/StatCard";
+import ActivityItem from "../../components/dashboard/ActivityItem/ActivityItem";
+import EventItem from "../../components/dashboard/EventItem/EventItem";
+import quickActions from "../../data/quickActions";
+import ActionButton from "../../components/dashboard/ActionButton/ActionButton";
+import EventModal from "../../components/dashboard/EventModal/EventModal";
+import { useAuth } from "../../auth/AuthContext";
+import "./Dashboard.css";
 
 const getRelativeTime = (createdAt) => {
-    const now = new Date();
-    const created = new Date(createdAt);
-    const differenceInSeconds = Math.floor((now - created) / 1000);
+  const now = new Date();
+  const created = new Date(createdAt);
+  const differenceInSeconds = Math.floor((now - created) / 1000);
 
-    if(differenceInSeconds < 60){
-        return "Just now"
-    }
-            //  {} < $
-    const differenceInMinutes = Math.floor(differenceInSeconds / 60);
+  if (differenceInSeconds < 60) {
+    return "Just now";
+  }
 
-    if(differenceInMinutes < 60){
-        return `${differenceInMinutes}  ${
-            differenceInMinutes === 1 ? "minute" : "minutes"} ago`
-    }
+  const differenceInMinutes = Math.floor(differenceInSeconds / 60);
 
-    const differenceInHours = Math.floor(differenceInMinutes / 60);
+  if (differenceInMinutes < 60) {
+    return `${differenceInMinutes} ${
+      differenceInMinutes === 1 ? "minute" : "minutes"
+    } ago`;
+  }
 
-    if(differenceInHours < 24){
-        return `${differenceInHours} ${
-            differenceInHours === 1 ? "hour" : "hours"
-        } ago`
-    }
+  const differenceInHours = Math.floor(differenceInMinutes / 60);
 
+  if (differenceInHours < 24) {
+    return `${differenceInHours} ${
+      differenceInHours === 1 ? "hour" : "hours"
+    } ago`;
+  }
 
-    const differenceInDays = Math.floor(differenceInHours / 24);
+  const differenceInDays = Math.floor(differenceInHours / 24);
 
-    if(differenceInDays === 1){
-        return "Yesterday"
-    }
+  if (differenceInDays === 1) {
+    return "Yesterday";
+  }
 
-    return `${differenceInDays} days ago`;
-}
+  return `${differenceInDays} days ago`;
+};
 
-
-//Dynamic greeting
 const getGreeting = () => {
-    const hour = new Date().getHours();
+  const hour = new Date().getHours();
 
-    if (hour < 12) {
-        return "Good morning";
-    }
+  if (hour < 12) {
+    return "Good morning";
+  }
 
-    if (hour < 17) {
-        return "Good afternoon";
-    }
+  if (hour < 17) {
+    return "Good afternoon";
+  }
 
-    return "Good evening";
+  return "Good evening";
 };
 
 const Dashboard = () => {
-const { currentUser } = useAuth();
+  const { currentUser } = useAuth();
 
-    const { 
-            students, 
-            teachers, 
-            staffCount,
-            parents, 
-            classes, 
-            attendance,
-            recentActivities,
-            upcomingEvents,
-            createEvent,
-        } = useOutletContext();
+  const {
+    students,
+    teachers,
+    staffCount,
+    parents,
+    classes,
+    attendance,
+    recentActivities,
+    upcomingEvents,
+    createEvent,
+  } = useOutletContext();
 
-            const today = new Date().toISOString().split("T")[0];
+  const today = new Date().toISOString().split("T")[0];
 
-            const todayAttendance = attendance.filter((record) => record.date === today);
+  const todayAttendance = attendance.filter(
+    (record) => record.date === today
+  );
 
-            const attendancePercentage = students.length > 0 ? Math.round(
-                (todayAttendance.filter((record) => record.status === "present").length / students.length) * 100
-            ) : 0;
+  const attendancePercentage =
+    students.length > 0
+      ? Math.round(
+          (todayAttendance.filter(
+            (record) => record.status === "present"
+          ).length /
+            students.length) *
+            100
+        )
+      : 0;
 
+  const [showEventModal, setShowEventModal] = useState(false);
 
-            const [showEventModal, setShowEventModal] = useState(false);
+  const upcomingEventPreview = [...upcomingEvents]
+    .filter((event) => new Date(event.date) >= new Date())
+    .sort((a, b) => new Date(a.date) - new Date(b.date))
+    .slice(0, 4);
 
+  const recentActivityPreview = recentActivities.slice(0, 5);
 
-            const upcomingEventPreview = [...upcomingEvents]
-                .filter((event) => new Date(event.date)  >= new Date())
-                .sort((a, b)  => new Date(a.date) - new Date(b.date))
-                .slice(0, 4);
-
-                const recentActivityPreview = recentActivities.slice(0, 5);
-
+  const firstName = currentUser?.firstName || "there";
 
   return (
-      <div className="dashboard">
-         <h1>Dashboard</h1>
+    <div className="dashboard">
+      <header className="dashboard__header">
+        <div className="dashboard__heading">
+          <span className="dashboard__eyebrow">SCHOOL OVERVIEW</span>
+          <h1>
+            {getGreeting()}, {firstName}
+            {currentUser?.lastName ? ` ${currentUser.lastName}` : ""}!
+          </h1>
+          <p>
+            Here's what's happening across your school today.
+          </p>
+        </div>
+      </header>
 
-         <div className="dashboard__welcome">
-            <h1>
-                 {getGreeting()}, {currentUser?.firstName} {currentUser?.lastName} 👋
-            </h1>            
-            <p>Welcome back to WWS-Edusuite.</p>
-         </div>
+      <section className="dashboard__stats" aria-label="School statistics">
+        <StatCard
+          title="Students"
+          value={students.length}
+          icon={GraduationCap}
+        />
 
-         <div className="dashboard__stats">
-              <StatCard
-                  title="Students"
-                  value={students.length}
-                  
-              />
-              
-              <StatCard
-                  title="Teachers"
-                  value={teachers.length}
-              />
-              <StatCard
-                  title="Parents"
-                  value={parents.length}
-              />
-              <StatCard
-                  title="Classes"
-                  value={classes.length}
-              />
-              <StatCard
-                  title="Attendance Today"
-                  value={`${attendancePercentage}%`}
-              />
-              <StatCard
-                  title=" Management Staff"
-                   value={staffCount}
-              />
-         </div>
-          <div className="dashboard__info">
-              <section className="dashboard__activities">
-                    <h2>Recent Activities</h2>
-                    
-                    {recentActivityPreview.map((item) => (
-                      <ActivityItem
-                          key={item.id}
-                          activity={item.activity}
-                          time={getRelativeTime(item.createdAt)}
-                      />
-                    ) )}
-              </section>
+        <StatCard
+          title="Teachers"
+          value={teachers.length}
+          icon={Users}
+        />
 
+        <StatCard
+          title="Parents"
+          value={parents.length}
+          icon={UsersRound}
+        />
 
-              <section className="dashboard__events">
-                   <div className="dashboard__section-header">
-                     <h2>Upcoming Events</h2>
+        <StatCard
+          title="Classes"
+          value={classes.length}
+          icon={School}
+        />
 
-                        <button
-                            type='button'
-                            onClick={()=> setShowEventModal(true)}
-                        >
-                            + Add Event
-                        </button>
-                   </div>
+        <StatCard
+          title="Attendance Today"
+          value={`${attendancePercentage}%`}
+          icon={ClipboardCheck}
+        />
 
-                   
+        <StatCard
+          title="Management Staff"
+          value={staffCount}
+          icon={BriefcaseBusiness}
+        />
+      </section>
 
-                {upcomingEventPreview.map((event) => (
-                    <EventItem
-                        key={event.id}
-                        title={event.title}
-                        date={event.date}
-                    />
-            ))}
+      <div className="dashboard__info">
+        <section className="dashboard__panel dashboard__activities">
+          <div className="dashboard__panel-heading">
+            <div>
+              <h2>Recent Activities</h2>
+              <p>A quick look at recent school updates</p>
+            </div>
+          </div>
 
+          {recentActivityPreview.length > 0 ? (
+            <div className="dashboard__activity-list">
+              {recentActivityPreview.map((item) => (
+                <ActivityItem
+                  key={item.id}
+                  activity={item.activity}
+                  time={getRelativeTime(item.createdAt)}
+                />
+              ))}
+            </div>
+          ) : (
+            <div className="dashboard__empty-state">
+              <p>No recent activities yet.</p>
+              <span>School updates will appear here as they happen.</span>
+            </div>
+          )}
+        </section>
 
-              </section>
+        <section className="dashboard__panel dashboard__events">
+          <div className="dashboard__panel-heading dashboard__section-header">
+            <div>
+              <h2>Upcoming Events</h2>
+              <p>Keep track of important school dates</p>
+            </div>
 
-              <section className="quick-actions">
-                <h2>Quick Actions</h2>
+            <button
+              type="button"
+              onClick={() => setShowEventModal(true)}
+            >
+              + Add Event
+            </button>
+          </div>
 
-                <div className="quick-actions__grid">
-                {quickActions.map((action) => (
-                  <ActionButton
-                    key={action.id}
-                    label={action.label}
-                    path={action.path}
-                    icon={action.icon}
-                  />
-                ) )}
-                </div>
-              </section>
-         </div>
-        
-
-           {showEventModal && (
-            <EventModal
-                onClose={() => setShowEventModal(false)}
-                onAddEvent={createEvent}
-            />
-        )}
-
+          {upcomingEventPreview.length > 0 ? (
+            <div className="dashboard__event-list">
+              {upcomingEventPreview.map((event) => (
+                <EventItem
+                  key={event.id}
+                  title={event.title}
+                  date={event.date}
+                />
+              ))}
+            </div>
+          ) : (
+            <div className="dashboard__empty-state">
+              <p>No upcoming events.</p>
+              <span>Add an event to keep important dates visible.</span>
+            </div>
+          )}
+        </section>
       </div>
-  )
-}
 
-export default Dashboard
+      <section className="dashboard__panel quick-actions">
+        <div className="dashboard__panel-heading">
+          <div>
+            <h2>Quick Actions</h2>
+            <p>Jump straight into common school tasks</p>
+          </div>
+        </div>
+
+        <div className="quick-actions__grid">
+          {quickActions.map((action) => (
+            <ActionButton
+              key={action.id}
+              label={action.label}
+              path={action.path}
+              icon={action.icon}
+            />
+          ))}
+        </div>
+      </section>
+
+      {showEventModal && (
+        <EventModal
+          onClose={() => setShowEventModal(false)}
+          onAddEvent={createEvent}
+        />
+      )}
+    </div>
+  );
+};
+
+export default Dashboard;
