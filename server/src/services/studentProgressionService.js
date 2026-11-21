@@ -423,9 +423,11 @@ const validateDestinationPlacement = async (
         }
     }
 
-    return {
+       return {
         classId,
+        className: classResult.rows[0].name,
         sectionId,
+        sectionName: sectionResult.rows[0].name,
         streamId,
         subjectCombinationId,
     };
