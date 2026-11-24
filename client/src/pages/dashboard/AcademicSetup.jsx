@@ -124,6 +124,8 @@ const apiRequest = async (path, options = {}) => {
   const [newSessionStartDate, setNewSessionStartDate] = useState("");
   const [newSessionEndDate, setNewSessionEndDate] = useState("");
   const [newSessionIsCurrent, setNewSessionIsCurrent] = useState(false);
+  const [isSwitchingSession, setIsSwitchingSession] = useState(false);
+  const [isSwitchingTerm, setIsSwitchingTerm] = useState(false);
 
   const [newTermStartDate, setNewTermStartDate] = useState("");
   const [newTermEndDate, setNewTermEndDate] = useState("");
@@ -207,7 +209,7 @@ const apiRequest = async (path, options = {}) => {
     setStreamLevels,
     subjectCombinations,
     setSubjectCombinations,
-
+    refreshAcademicData,
   } = useOutletContext();
 
       // Selected academic levels
@@ -543,6 +545,169 @@ const apiRequest = async (path, options = {}) => {
         title: "Unable to Create Term",
         message: error.message,
       });
+    }
+  };
+
+    // Set an academic session as current
+  const handleSetCurrentSession = async (session) => {
+    if (session.isCurrent || isSwitchingSession) return;
+
+    setIsSwitchingSession(true);
+
+    try {
+      const data = await apiRequest(
+        `/academic-sessions/${session.id}`,
+        {
+          method: "PATCH",
+          body: JSON.stringify({ isCurrent: true }),
+        }
+      );
+
+      const saved = data.session;
+
+      if (!saved?.id) {
+        throw new Error(
+          "The server did not return the updated academic session."
+        );
+      }
+
+      setAcademicSessions((prev) =>
+        prev.map((item) => ({
+          ...item,
+          isCurrent: item.id === saved.id,
+          ...(item.id === saved.id
+            ? {
+                name: saved.name,
+                startDate: saved.start_date,
+                endDate: saved.end_date,
+              }
+            : {}),
+        }))
+      );
+
+      refreshAcademicData?.();
+
+      const generation = data.financialGeneration;
+
+      let message =
+        `${saved.name} is now the current academic session. `;
+
+      if (generation?.processed) {
+        message +=
+          `Financial rollover completed: ` +
+          `${generation.createdCount} accounts created, ` +
+          `${generation.existingCount} already existed, and ` +
+          `${generation.skippedCount} skipped.`;
+
+        const reasons = Object.entries(
+          generation.skippedReasons || {}
+        )
+          .map(([reason, count]) => `${reason} (${count})`)
+          .join("; ");
+
+        if (reasons) {
+          message += ` Skip details: ${reasons}`;
+        }
+      } else {
+        message +=
+          "No financial accounts were generated because this session has no current term.";
+      }
+
+      notify({
+        title: "Current Session Updated",
+        message,
+      });
+    } catch (error) {
+      notify({
+        title: "Unable to Switch Session",
+        message: error.message || "Please try again.",
+      });
+    } finally {
+      setIsSwitchingSession(false);
+    }
+  };
+
+
+  // Set an academic term as current
+  const handleSetCurrentTerm = async (term) => {
+    if (term.isCurrent || isSwitchingTerm) return;
+
+    setIsSwitchingTerm(true);
+
+    try {
+      const data = await apiRequest(
+        `/terms/${term.id}`,
+        {
+          method: "PATCH",
+          body: JSON.stringify({ isCurrent: true }),
+        }
+      );
+
+      const saved = data.term;
+
+      if (!saved?.id) {
+        throw new Error(
+          "The server did not return the updated academic term."
+        );
+      }
+
+      setAcademicTerms((prev) =>
+        prev.map((item) => ({
+          ...item,
+          isCurrent:
+            item.academicSessionId === saved.academic_session_id
+              ? item.id === saved.id
+              : item.isCurrent,
+          ...(item.id === saved.id
+            ? {
+                name: saved.name,
+                displayOrder: saved.display_order,
+                startDate: saved.start_date,
+                endDate: saved.end_date,
+              }
+            : {}),
+        }))
+      );
+
+      refreshAcademicData?.();
+
+      const generation = data.financialGeneration;
+
+      let message =
+        `${saved.name} is now the current term. `;
+
+      if (generation?.processed) {
+        message +=
+          `Financial rollover completed: ` +
+          `${generation.createdCount} accounts created, ` +
+          `${generation.existingCount} already existed, and ` +
+          `${generation.skippedCount} skipped.`;
+
+        const reasons = Object.entries(
+          generation.skippedReasons || {}
+        )
+          .map(([reason, count]) => `${reason} (${count})`)
+          .join("; ");
+
+        if (reasons) {
+          message += ` Skip details: ${reasons}`;
+        }
+      } else {
+        message +=
+          "No financial accounts were generated because this term belongs to an academic session that is not current.";
+      }
+
+      notify({
+        title: "Current Term Updated",
+        message,
+      });
+    } catch (error) {
+      notify({
+        title: "Unable to Switch Term",
+        message: error.message || "Please try again.",
+      });
+    } finally {
+      setIsSwitchingTerm(false);
     }
   };
 
@@ -1136,14 +1301,64 @@ if (editDialog.type === "level") {
     return;
   }
 
+
 } else if (editDialog.type === "session") {
-  setAcademicSessions((prev) =>
-    prev.map((session) =>
-      session.id === editDialog.item.id
-        ? { ...session, name: value }
-        : session
-    )
+  const exists = academicSessions.some(
+    (session) =>
+      session.id !== editDialog.item.id &&
+      session.name.toLowerCase() === value.toLowerCase()
   );
+
+  if (exists) {
+    notify({
+      title: "Session Already Exists",
+      message: `${value} already exists.`,
+    });
+    return;
+  }
+
+  try {
+    const data = await apiRequest(
+      `/academic-sessions/${editDialog.item.id}`,
+      {
+        method: "PATCH",
+        body: JSON.stringify({ name: value }),
+      }
+    );
+
+    const saved = data.session;
+
+    if (!saved?.id) {
+      throw new Error(
+        "The server did not return the updated academic session."
+      );
+    }
+
+    setAcademicSessions((prev) =>
+      prev.map((session) =>
+        session.id === saved.id
+          ? {
+              ...session,
+              name: saved.name,
+              startDate: saved.start_date,
+              endDate: saved.end_date,
+              isCurrent: saved.is_current,
+            }
+          : session
+      )
+    );
+
+    notify({
+      title: "Session Updated",
+      message: `${saved.name} was updated successfully.`,
+    });
+  } catch (error) {
+    notify({
+      title: "Unable to Update Session",
+      message: error.message || "Please try again.",
+    });
+    return;
+  }
 } else if (editDialog.type === "term") {
   const exists = academicTerms.some(
     (term) =>
@@ -1160,13 +1375,52 @@ if (editDialog.type === "level") {
     return;
   }
 
-  setAcademicTerms((prev) =>
-    prev.map((term) =>
-      term.id === editDialog.item.id
-        ? { ...term, name: value }
-        : term
-    )
-  );
+  try {
+    const data = await apiRequest(
+      `/terms/${editDialog.item.id}`,
+      {
+        method: "PATCH",
+        body: JSON.stringify({ name: value }),
+      }
+    );
+
+    const saved = data.term;
+
+    if (!saved?.id) {
+      throw new Error(
+        "The server did not return the updated academic term."
+      );
+    }
+
+    setAcademicTerms((prev) =>
+      prev.map((term) =>
+        term.id === saved.id
+          ? {
+              ...term,
+              name: saved.name,
+              displayOrder: saved.display_order,
+              startDate: saved.start_date,
+              endDate: saved.end_date,
+              isCurrent: saved.is_current,
+            }
+          : term
+      )
+    );
+
+    notify({
+      title: "Term Updated",
+      message: `${saved.name} was updated successfully.`,
+    });
+  } catch (error) {
+    notify({
+      title: "Unable to Update Term",
+      message: error.message || "Please try again.",
+    });
+    return;
+  }
+
+
+
 } else if (editDialog.type === "subject") {
 
     const exists = subjects.some(
@@ -1655,18 +1909,31 @@ if (editDialog.type === "level") {
                 key={session.id}
                 className="academic-sessions__item"
               >
-                <span>{session.name}</span>
+                <div className="academic-sessions__details">
+                  <span>{session.name}</span>
+
+                  {session.isCurrent && (
+                    <span className="academic-current-badge">
+                      Current
+                    </span>
+                  )}
+                </div>
 
                 <div className="academic-sessions__actions">
+                  <button
+                    type="button"
+                    className="set-current"
+                    onClick={() => handleSetCurrentSession(session)}
+                    disabled={session.isCurrent || isSwitchingSession}
+                  >
+                    {session.isCurrent ? "Current" : "Set as Current"}
+                  </button>
+
                   <button
                     className="edit"
                     type="button"
                     onClick={() =>
-                      openEditDialog(
-                        "session",
-                        session,
-                        session.name
-                      )
+                      openEditDialog("session", session, session.name)
                     }
                   >
                     Edit
@@ -1675,9 +1942,7 @@ if (editDialog.type === "level") {
                   <button
                     type="button"
                     className="delete"
-                    onClick={() =>
-                      requestDeleteSession(session)
-                    }
+                    onClick={() => requestDeleteSession(session)}
                   >
                     Delete
                   </button>
@@ -1753,11 +2018,12 @@ if (editDialog.type === "level") {
             </button>
           </div>
 
+          
+
           <div className="academic-terms__list">
             {academicTerms.map((term) => {
               const session = academicSessions.find(
-                (item) =>
-                  item.id === term.academicSessionId
+                (item) => item.id === term.academicSessionId
               );
 
               return (
@@ -1765,25 +2031,37 @@ if (editDialog.type === "level") {
                   key={term.id}
                   className="academic-terms__item"
                 >
-                  <div>
-                    <strong>{term.name}</strong>
+                  <div className="academic-terms__details">
+                    <div>
+                      <strong>{term.name}</strong>
 
-                    <span>
-                      {session?.name ||
-                        "Session Unavailable"}
-                    </span>
+                      <span>
+                        {session?.name || "Session Unavailable"}
+                      </span>
+                    </div>
+
+                    {term.isCurrent && (
+                      <span className="academic-current-badge">
+                        Current
+                      </span>
+                    )}
                   </div>
 
                   <div className="academic-terms__actions">
                     <button
                       type="button"
+                      className="set-current"
+                      onClick={() => handleSetCurrentTerm(term)}
+                      disabled={term.isCurrent || isSwitchingTerm}
+                    >
+                      {term.isCurrent ? "Current" : "Set as Current"}
+                    </button>
+
+                    <button
+                      type="button"
                       className="edit"
                       onClick={() =>
-                        openEditDialog(
-                          "term",
-                          term,
-                          term.name
-                        )
+                        openEditDialog("term", term, term.name)
                       }
                     >
                       Edit
@@ -1792,9 +2070,7 @@ if (editDialog.type === "level") {
                     <button
                       type="button"
                       className="delete"
-                      onClick={() =>
-                        requestDeleteTerm(term)
-                      }
+                      onClick={() => requestDeleteTerm(term)}
                     >
                       Delete
                     </button>
@@ -1806,96 +2082,95 @@ if (editDialog.type === "level") {
         </div>
 
 
+                        {/* Streams */}
+          <div className="academic-streams">
+            <h2>Streams</h2>
 
-                      {/* Streams */}
-        <div className="academic-streams">
-          <h2>Streams</h2>
+            <p>
+              Configure the streams offered by your school and the academic
+              levels where each stream is available.
+            </p>
 
-          <p>
-            Configure the streams offered by your school and the academic
-            levels where each stream is available.
-          </p>
+            <div className="academic-streams__form">
+              <input
+                type="text"
+                value={newStreamName}
+                onChange={(e) => setNewStreamName(e.target.value)}
+                placeholder="Stream name e.g. Science"
+              />
 
-          <div className="academic-streams__form">
-            <input
-              type="text"
-              value={newStreamName}
-              onChange={(e) => setNewStreamName(e.target.value)}
-              placeholder="Stream name e.g. Science"
-            />
+              <input
+                type="text"
+                value={newStreamCode}
+                onChange={(e) => setNewStreamCode(e.target.value)}
+                placeholder="Stream code e.g. SCI"
+              />
 
-            <input
-              type="text"
-              value={newStreamCode}
-              onChange={(e) => setNewStreamCode(e.target.value)}
-              placeholder="Stream code e.g. SCI"
-            />
+              <input
+                type="text"
+                value={newStreamDescription}
+                onChange={(e) =>
+                  setNewStreamDescription(e.target.value)
+                }
+                placeholder="Description"
+              />
 
-            <input
-              type="text"
-              value={newStreamDescription}
-              onChange={(e) =>
-                setNewStreamDescription(e.target.value)
-              }
-              placeholder="Description"
-            />
+              <button type="button" onClick={handleAddStream}>
+                + Add Stream
+              </button>
+            </div>
 
-            <button type="button" onClick={handleAddStream}>
-              + Add Stream
-            </button>
-          </div>
+            <div className="academic-streams__list">
+              {streams.map((stream) => {
+                const assignedLevels = streamLevels
+                  .filter(
+                    (streamLevel) =>
+                      streamLevel.streamId === stream.id &&
+                      streamLevel.isActive
+                  )
+                  .map(
+                    (streamLevel) => streamLevel.academicLevelId
+                  );
 
-          <div className="academic-streams__list">
-            {streams.map((stream) => {
-              const assignedLevels = streamLevels
-                .filter(
-                  (streamLevel) =>
-                    streamLevel.streamId === stream.id &&
-                    streamLevel.isActive
-                )
-                .map(
-                  (streamLevel) => streamLevel.academicLevelId
+                return (
+                  <div
+                    key={stream.id}
+                    className="academic-streams__item"
+                  >
+                    <div>
+                      <strong>{stream.name}</strong>
+                      <span>{stream.code}</span>
+
+                      {stream.description && (
+                        <small>{stream.description}</small>
+                      )}
+
+                      <small>
+                        {assignedLevels.length} academic level
+                        {assignedLevels.length !== 1 ? "s" : ""}
+                      </small>
+                    </div>
+
+                    <div className="academic-streams__actions">
+                      <button
+                        type="button"
+                        className="assign"
+                        onClick={() =>
+                          setStreamLevelDialog({
+                            open: true,
+                            stream,
+                            selectedLevels: assignedLevels,
+                          })
+                        }
+                      >
+                        Assign Levels
+                      </button>
+                    </div>
+                  </div>
                 );
-
-              return (
-                <div
-                  key={stream.id}
-                  className="academic-streams__item"
-                >
-                  <div>
-                    <strong>{stream.name}</strong>
-                    <span>{stream.code}</span>
-
-                    {stream.description && (
-                      <small>{stream.description}</small>
-                    )}
-
-                    <small>
-                      {assignedLevels.length} academic level
-                      {assignedLevels.length !== 1 ? "s" : ""}
-                    </small>
-                  </div>
-
-                  <div className="academic-streams__actions">
-                    <button
-                      type="button"
-                      className="assign"
-                      onClick={() =>
-                        setStreamLevelDialog({
-                          open: true,
-                          stream,
-                          selectedLevels: assignedLevels,
-                        })
-                      }
-                    >
-                      Assign Levels
-                    </button>
-                  </div>
-                </div>
-              );
-            })}
+              })}
+            </div>
           </div>
-        </div>
 
 
                 {/* Subject Combinations */}

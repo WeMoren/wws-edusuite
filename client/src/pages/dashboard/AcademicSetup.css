@@ -331,6 +331,45 @@
 }
 
 
+/* Current academic session and term indicators */
+.academic-sessions__details,
+.academic-terms__details {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+}
+
+.academic-current-badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.25rem 0.6rem;
+    border-radius: 999px;
+    background: #dcfce7;
+    color: #15803d;
+    font-size: 0.75rem;
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+.academic-sessions__actions .set-current,
+.academic-terms__actions .set-current {
+    background: #eff6ff;
+    color: #1d4ed8;
+}
+
+.academic-sessions__actions .set-current:disabled,
+.academic-terms__actions .set-current:disabled {
+    background: #dcfce7;
+    color: #15803d;
+    cursor: default;
+    opacity: 1;
+}
+
+.academic-sessions__actions button:disabled,
+.academic-terms__actions button:disabled {
+    cursor: not-allowed;
+}
 
 
 /* Academic Classes */
@@ -1812,3 +1851,17 @@ box-sizing: border-box;
     }
 }
 
+
+/* Keep the current-term badge visually distinct from the session label */
+.academic-terms__item > div.academic-terms__details {
+    flex-direction: row;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+}
+
+.academic-terms__item .academic-current-badge {
+    color: #15803d;
+    font-size: 0.75rem;
+    font-weight: 600;
+}

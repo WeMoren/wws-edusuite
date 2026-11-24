@@ -13,6 +13,7 @@ const StudentModal = ({
   streams,
   streamLevels,
   subjectCombinations,
+  currentAcademicSessionId,
 }) => {
   const [student, setStudent] = useState({
     admissionNo: "",
@@ -33,30 +34,53 @@ const StudentModal = ({
 
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState("");
+  const [hasCurrentSessionEnrollment, setHasCurrentSessionEnrollment] =
+    useState(false);
+
+
       /* UseEffect */
+    useEffect(() => {
+    if (!studentToEdit) {
+      setHasCurrentSessionEnrollment(false);
+      return;
+    }
 
-        useEffect(() => {
-            if (!studentToEdit) {
-              return;
-            }
+    setStudent({
+      ...studentToEdit,
+      status: studentToEdit.status || "active",
+    });
 
-            setStudent(studentToEdit);
+    const studentEnrollments = enrollments.filter(
+      (item) => item.studentId === studentToEdit.id
+    );
 
-            const studentEnrollment = enrollments.find(
-              (enrollment) => enrollment.studentId === studentToEdit.id
-            );
+    const studentEnrollment = studentEnrollments.find(
+      (item) =>
+        item.academicSessionId === currentAcademicSessionId
+    );
 
-            if (studentEnrollment) {
-              setEnrollment({
-                academicSessionId: studentEnrollment.academicSessionId,
-                academicLevelId: studentEnrollment.academicLevelId,
-                classId: studentEnrollment.classId,
-                sectionId: studentEnrollment.sectionId,
-                 streamId: studentEnrollment.streamId || "",
-                combinationId: studentEnrollment.combinationId || "",
-              });
-            }
-          }, [studentToEdit, enrollments]);
+    setHasCurrentSessionEnrollment(Boolean(studentEnrollment));
+
+    if (studentEnrollment) {
+      setEnrollment({
+        academicSessionId: studentEnrollment.academicSessionId,
+        academicLevelId: studentEnrollment.academicLevelId,
+        classId: studentEnrollment.classId,
+        sectionId: studentEnrollment.sectionId,
+        streamId: studentEnrollment.streamId || "",
+        combinationId: studentEnrollment.combinationId || "",
+      });
+    } else {
+      setEnrollment({
+        academicSessionId: "",
+        academicLevelId: "",
+        classId: "",
+        sectionId: "",
+        streamId: "",
+        combinationId: "",
+      });
+    }
+  }, [studentToEdit, enrollments, currentAcademicSessionId]);
 
 
       /* Handle change */
@@ -240,6 +264,8 @@ const availableCombinations = subjectCombinations.filter(
             />
           </div>
 
+          {(!studentToEdit || hasCurrentSessionEnrollment) && (
+            <>
           {/* Academic session */}
           <div className="student-form__group">
             <label htmlFor="academicSessionId">Academic Session</label>
@@ -370,7 +396,8 @@ const availableCombinations = subjectCombinations.filter(
             </select>
           </div>
         )}
-
+      </>
+      )}
 
           {/* Gender */}
           <div className="student-form__group">
@@ -384,6 +411,24 @@ const availableCombinations = subjectCombinations.filter(
               <option value="Female">Female</option>
             </select>
           </div>
+
+          {/* Academic Status - edit only */}
+          {studentToEdit && (
+            <div className="student-form__group">
+              <label htmlFor="studentStatus">Academic Status</label>
+              <select
+                id="studentStatus"
+                name="status"
+                value={student.status || "active"}
+                onChange={handleChange}
+              >
+                <option value="active">Active</option>
+                <option value="inactive">Inactive</option>
+                <option value="graduated">Graduated</option>
+                <option value="transferred">Transferred</option>
+              </select>
+            </div>
+          )}
 
              {saveError && (
               <p className="student-form__error" role="alert">

@@ -102,6 +102,42 @@
 }
 
 
+.student-table__academic-status {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.35rem 0.75rem;
+  border-radius: 999px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.student-table__academic-status--active {
+  color: #166534;
+  background: #dcfce7;
+}
+
+.student-table__academic-status--inactive {
+  color: #475569;
+  background: #e2e8f0;
+}
+
+.student-table__academic-status--graduated {
+  color: #1d4ed8;
+  background: #dbeafe;
+}
+
+.student-table__academic-status--transferred {
+  color: #92400e;
+  background: #fef3c7;
+}
+
+.student-table__academic-status--unknown {
+  color: #475569;
+  background: #e2e8f0;
+}
+
+
 /* Mobile Table */
 @media (max-width: 768px) {
     .student-table {

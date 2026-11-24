@@ -99,9 +99,12 @@ export const generateFinancialAccountsForCurrentTerm = async (
         ]
     );
 
+    
     let createdCount = 0;
     let existingCount = 0;
     let skippedCount = 0;
+
+    const skippedReasons = {};
 
     for (const enrollment of enrollmentResult.rows) {
         const result =
@@ -112,6 +115,7 @@ export const generateFinancialAccountsForCurrentTerm = async (
                     studentId: enrollment.student_id,
                     enrollmentId: enrollment.enrollment_id,
                     termId: currentTerm.id,
+                    skipIncompleteFeeConfiguration: true,
                 }
             );
 
@@ -119,6 +123,12 @@ export const generateFinancialAccountsForCurrentTerm = async (
             createdCount += 1;
         } else if (result.skipped) {
             skippedCount += 1;
+
+            const reason =
+                result.reason || "Unspecified reason";
+
+            skippedReasons[reason] =
+                (skippedReasons[reason] || 0) + 1;
         } else {
             existingCount += 1;
         }
@@ -141,5 +151,8 @@ export const generateFinancialAccountsForCurrentTerm = async (
         createdCount,
         existingCount,
         skippedCount,
+        skippedReasons,
     };
 };
+
+

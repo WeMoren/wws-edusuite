@@ -109,6 +109,7 @@ const findActiveFeeStructure = async (
 };
 
 
+
 export const createStudentFinancialAccountForTerm = async (
     client,
     {
@@ -116,6 +117,7 @@ export const createStudentFinancialAccountForTerm = async (
         studentId,
         enrollmentId,
         termId,
+        skipIncompleteFeeConfiguration = false,
     }
 ) => {
     const enrollment = await getEnrollmentDetails(
@@ -133,7 +135,7 @@ export const createStudentFinancialAccountForTerm = async (
         );
     }
 
-        if (enrollment.enrollment_status !== "active") {
+    if (enrollment.enrollment_status !== "active") {
         return {
             created: false,
             skipped: true,
@@ -166,7 +168,7 @@ export const createStudentFinancialAccountForTerm = async (
         );
     }
 
-      await acquireFinancialScopeLock(
+    await acquireFinancialScopeLock(
         client,
         {
             schoolId,
@@ -178,7 +180,7 @@ export const createStudentFinancialAccountForTerm = async (
         }
     );
 
-        const existingResult = await client.query(
+    const existingResult = await client.query(
         `
         SELECT
             id,
@@ -222,18 +224,48 @@ export const createStudentFinancialAccountForTerm = async (
     );
 
     if (!feeStructure) {
+        if (skipIncompleteFeeConfiguration) {
+            return {
+                created: false,
+                skipped: true,
+                reason:
+                    "No active fee structure exists for this academic level and term.",
+                financialAccount: null,
+            };
+        }
+
         throw new Error(
             "No active fee structure exists for the student's academic level and selected term."
         );
     }
 
-    const totalDue = await calculateFeeStructureTotal(
-    client,
-    {
-        schoolId,
-        feeStructureId: feeStructure.id,
+    let totalDue;
+
+    try {
+        totalDue = await calculateFeeStructureTotal(
+            client,
+            {
+                schoolId,
+                feeStructureId: feeStructure.id,
+            }
+        );
+    } catch (error) {
+        if (
+            skipIncompleteFeeConfiguration &&
+            error.message ===
+                "The active fee structure has no fee items. Add fee items before generating financial accounts."
+        ) {
+            return {
+                created: false,
+                skipped: true,
+                reason:
+                    "The active fee structure has no fee items.",
+                financialAccount: null,
+            };
+        }
+
+        throw error;
     }
-);
 
     const result = await client.query(
         `
@@ -291,7 +323,7 @@ export const createStudentFinancialAccountForTerm = async (
     );
 
     if (result.rows.length === 0) {
-        const existingResult = await client.query(
+        const conflictResult = await client.query(
             `
             SELECT
                 id,
@@ -318,7 +350,7 @@ export const createStudentFinancialAccountForTerm = async (
         return {
             created: false,
             financialAccount:
-                existingResult.rows[0] || null,
+                conflictResult.rows[0] || null,
         };
     }
 
@@ -327,6 +359,7 @@ export const createStudentFinancialAccountForTerm = async (
         financialAccount: result.rows[0],
     };
 };
+
 
 export const createStudentFinancialAccountForCurrentTerm = async (
     client,

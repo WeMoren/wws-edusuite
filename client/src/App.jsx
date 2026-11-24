@@ -4,6 +4,7 @@ import { Routes, Route } from "react-router-dom";
 
 import ProtectedRoute from "./auth/ProtectedRoute";
 import RoleRoute from "./auth/RoleRoute";
+import AcademicAnalyticsRoute from "./auth/AcademicAnalyticsRoute";
 import PlatformProtectedRoute from "./platform/auth/PlatformProtectedRoute";
 
 const LandingPage = lazy(() => import("./pages/Landing/LandingPage"));
@@ -30,6 +31,9 @@ const SchoolFees = lazy(() => import("./pages/dashboard/SchoolFees"));
 const Subscription = lazy(() => import("./pages/dashboard/subscription/Subscription"));
 const Events = lazy(() => import("./pages/dashboard/Events"));
 const Results = lazy(() => import("./pages/dashboard/Results"));
+const AcademicAnalytics = lazy(
+  () => import("./pages/dashboard/AcademicAnalytics")
+);
 
 const DeveloperLogin = lazy(() => import("./platform/pages/DeveloperLogin"));
 const DeveloperLayout = lazy(() => import("./platform/layouts/DeveloperLayout"));
@@ -255,6 +259,15 @@ const App = () => {
               >
                 <Results />
               </RoleRoute>
+            }
+          />
+
+          <Route
+            path="academic-analytics"
+            element={
+              <AcademicAnalyticsRoute>
+                <AcademicAnalytics />
+              </AcademicAnalyticsRoute>
             }
           />
 

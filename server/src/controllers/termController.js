@@ -428,6 +428,24 @@ export const updateTerm = async (req, res) => {
             });
         }
 
+        // Release the previous current term in this session
+        // before making the selected term current.
+        if (!existing.is_current && nextIsCurrent) {
+            await client.query(
+                `
+                UPDATE terms
+                SET
+                    is_current = FALSE,
+                    updated_at = NOW()
+                WHERE academic_session_id = $1
+                AND school_id = $2
+                AND id <> $3
+                AND is_current = TRUE;
+                `,
+                [academicSessionId, schoolId, id]
+            );
+        }
+
         const result = await client.query(
             `
             UPDATE terms

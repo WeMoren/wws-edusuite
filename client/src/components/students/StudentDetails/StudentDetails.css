@@ -13,9 +13,14 @@
 .student-details {
   width: 90%;
   max-width: 500px;
+  max-height: 90vh;
+  overflow-y: auto;
+  overflow-x: hidden;
+  box-sizing: border-box;
   background: white;
   border-radius: 10px;
   padding: 1.5rem;
+  overscroll-behavior: contain;
 }
 
 .student-details__header {
@@ -52,11 +57,19 @@
   color: #64748b;
 }
 
-@media(max-width:600px){
-    .student-details__overlay{
-        grid-template-columns: 1fr;
-    } 
-} 
+
+@media (max-width: 600px) {
+  .student-details__overlay {
+    padding: 12px;
+    box-sizing: border-box;
+  }
+
+  .student-details {
+    width: 100%;
+    max-height: calc(100vh - 24px);
+    padding: 1rem;
+  }
+}
 
 
 .student-details__actions {
@@ -159,5 +172,261 @@
 @media (max-width: 768px) {
   .student-details__financial-grid {
     grid-template-columns: 1fr;
+  }
+}
+
+
+/* Student financial account breakdown */
+.student-details__account-list {
+  margin-top: 24px;
+}
+
+.student-details__account-list > h4 {
+  margin: 0 0 14px;
+  color: #0a0f24;
+  font-size: 16px;
+  font-weight: 700;
+}
+
+.student-details__accounts {
+  display: grid;
+  gap: 14px;
+}
+
+.student-details__account {
+  padding: 18px;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  background: #ffffff;
+  box-shadow: 0 2px 8px rgba(15, 23, 42, 0.04);
+}
+
+.student-details__account-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  padding-bottom: 14px;
+  border-bottom: 1px solid #edf0f5;
+}
+
+.student-details__account-header h5 {
+  margin: 0 0 6px;
+  color: #0a0f24;
+  font-size: 15px;
+  font-weight: 700;
+}
+
+.student-details__account-reference {
+  color: #64748b;
+  font-size: 12px;
+}
+
+.student-details__account-status {
+  flex-shrink: 0;
+  padding: 6px 10px;
+  border-radius: 20px;
+  font-size: 11px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.student-details__account-status--paid {
+  color: #15803d;
+  background: #dcfce7;
+}
+
+.student-details__account-status--partial {
+  color: #b45309;
+  background: #fef3c7;
+}
+
+.student-details__account-status--unpaid {
+  color: #b91c1c;
+  background: #fee2e2;
+}
+
+.student-details__account-meta {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  padding: 13px 0;
+  border-bottom: 1px solid #edf0f5;
+}
+
+.student-details__account-meta span {
+  color: #64748b;
+  font-size: 12px;
+}
+
+.student-details__account-meta strong {
+  color: #334155;
+  font-size: 12px;
+  text-align: right;
+}
+
+.student-details__account-financials {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+  padding-top: 14px;
+}
+
+.student-details__account-financials > div {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+
+.student-details__account-financials span {
+  color: #64748b;
+  font-size: 11px;
+  font-weight: 500;
+}
+
+.student-details__account-financials strong {
+  color: #0a0f24;
+  font-size: 14px;
+  font-weight: 700;
+  overflow-wrap: anywhere;
+}
+
+.student-details__account-financials
+.student-details__account-outstanding {
+  padding: 10px;
+  border-radius: 8px;
+  background: #fff7ed;
+}
+
+.student-details__account-financials
+.student-details__account-outstanding span {
+  color: #9a3412;
+}
+
+.student-details__account-financials
+.student-details__account-outstanding strong {
+  color: #c2410c;
+}
+
+@media (max-width: 480px) {
+  .student-details__account {
+    padding: 14px;
+  }
+
+  .student-details__account-header {
+    flex-wrap: wrap;
+  }
+
+  .student-details__account-financials {
+    gap: 7px;
+  }
+
+  .student-details__account-financials strong {
+    font-size: 12px;
+  }
+}
+
+
+
+/* Student payment history */
+.student-details__history {
+  margin-top: 28px;
+}
+
+.student-details__history h3 {
+  margin: 0 0 14px;
+  color: #0a0f24;
+  font-size: 18px;
+  font-weight: 700;
+}
+
+.student-details__payments {
+  display: grid;
+  gap: 12px;
+}
+
+.student-details__payment {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 14px;
+  padding: 16px;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  background: #ffffff;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.student-details__payment:hover {
+  border-color: #cbd5e1;
+  box-shadow: 0 3px 10px rgba(15, 23, 42, 0.05);
+}
+
+.student-details__payment > div:first-child {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.student-details__payment > div:first-child strong {
+  color: #0a0f24;
+  font-size: 18px;
+  font-weight: 700;
+}
+
+.student-details__payment > div:first-child span {
+  color: #64748b;
+  font-size: 12px;
+}
+
+.student-details__payment > div:nth-child(2) {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
+  min-width: 0;
+}
+
+.student-details__payment > div:nth-child(2) span:first-child {
+  padding: 5px 9px;
+  border-radius: 20px;
+  background: #eff6ff;
+  color: #1d4ed8;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: capitalize;
+}
+
+.student-details__payment > div:nth-child(2) span:last-child {
+  color: #64748b;
+  font-size: 12px;
+  overflow-wrap: anywhere;
+}
+
+.student-details__no-payments {
+  margin: 0;
+  padding: 20px;
+  border: 1px dashed #cbd5e1;
+  border-radius: 10px;
+  background: #f8fafc;
+  color: #64748b;
+  font-size: 13px;
+  text-align: center;
+}
+
+@media (max-width: 480px) {
+  .student-details__payment {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+
+  .student-details__payment > div:nth-child(2) {
+    gap: 8px;
+  }
+
+  .student-details__payment .student-details__receipt-button {
+    width: 100%;
   }
 }

@@ -1625,6 +1625,10 @@ const getStudentResultData = (student) => {
         ],
         ["Stream", resultDocument.stream_name],
         ["Subject Combination", resultDocument.subject_combination_name],
+        [
+          "Subjects Offered",
+          resultDocument.total_subjects_offered ?? "—",
+        ],
       ];
 
       const availableStudentDetails = studentDetails.filter(

@@ -25,6 +25,7 @@ const canViewStudentPaymentStatus = userRoles.some((role) =>
     hasPermission(role, "students", "view")
 );
     const API_BASE_URL = "http://localhost:5000/api";
+    const [academicDataRefreshKey, setAcademicDataRefreshKey] = useState(0);
 
 
    const [payments, setPayments] = useState([]);
@@ -295,7 +296,7 @@ useEffect(() => {
   loadAcademicSetup();
 
   return () => controller.abort();
-}, [authToken]);
+}, [authToken, academicDataRefreshKey]);
 
 useEffect(() => {
   if (!authToken) {
@@ -407,7 +408,7 @@ useEffect(() => {
   loadStudentsAndEnrollments();
 
   return () => controller.abort();
-}, [authToken]);
+}, [authToken, academicDataRefreshKey]);
 
 useEffect(() => {
   if (!authToken || !canViewFinancialAccounts) {
@@ -569,6 +570,7 @@ useEffect(() => {
   authToken,
   canViewFinancialAccounts,
   canViewStudentPaymentStatus,
+  academicDataRefreshKey,
 ]);
 
 
@@ -1152,6 +1154,8 @@ return (
                         recentActivities,
                         setRecentActivities,
                         refreshRecentActivities,
+                        refreshAcademicData: () =>
+                          setAcademicDataRefreshKey((prev) => prev + 1),
                         upcomingEvents,
                         createEvent,
                         updateEvent,

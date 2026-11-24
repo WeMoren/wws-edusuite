@@ -1,3 +1,4 @@
+
 .sidebar {
   position: sticky;
   top: 70px;
@@ -6,9 +7,9 @@
   height: calc(100vh - 70px);
   box-sizing: border-box;
   flex: 0 0 250px;
-  background-color: #ffffff;
+  background-color: #f8faff;
   border-right: 1px solid #e5e7eb;
-  padding: 1rem 0;
+  padding: 1.1rem 0.75rem;
   overflow-y: auto;
 }
 
@@ -16,26 +17,69 @@
   list-style: none;
   margin: 0;
   padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+
+.sidebar__item {
+  margin: 0;
+  padding: 0;
 }
 
 .sidebar__link {
   display: flex;
   align-items: center;
-  gap: 0.75rem;
-  padding: 0.9rem 1.5rem;
-  color: #374151;
+  gap: 0.85rem;
+  min-height: 46px;
+  box-sizing: border-box;
+  padding: 0.7rem 0.9rem;
+  border-radius: 9px;
+  color: #475569;
   text-decoration: none;
-  transition: background-color 0.2s ease;
+  font-size: 0.9rem;
+  font-weight: 500;
+  transition:
+    background-color 0.2s ease,
+    color 0.2s ease,
+    transform 0.2s ease;
+}
+
+.sidebar__icon {
+  flex: 0 0 19px;
+  color: #2563eb;
+  transition:
+    color 0.2s ease,
+    transform 0.2s ease;
+}
+
+.sidebar__label {
+  line-height: 1.4;
 }
 
 .sidebar__link:hover {
-  background-color: #f3f4f6;
+  background-color: #f1f5f9;
+  color: #1e293b;
+}
+
+.sidebar__link:hover .sidebar__icon {
+  color: #1d4ed8;
+  transform: translateX(1px);
 }
 
 .sidebar__link.active {
-  background-color: #e0f2fe;
-  color: #0369a1;
+  background-color: #eff6ff;
+  color: #1d4ed8;
   font-weight: 600;
+}
+
+.sidebar__link.active .sidebar__icon {
+  color: #2563eb;
+}
+
+.sidebar__link:focus-visible {
+  outline: 2px solid #2563eb;
+  outline-offset: 2px;
 }
 
 @media (max-width: 768px) {
@@ -47,7 +91,7 @@
     z-index: 300;
     width: min(280px, 85vw);
     height: auto;
-    padding: 1rem 0;
+    padding: 1rem 0.75rem;
     overflow-y: auto;
     transform: translateX(-100%);
     visibility: hidden;
@@ -61,5 +105,12 @@
     transform: translateX(0);
     visibility: visible;
     box-shadow: 8px 0 24px rgb(15 23 42 / 12%);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sidebar__link,
+  .sidebar__icon {
+    transition: none;
   }
 }

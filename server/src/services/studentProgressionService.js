@@ -2,7 +2,7 @@ import pool from "../config/db.js";
 
 import { recordActivity } from "./activityLogService.js";
 import {
-    createStudentFinancialAccountForCurrentTerm,
+    createStudentFinancialAccountForTerm,
 } from "./studentFinancialAccountService.js";
 import {
     evaluateStudentPromotionCriteria,
@@ -844,6 +844,46 @@ export const processStudentProgression = async ({
         const batch = batchResult.rows[0];
         const processedStudents = [];
 
+        // Resolve the destination session's First Term once per batch.
+        // The lowest display_order identifies the first term, regardless
+        // of which term is currently active.
+        const destinationTermsResult = await client.query(
+            `
+            SELECT
+                id,
+                display_order
+            FROM terms
+            WHERE school_id = $1
+              AND academic_session_id = $2
+            ORDER BY
+                display_order ASC,
+                start_date ASC,
+                id ASC
+            FOR SHARE;
+            `,
+            [
+                schoolId,
+                destinationAcademicSessionId,
+            ]
+        );
+
+        const firstTermDisplayOrder =
+            destinationTermsResult.rows[0]?.display_order;
+
+        const matchingFirstTerms = destinationTermsResult.rows.filter(
+            (term) => term.display_order === firstTermDisplayOrder
+        );
+
+        const destinationFirstTerm =
+            matchingFirstTerms.length === 1
+                ? destinationTermsResult.rows[0]
+                : null;
+
+        const firstTermSkipReason =
+            destinationTermsResult.rows.length === 0
+                ? "No terms are configured for the destination academic session."
+                : "The destination session has multiple terms with the same earliest display order. First Term could not be identified safely.";
+
         for (const student of students) {
             const sourceEnrollmentStatus = [
                 "promote",
@@ -917,6 +957,7 @@ export const processStudentProgression = async ({
             }
 
             let destinationEnrollmentId = null;
+            let financialAccountResult = null;
 
             if (student.destinationPlacement) {
                 const placement = student.destinationPlacement;
@@ -954,14 +995,25 @@ export const processStudentProgression = async ({
                 destinationEnrollmentId =
                     enrollmentResult.rows[0].id;
 
-                await createStudentFinancialAccountForCurrentTerm(
-                    client,
-                    {
-                        schoolId,
-                        studentId: student.studentId,
-                        enrollmentId: destinationEnrollmentId,
-                    }
-                );
+                if (!destinationFirstTerm) {
+                    financialAccountResult = {
+                        created: false,
+                        skipped: true,
+                        reason: firstTermSkipReason,
+                    };
+                } else {
+                    financialAccountResult =
+                        await createStudentFinancialAccountForTerm(
+                            client,
+                            {
+                                schoolId,
+                                studentId: student.studentId,
+                                enrollmentId: destinationEnrollmentId,
+                                termId: destinationFirstTerm.id,
+                                skipIncompleteFeeConfiguration: true,
+                            }
+                        );
+                }
             }
 
             await client.query(
@@ -1014,6 +1066,7 @@ export const processStudentProgression = async ({
                 outcome: student.outcome,
                 sourceEnrollmentId: student.sourceEnrollmentId,
                 destinationEnrollmentId,
+                financialAccount: financialAccountResult,
             });
         }
 

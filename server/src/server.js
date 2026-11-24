@@ -22,6 +22,7 @@ import feeStructureRoutes from "./routes/feeStructureRoutes.js";
 import termRoutes from "./routes/termRoutes.js";
 import studentFinancialAccountRoutes from "./routes/studentFinancialAccountRoutes.js";
 import financialSummaryRoutes from "./routes/financialSummaryRoutes.js";
+import academicAnalyticsRoutes from "./routes/academicAnalyticsRoutes.js";
 import paymentRoutes from "./routes/paymentRoutes.js";
 import paymentReceiptRoutes from "./routes/paymentReceiptRoutes.js";
 import schoolOfficialRoutes from "./routes/schoolOfficialRoutes.js";
@@ -82,6 +83,7 @@ app.use(
     studentFinancialAccountRoutes
 );
 app.use("/api/financial-summary", financialSummaryRoutes);
+app.use("/api/academic-analytics", academicAnalyticsRoutes);
 app.use("/api/payments", paymentRoutes);
 app.use("/api/expenses", expenseRoutes);
 app.use("/api/expense-categories", expenseCategoryRoutes);

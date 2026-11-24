@@ -405,6 +405,7 @@ export const getResultDocumentById = async (req, res) => {
                 rd.section_name,
                 rd.stream_name,
                 rd.subject_combination_name,
+                rd.total_subjects_offered,
 
                 rd.principal_name,
                 rd.principal_title,
@@ -1218,6 +1219,7 @@ export const finalizeResultDocument = async (req, res) => {
 
             SET
                 status = 'finalized',
+                total_subjects_offered = $18,
 
                 term_total_score = $3,
                 term_average = $4,
@@ -1251,6 +1253,7 @@ export const finalizeResultDocument = async (req, res) => {
                 term_id,
                 status,
 
+                total_subjects_offered,
                 term_total_score,
                 term_average,
                 term_grade,
@@ -1299,6 +1302,7 @@ export const finalizeResultDocument = async (req, res) => {
                 termSummary.class_position_total,
                 termSummary.academic_level_position_total,
                 sessionAcademicLevelPositionTotal,
+                termSummary.applicable_subject_count,
             ]
         );
 

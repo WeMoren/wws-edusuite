@@ -454,7 +454,7 @@ export const loginUser = async (req, res) => {
             });
         }
 
-        const userResult = await pool.query(
+                const userResult = await pool.query(
             `
             SELECT
                 u.id,
@@ -466,7 +466,24 @@ export const loginUser = async (req, res) => {
                 u.status,
                 u.token_version,
                 r.id AS role_id,
-                r.name AS role
+                r.name AS role,
+
+                EXISTS (
+                    SELECT 1
+                    FROM school_staff ss
+                    JOIN staff_position_assignments spa
+                        ON spa.staff_id = ss.id
+                       AND spa.school_id = ss.school_id
+                    JOIN staff_positions sp
+                        ON sp.id = spa.position_id
+                    WHERE ss.id = u.school_staff_id
+                      AND ss.school_id = u.school_id
+                      AND ss.status = 'active'
+                      AND spa.status = 'active'
+                      AND spa.ended_at IS NULL
+                      AND sp.code = 'head_teacher'
+                ) AS is_head_teacher
+
             FROM users u
             JOIN user_roles ur
                 ON ur.user_id = u.id
@@ -539,6 +556,7 @@ export const loginUser = async (req, res) => {
                 firstName: user.first_name,
                 lastName: user.last_name,
                 email: user.email,
+                isHeadTeacher: user.is_head_teacher,
 
                 // Multi-role data
                 roleIds,

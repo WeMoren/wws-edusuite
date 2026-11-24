@@ -99,7 +99,6 @@ const StudentDetails = ({
           </p>
         </div>
 
-
     {canViewFinancialAccounts && (
         <section className="student-details__financial">
             <h3>Financial Summary</h3>
@@ -129,61 +128,79 @@ const StudentDetails = ({
                   </div>
                 </div>
 
-                <div className="student-details__account-list">
-                  <h4>Account Breakdown</h4>
 
-                  {studentFinancialAccounts.map((account) => {
-                    const accountStatus =
-                      account.outstanding <= 0
-                        ? "Fully Paid"
-                        : account.totalPaid > 0
-                          ? "Partially Paid"
-                          : "Unpaid";
+        <div className="student-details__account-list">
+          <h4>Account Breakdown</h4>
 
-                    return (
-                      <div
-                        className="student-details__account"
-                        key={account.id}
-                      >
-                        <h5>
-                          {account.academicSessionName} — {account.termName}
-                        </h5>
+          <div className="student-details__accounts">
+            {studentFinancialAccounts.map((account) => {
+              const accountStatus =
+                account.outstanding <= 0
+                  ? "Fully Paid"
+                  : account.totalPaid > 0
+                    ? "Partially Paid"
+                    : "Unpaid";
 
-                        <p>
-                          <strong>Class:</strong> {account.className || "—"}
-                        </p>
+              const statusClass =
+                accountStatus === "Fully Paid"
+                  ? "paid"
+                  : accountStatus === "Partially Paid"
+                    ? "partial"
+                    : "unpaid";
 
-                        <p>
-                          <strong>Fee Structure:</strong>{" "}
-                          {account.feeStructureName || "—"}
-                        </p>
+              return (
+                <div
+                  className="student-details__account"
+                  key={account.id}
+                >
+                  <div className="student-details__account-header">
+                    <div>
+                      <h5>
+                        {account.academicSessionName} — {account.termName}
+                      </h5>
+                      <span className="student-details__account-reference">
+                        {account.className || "—"}
+                      </span>
+                    </div>
 
-                        <p>
-                          <strong>Total Due:</strong>{" "}
-                          ₦{account.totalDue.toLocaleString()}
-                        </p>
+                    <span
+                      className={`student-details__account-status student-details__account-status--${statusClass}`}
+                    >
+                      {accountStatus}
+                    </span>
+                  </div>
 
-                        <p>
-                          <strong>Total Paid:</strong>{" "}
-                          ₦{account.totalPaid.toLocaleString()}
-                        </p>
+                  <div className="student-details__account-meta">
+                    <span>Fee Structure</span>
+                    <strong>{account.feeStructureName || "—"}</strong>
+                  </div>
 
-                        <p>
-                          <strong>Outstanding:</strong>{" "}
-                          ₦{account.outstanding.toLocaleString()}
-                        </p>
+                  <div className="student-details__account-financials">
+                    <div>
+                      <span>Total Due</span>
+                      <strong>₦{account.totalDue.toLocaleString()}</strong>
+                    </div>
 
-                        <p>
-                          <strong>Payment Status:</strong> {accountStatus}
-                        </p>
-                      </div>
-                    );
-                  })}
+                    <div>
+                      <span>Total Paid</span>
+                      <strong>₦{account.totalPaid.toLocaleString()}</strong>
+                    </div>
+
+                    <div className="student-details__account-outstanding">
+                      <span>Outstanding</span>
+                      <strong>₦{account.outstanding.toLocaleString()}</strong>
+                    </div>
+                  </div>
                 </div>
-              </>
-            )}
-        </section>
-)}
+              );
+            })}
+          </div>
+        </div>
+
+                      </>
+                    )}
+                </section>
+        )}
 
       {canViewFinancialAccounts && (
           <section className="student-details__history">
@@ -235,7 +252,7 @@ const StudentDetails = ({
             </p>
           )}
         </section>
-)}      
+      )}
 
        { canEdit && (
         <div className="student-details__actions">
@@ -243,9 +260,9 @@ const StudentDetails = ({
          <button onClick={() => onEdit(student)}>
                 Edit Student
             </button>
-           
-        </div> 
-        )} 
+
+        </div>
+        )}
       </div>
 
       {canViewFinancialAccounts && selectedPayment && (
@@ -257,8 +274,7 @@ const StudentDetails = ({
             accountPayments={selectedAccountPayments}
             onClose={() => setSelectedPayment(null)}
         />
-)}
-
+      )}
 
     </div>
   );

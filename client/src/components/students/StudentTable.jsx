@@ -34,6 +34,7 @@ const StudentTable = ({
             <th>Class</th>
             <th>Section</th>
             <th>Gender</th>
+            <th>Academic Status</th>
             <th>Payment Status</th>
             <th>Actions</th>
           </tr>
@@ -124,6 +125,16 @@ const StudentTable = ({
 
                   <td data-label="Gender">{student.gender}</td>
 
+                  <td data-label="Academic Status">
+                    <span
+                      className={`student-table__academic-status student-table__academic-status--${student.status || "unknown"}`}
+                    >
+                      {student.status
+                        ? student.status.charAt(0).toUpperCase() + student.status.slice(1)
+                        : "Unknown"}
+                    </span>
+                  </td>
+
                   <td data-label="Payment Status">
                     <span
                       className={`student-table__payment-status student-table__payment-status--${statusClass}`}
@@ -158,7 +169,7 @@ const StudentTable = ({
             })
           ) : (
             <tr>
-              <td colSpan="10" className="student-table__empty">
+              <td colSpan="11" className="student-table__empty">
                 No students found.
               </td>
             </tr>

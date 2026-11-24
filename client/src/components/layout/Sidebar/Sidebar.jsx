@@ -1,3 +1,4 @@
+
 import React from "react";
 import "./Sidebar.css";
 import sidebarMenu from "../../../data/sidebarMenu";
@@ -14,9 +15,17 @@ const Sidebar = ({ isOpen, onNavigate }) => {
         ? [currentUser.role]
         : [];
 
-  const visibleMenuItems = sidebarMenu.filter((item) =>
-    item.roles.some((role) => userRoles.includes(role))
-  );
+  const visibleMenuItems = sidebarMenu.filter((item) => {
+    if (item.access === "academicAnalytics") {
+      return (
+        userRoles.some((role) =>
+          ["Principal", "School Admin", "Exam Officer"].includes(role)
+        ) || currentUser?.isHeadTeacher === true
+      );
+    }
+
+    return item.roles.some((role) => userRoles.includes(role));
+  });
 
   return (
     <aside
@@ -25,21 +34,30 @@ const Sidebar = ({ isOpen, onNavigate }) => {
       aria-label="Main navigation"
     >
       <ul className="sidebar__menu">
-        {visibleMenuItems.map((item) => (
-          <li key={item.id} className="sidebar__item">
-            <NavLink
-              to={item.path}
-              className={({ isActive }) =>
-                isActive ? "sidebar__link active" : "sidebar__link"
-              }
-              end={item.path === "/dashboard"}
-              onClick={onNavigate}
-            >
-              <span>{item.icon}</span>
-              <span>{item.label}</span>
-            </NavLink>
-          </li>
-        ))}
+        {visibleMenuItems.map((item) => {
+          const Icon = item.icon;
+
+          return (
+            <li key={item.id} className="sidebar__item">
+              <NavLink
+                to={item.path}
+                className={({ isActive }) =>
+                  isActive ? "sidebar__link active" : "sidebar__link"
+                }
+                end={item.path === "/dashboard"}
+                onClick={onNavigate}
+              >
+                <Icon
+                  className="sidebar__icon"
+                  size={19}
+                  strokeWidth={1.8}
+                  aria-hidden="true"
+                />
+                <span className="sidebar__label">{item.label}</span>
+              </NavLink>
+            </li>
+          );
+        })}
       </ul>
     </aside>
   );

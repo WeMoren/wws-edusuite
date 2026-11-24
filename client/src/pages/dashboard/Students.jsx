@@ -18,6 +18,7 @@ const Students = () => {
     const [searchTerm, setSearchTerm] = useState("");
     const [classFilter, setClassFilter] = useState("");
     const [genderFilter, setGenderFilter] = useState("");
+    const [statusFilter, setStatusFilter] = useState("");
     const [currentPage, setCurrentPage] = useState(1);
     const studentsPerPage = 5;
     const [selectedStudent, setSelectedStudent] = useState(null)
@@ -61,7 +62,7 @@ const Students = () => {
 
         useEffect(() => {
     setCurrentPage(1);
-    }, [searchTerm, classFilter, genderFilter]);
+    }, [searchTerm, classFilter, genderFilter, statusFilter]);
 
 
 const { currentUser, authToken } = useAuth();
@@ -128,7 +129,8 @@ const { currentUser, authToken } = useAuth();
             (student.middleName ?? "").toLowerCase().includes(search) ||
             (student.lastName ?? "").toLowerCase().includes(search) ||
             (classItem?.name ?? "").toLowerCase().includes(search) ||
-            (academicLevel?.name ?? "").toLowerCase().includes(search);
+            (academicLevel?.name ?? "").toLowerCase().includes(search) ||
+            (student.status ?? "").toLowerCase().includes(search);
 
         const matchesClass =
             classFilter === "" ||
@@ -137,11 +139,20 @@ const { currentUser, authToken } = useAuth();
         const matchesGender =
             genderFilter === "" || student.gender === genderFilter;
 
-        return matchesSearch && matchesClass && matchesGender;
+        const matchesStatus =
+            statusFilter === "" || student.status === statusFilter;
+
+        return (
+            matchesSearch &&
+            matchesClass &&
+            matchesGender &&
+            matchesStatus
+        );
     });
 
 
 
+   
     const totalPages = Math.ceil(filteredStudents.length / studentsPerPage)
 
     const startIndex = (currentPage - 1) * studentsPerPage;
@@ -200,6 +211,17 @@ const { currentUser, authToken } = useAuth();
                     <option value="">All Gender</option>
                     <option value="Male">Male</option>
                     <option value="Female">Female</option>
+                </select>
+
+                <select
+                    value={statusFilter}
+                    onChange={(e) => setStatusFilter(e.target.value)}
+                >
+                    <option value="">All Academic Statuses</option>
+                    <option value="active">Active</option>
+                    <option value="inactive">Inactive</option>
+                    <option value="graduated">Graduated</option>
+                    <option value="transferred">Transferred</option>
                 </select>
         </div>
 
@@ -341,6 +363,7 @@ const { currentUser, authToken } = useAuth();
                         setEditingStudent(null);
                     }}
                 studentToEdit={editingStudent}
+                currentAcademicSessionId={currentAcademicSession?.id}
                 academicSessions={academicSessions}
                 academicLevels={academicLevels}
                 sections={sections}
@@ -479,16 +502,16 @@ const { currentUser, authToken } = useAuth();
         subjectCombinationId: enrollmentData.combinationId || null,
     };
 
-    if (studentToEdit) {
-        const existingEnrollment = enrollments.find(
+        if (studentToEdit) {
+        const studentEnrollments = enrollments.filter(
             (enrollment) => enrollment.studentId === studentToEdit.id
         );
 
-        if (!existingEnrollment) {
-            throw new Error(
-                "The student's enrollment could not be found. Refresh the page and try again."
-            );
-        }
+        const existingEnrollment = studentEnrollments.find(
+            (enrollment) =>
+                enrollment.academicSessionId ===
+                currentAcademicSession?.id
+        );
 
         await request(`/students/${studentToEdit.id}`, {
             method: "PATCH",
@@ -497,20 +520,42 @@ const { currentUser, authToken } = useAuth();
 
         await refreshRecentActivities();
 
-        try {
-            await request(`/enrollments/${existingEnrollment.id}`, {
-                method: "PATCH",
-                body: JSON.stringify(enrollmentPayload),
-            });
-        } catch (error) {
-            await refreshStudentsAndEnrollments();
-            throw new Error(
-                `Student details were saved, but the enrollment update failed: ${error.message}`
-            );
+        if (existingEnrollment) {
+            const normalizeId = (value) =>
+                value ? String(value) : "";
+
+            const hasEnrollmentPlacementChanged =
+                normalizeId(existingEnrollment.academicSessionId) !==
+                    normalizeId(enrollmentPayload.academicSessionId) ||
+                normalizeId(existingEnrollment.classId) !==
+                    normalizeId(enrollmentPayload.classId) ||
+                normalizeId(existingEnrollment.sectionId) !==
+                    normalizeId(enrollmentPayload.sectionId) ||
+                normalizeId(existingEnrollment.streamId) !==
+                    normalizeId(enrollmentPayload.streamId) ||
+                normalizeId(existingEnrollment.subjectCombinationId) !==
+                    normalizeId(enrollmentPayload.subjectCombinationId);
+
+            if (hasEnrollmentPlacementChanged) {
+                try {
+                    await request(
+                        `/enrollments/${existingEnrollment.id}`,
+                        {
+                            method: "PATCH",
+                            body: JSON.stringify(enrollmentPayload),
+                        }
+                    );
+                } catch (error) {
+                    await refreshStudentsAndEnrollments();
+
+                    throw new Error(
+                        `Student details were saved, but the enrollment update failed: ${error.message}`
+                    );
+                }
+            }
         }
 
         await refreshStudentsAndEnrollments();
-
         await refreshRecentActivities();
 
        
@@ -553,4 +598,4 @@ const { currentUser, authToken } = useAuth();
   )
 }
 
-export default Students
+export default Students;
