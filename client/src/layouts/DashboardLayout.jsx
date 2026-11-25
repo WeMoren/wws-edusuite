@@ -1,5 +1,5 @@
 import React, {useEffect, useState } from 'react'
-import { Outlet } from 'react-router-dom';
+import {Link, Outlet, useLocation } from 'react-router-dom';
 import { useAuth } from "../auth/AuthContext";
 import { hasPermission } from "../auth/permissions";
 import Header from '../components/layout/Header/Header'
@@ -10,8 +10,27 @@ import initialResults from "../data/results";
 
 
 const DashboardLayout = () => {
+    const location = useLocation();
 
-    const { authToken, currentUser } = useAuth();
+    const {
+        authToken,
+        currentUser,
+        subscriptionAccess,
+        subscriptionAccessLoading,
+        subscriptionAccessError,
+        refreshSubscriptionAccess,
+    } = useAuth();
+
+    const isSubscriptionExemptRoute = [
+        "/dashboard/settings",
+        "/dashboard/subscription",
+        "/dashboard/subscription/callback",
+    ].includes(location.pathname);
+
+    const canLoadOperationalData =
+        Boolean(authToken) &&
+        !subscriptionAccessLoading &&
+        subscriptionAccess?.allowed === true;
 
 const userRoles = Array.isArray(currentUser?.roles)
     ? currentUser.roles
@@ -45,7 +64,7 @@ const canViewStudentPaymentStatus = userRoles.some((role) =>
     const [staffCount, setStaffCount] = useState(0);
 
 useEffect(() => {
-    if (!authToken) {
+   if (!canLoadOperationalData) {
         setStaffCount(0);
         return;
     }
@@ -79,11 +98,11 @@ useEffect(() => {
     loadStaffCount();
 
     return () => controller.abort();
-}, [authToken]);
+}, [authToken, canLoadOperationalData]);
 
 
     useEffect(() => {
-    if (!authToken) {
+    if (!canLoadOperationalData) {
         setTeachers([]);
         return;
     }
@@ -132,7 +151,7 @@ useEffect(() => {
     loadTeachers();
 
     return () => controller.abort();
-}, [authToken]);
+}, [authToken, canLoadOperationalData]);
 
 
     const [classes, setClasses] = useState([]);
@@ -143,7 +162,7 @@ useEffect(() => {
 
 
 
-      const [activeAcademicLevels, setActiveAcademicLevels] = useState(() => {
+    const [activeAcademicLevels, setActiveAcademicLevels] = useState(() => {
     const savedActiveAcademicLevels =
         localStorage.getItem("activeAcademicLevels");
 
@@ -180,7 +199,7 @@ const [academicSetupError, setAcademicSetupError] = useState("");
 
 
 useEffect(() => {
-  if (!authToken) {
+  if (!canLoadOperationalData) {
     setAcademicSessions([]);
     setAcademicTerms([]);
     setAcademicLevels([]);
@@ -296,10 +315,10 @@ useEffect(() => {
   loadAcademicSetup();
 
   return () => controller.abort();
-}, [authToken, academicDataRefreshKey]);
+}, [authToken, canLoadOperationalData, academicDataRefreshKey]);
 
 useEffect(() => {
-  if (!authToken) {
+  if (!canLoadOperationalData) {
     setStudents([]);
     setEnrollments([]);
     setStudentsError("");
@@ -408,10 +427,10 @@ useEffect(() => {
   loadStudentsAndEnrollments();
 
   return () => controller.abort();
-}, [authToken, academicDataRefreshKey]);
+}, [authToken, canLoadOperationalData, academicDataRefreshKey]);
 
 useEffect(() => {
-  if (!authToken || !canViewFinancialAccounts) {
+  if (!canLoadOperationalData || !canViewFinancialAccounts) {
     setPayments([]);
     return;
   }
@@ -472,12 +491,12 @@ useEffect(() => {
   loadPayments();
 
   return () => controller.abort();
-}, [authToken, canViewFinancialAccounts]);
+}, [authToken, canLoadOperationalData, canViewFinancialAccounts]);
 
 
 
 useEffect(() => {
-  if (!authToken || (!canViewFinancialAccounts && !canViewStudentPaymentStatus)) {
+  if (!canLoadOperationalData || (!canViewFinancialAccounts && !canViewStudentPaymentStatus)) {
     setFinancialAccounts([]);
     setFinancialAccountsError("");
     setFinancialAccountsLoading(false);
@@ -568,6 +587,7 @@ useEffect(() => {
   return () => controller.abort();
 }, [
   authToken,
+  canLoadOperationalData,
   canViewFinancialAccounts,
   canViewStudentPaymentStatus,
   academicDataRefreshKey,
@@ -578,7 +598,7 @@ useEffect(() => {
 const [subjects, setSubjects] = useState([]);
 
 useEffect(() => {
-    if (!authToken) {
+    if (!canLoadOperationalData) {
         setSubjects([]);
         return;
     }
@@ -624,7 +644,7 @@ useEffect(() => {
     loadSubjects();
 
     return () => controller.abort();
-}, [authToken]);
+}, [authToken, canLoadOperationalData]);
 
 
 
@@ -633,7 +653,7 @@ const [streamLevels, setStreamLevels] = useState([]);
 const [subjectCombinations, setSubjectCombinations] = useState([]);
 
 useEffect(() => {
-  if (!authToken) {
+  if (!canLoadOperationalData) {
     setStreams([]);
     setStreamLevels([]);
     setSubjectCombinations([]);
@@ -764,7 +784,7 @@ useEffect(() => {
   loadSubjectCombinations();
 
   return () => controller.abort();
-}, [authToken]);
+}, [authToken, canLoadOperationalData]);
 
 
 const [results, setResults] = useState(() => {
@@ -783,7 +803,7 @@ useEffect(() => {
 const [attendance, setAttendance] = useState([]);
 
 useEffect(() => {
-  if (!authToken) {
+  if (!canLoadOperationalData) {
     setAttendance([]);
     return;
   }
@@ -844,7 +864,7 @@ useEffect(() => {
 const [recentActivities, setRecentActivities] = useState([]);
 
 const refreshRecentActivities = async (signal) => {
-    if (!authToken) {
+    if (!canLoadOperationalData) {
         setRecentActivities([]);
         return;
     }
@@ -889,12 +909,12 @@ useEffect(() => {
     refreshRecentActivities(controller.signal);
 
     return () => controller.abort();
-}, [authToken]);
+}, [authToken, canLoadOperationalData]);
 
 
         const [parents, setParents] = useState([]);
               useEffect(() => {
-          if (!authToken) {
+          if (!canLoadOperationalData) {
               setParents([]);
               return;
           }
@@ -931,14 +951,14 @@ useEffect(() => {
     loadParents();
 
     return () => controller.abort();
-}, [authToken]);
+}, [authToken, canLoadOperationalData]);
 
 
     /* Upcoming events from backend */
 const [upcomingEvents, setUpcomingEvents] = useState([]);
 
 useEffect(() => {
-    if (!authToken) {
+    if (!canLoadOperationalData) {
         setUpcomingEvents([]);
         return;
     }
@@ -980,7 +1000,7 @@ useEffect(() => {
     loadUpcomingEvents();
 
     return () => controller.abort();
-}, [authToken]);
+}, [authToken, canLoadOperationalData]);
 
 
   
@@ -1110,8 +1130,10 @@ return (
             />
 
             <main className="dashboard-content">
-                <Outlet
-                    context={{
+                {isSubscriptionExemptRoute ||
+                (!subscriptionAccessLoading && subscriptionAccess?.allowed === true) ? (
+                    <Outlet
+                     context={{
                         payments,
                         setPayments,
                         financialAccounts,
@@ -1166,6 +1188,72 @@ return (
                         setResults,
                     }}
                 />
+                    ) : subscriptionAccessLoading ? (
+          <section className="subscription-access-screen">
+              <div className="subscription-access-card">
+                  <div className="subscription-access-icon">...</div>
+                  <h2>Checking subscription access</h2>
+                  <p>
+                      Please wait while we verify your school's subscription.
+                  </p>
+              </div>
+          </section>
+    ) : subscriptionAccess?.state === "restricted" ? (
+        <section className="subscription-access-screen">
+            <div className="subscription-access-card">
+                <div className="subscription-access-icon">!</div>
+                <h2>Subscription access paused</h2>
+                <p>
+                    Your school's subscription grace period has ended.
+                    Renew your subscription to restore access to the
+                    school's operational modules. Your school data
+                    remains safe and has not been deleted or compromised.
+                </p>
+
+                <div className="subscription-access-actions">
+                    <Link
+                        to="/dashboard/subscription"
+                        className="subscription-access-button"
+                    >
+                        View subscription
+                    </Link>
+                </div>
+            </div>
+        </section>
+    ) : (
+        <section className="subscription-access-screen">
+            <div className="subscription-access-card">
+                <div className="subscription-access-icon">!</div>
+                <h2>Unable to verify subscription</h2>
+                <p>
+                    We couldn't confirm your school's subscription
+                    access. Operational modules remain unavailable
+                    until verification succeeds.
+                </p>
+
+                {subscriptionAccessError && (
+                    <p>{subscriptionAccessError}</p>
+                )}
+
+                <div className="subscription-access-actions">
+                    <button
+                        type="button"
+                        className="subscription-access-button"
+                        onClick={() => refreshSubscriptionAccess()}
+                    >
+                        Try again
+                    </button>
+
+                    <Link
+                        to="/dashboard/subscription"
+                        className="subscription-access-button subscription-access-button--secondary"
+                    >
+                        View subscription
+                    </Link>
+                </div>
+            </div>
+        </section>
+    )}
             </main>
         </div>
     </>

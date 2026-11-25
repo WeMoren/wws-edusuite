@@ -10,11 +10,16 @@ import {
 
 import { authenticateToken } from "../middleware/authMiddleware.js";
 import { requireSchoolContext } from "../middleware/schoolMiddleware.js";
+import { requireSubscriptionAccess } from "../middleware/subscriptionAccessMiddleware.js";
 import { requirePermission } from "../middleware/permissionMiddleware.js";
 
 const router = express.Router();
 
-router.use(authenticateToken, requireSchoolContext);
+router.use(
+    authenticateToken,
+    requireSchoolContext,
+    requireSubscriptionAccess
+);
 
 router.get(
     "/",

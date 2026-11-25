@@ -55,7 +55,7 @@ const formatStatus = (status = "") =>
   );
 
 const Subscription = () => {
-  const { authToken } = useAuth();
+  const { authToken, refreshSubscriptionAccess} = useAuth();
   const location = useLocation();
   const navigate = useNavigate();
 
@@ -161,6 +161,8 @@ const Subscription = () => {
             body: JSON.stringify({ reference }),
           });
 
+          await refreshSubscriptionAccess();
+
           if (!cancelled) {
             setNotice({
               title: "Payment verified",
@@ -202,6 +204,7 @@ const Subscription = () => {
     location.search,
     loadSubscriptionData,
     navigate,
+    refreshSubscriptionAccess,
   ]);
 
     const verifyExistingPayment = async (reference) => {
@@ -215,6 +218,8 @@ const Subscription = () => {
       method: "POST",
       body: JSON.stringify({ reference }),
     });
+
+    await refreshSubscriptionAccess();
 
     verificationMessage =
       data.message ||

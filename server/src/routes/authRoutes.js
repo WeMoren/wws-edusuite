@@ -3,6 +3,7 @@ import { registerUser, loginUser, registerSchool } from "../controllers/authCont
 import { authenticateToken } from "../middleware/authMiddleware.js";
 import { requirePermission } from "../middleware/permissionMiddleware.js";
 import { requireSchoolContext } from "../middleware/schoolMiddleware.js";
+import { getSubscriptionAccess } from "../services/subscriptionAccessService.js";
 import { requireRole } from "../middleware/roleMiddleware.js";
 import rateLimit from "express-rate-limit";
 import {
@@ -58,11 +59,23 @@ router.post(
 
 
 
-router.get("/me", authenticateToken, requireSchoolContext, (req, res) => {
+router.get("/me", authenticateToken, requireSchoolContext, async (req, res) => {
+    let subscriptionAccess = null;
+
+    try {
+        subscriptionAccess = await getSubscriptionAccess(req.schoolId);
+    } catch (error) {
+        console.error(
+            "Failed to retrieve subscription access during session refresh:",
+            error.message
+        );
+    }
+
     return res.status(200).json({
         message: "Authenticated request successful.",
         user: req.user,
         schoolId: req.schoolId,
+        subscriptionAccess,
     });
 });
 

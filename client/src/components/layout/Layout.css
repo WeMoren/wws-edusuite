@@ -45,3 +45,91 @@
     padding: 0.75rem;
   }
 }
+
+
+/* Subscription access restriction */
+
+.subscription-access-screen {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 65vh;
+  padding: 2rem 1rem;
+}
+
+.subscription-access-card {
+  width: 100%;
+  max-width: 540px;
+  padding: 2.5rem;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 16px;
+  text-align: center;
+  box-shadow: 0 8px 30px rgb(15 23 42 / 5%);
+}
+
+.subscription-access-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 64px;
+  height: 64px;
+  margin: 0 auto 1.5rem;
+  border-radius: 50%;
+  background: #eff6ff;
+  color: #2563eb;
+  font-size: 1.75rem;
+  font-weight: 700;
+}
+
+.subscription-access-card h2 {
+  margin: 0 0 0.75rem;
+  color: #0f172a;
+  font-size: 1.5rem;
+}
+
+.subscription-access-card p {
+  margin: 0 0 1.5rem;
+  color: #64748b;
+  line-height: 1.7;
+}
+
+.subscription-access-actions {
+  display: flex;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+
+.subscription-access-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
+  padding: 0.7rem 1.25rem;
+  border: none;
+  border-radius: 8px;
+  background: #2563eb;
+  color: #ffffff;
+  font-weight: 600;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.subscription-access-button:hover {
+  background: #1d4ed8;
+}
+
+.subscription-access-button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.subscription-access-button--secondary {
+  background: #f1f5f9;
+  color: #334155;
+}
+
+.subscription-access-button--secondary:hover {
+  background: #e2e8f0;
+}

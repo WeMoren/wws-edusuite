@@ -1,5 +1,5 @@
 import pool from "../config/db.js";
-
+import { getSubscriptionAccess } from "../services/subscriptionAccessService.js";
 
 export const getSchoolSubscription = async (req, res) => {
     try {
@@ -52,6 +52,8 @@ export const getSchoolSubscription = async (req, res) => {
 
         const subscription = result.rows[0];
 
+        const subscriptionAccess = await getSubscriptionAccess(schoolId);
+
         let remainingTrialDays = 0;
 
         if (
@@ -77,6 +79,7 @@ export const getSchoolSubscription = async (req, res) => {
                 ...subscription,
                 remaining_trial_days: remainingTrialDays,
             },
+            subscriptionAccess,
         });
     } catch (error) {
         console.error(
@@ -84,9 +87,12 @@ export const getSchoolSubscription = async (req, res) => {
             error.message
         );
 
-        return res.status(500).json({
-            message: "Failed to fetch school subscription.",
-        });
+        return res.status(error.statusCode || 500).json({
+            code: error.code || "SUBSCRIPTION_FETCH_FAILED",
+            message: error.statusCode === 503
+                ? error.message
+                : "Failed to fetch school subscription.",
+    });
     }
 };
 

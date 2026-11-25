@@ -2,6 +2,8 @@ import React, {
 createContext,
 useContext,
 useState,
+useEffect,
+useCallback,
 } from "react";
 
 const AuthContext = createContext();
@@ -82,17 +84,84 @@ const [authToken, setAuthToken] = useState(() => {
 return localStorage.getItem("authToken");
 });
 
+const [subscriptionAccess, setSubscriptionAccess] = useState(null);
+const [subscriptionAccessLoading, setSubscriptionAccessLoading] = useState(
+  Boolean(authToken)
+);
+const [subscriptionAccessError, setSubscriptionAccessError] = useState("");
+
+const refreshSubscriptionAccess = useCallback(async (signal) => {
+  if (!authToken) {
+    setSubscriptionAccess(null);
+    setSubscriptionAccessLoading(false);
+    setSubscriptionAccessError("");
+    return null;
+  }
+
+  setSubscriptionAccessLoading(true);
+  setSubscriptionAccessError("");
+
+  try {
+    const response = await fetch(`${API_BASE_URL}/auth/me`, {
+      headers: {
+        Authorization: `Bearer ${authToken}`,
+      },
+      signal,
+    });
+
+    const data = await response.json().catch(() => ({}));
+
+    if (!response.ok) {
+      throw new Error(
+        data.message || "Unable to verify subscription access."
+      );
+    }
+
+    if (!data.subscriptionAccess) {
+      throw new Error("Subscription access information is unavailable.");
+    }
+
+    setSubscriptionAccess(data.subscriptionAccess);
+
+    return data.subscriptionAccess;
+  } catch (error) {
+    if (error.name === "AbortError") {
+      return null;
+    }
+
+    console.error("Failed to refresh subscription access:", error);
+
+    setSubscriptionAccess(null);
+    setSubscriptionAccessError(
+      error.message || "Unable to verify subscription access."
+    );
+
+    return null;
+  } finally {
+    if (!signal?.aborted) {
+      setSubscriptionAccessLoading(false);
+    }
+  }
+}, [authToken]);
+
+useEffect(() => {
+  const controller = new AbortController();
+  refreshSubscriptionAccess(controller.signal);
+
+  return () => controller.abort();
+}, [refreshSubscriptionAccess]);
+
 const login = async (email, password) => {
-try {
-const response = await fetch(`${API_BASE_URL}/auth/login`, {
-method: "POST",
-headers: {
-"Content-Type": "application/json",
-},
-body: JSON.stringify({
-email,
-password,
-}),
+  try {
+      const response = await fetch(`${API_BASE_URL}/auth/login`, {
+      method: "POST",
+      headers: {
+      "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+      email,
+      password,
+  }),
 });
 
   const data = await response.json();
@@ -148,6 +217,10 @@ return (
 value={{
 currentUser,
 authToken,
+subscriptionAccess,
+subscriptionAccessLoading,
+subscriptionAccessError,
+refreshSubscriptionAccess,
 login,
 logout,
 }}

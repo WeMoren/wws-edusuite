@@ -10,6 +10,7 @@ import {
 
 import { authenticateToken } from "../middleware/authMiddleware.js";
 import { requireSchoolContext } from "../middleware/schoolMiddleware.js";
+import { requireSubscriptionAccess } from "../middleware/subscriptionAccessMiddleware.js";
 import { requirePermission } from "../middleware/permissionMiddleware.js";
 
 const router = express.Router();
@@ -20,6 +21,7 @@ router.get(
     "/payment-statuses",
     authenticateToken,
     requireSchoolContext,
+    requireSubscriptionAccess,
     requirePermission("students", "view"),
     getStudentPaymentStatuses
 );
@@ -29,6 +31,7 @@ router.post(
     "/generate-current-term",
     authenticateToken,
     requireSchoolContext,
+    requireSubscriptionAccess,
     requirePermission("accountant", "create"),
     generateCurrentTermFinancialAccounts
 );
@@ -38,6 +41,7 @@ router.get(
     "/",
     authenticateToken,
     requireSchoolContext,
+    requireSubscriptionAccess,
     requirePermission("accountant", "view"),
     getStudentFinancialAccounts
 );
@@ -46,6 +50,7 @@ router.get(
     "/:id",
     authenticateToken,
     requireSchoolContext,
+    requireSubscriptionAccess,
     requirePermission("accountant", "view"),
     getStudentFinancialAccountById
 );
@@ -54,6 +59,7 @@ router.post(
     "/",
     authenticateToken,
     requireSchoolContext,
+    requireSubscriptionAccess,
     requirePermission("accountant", "create"),
     createStudentFinancialAccount
 );
